@@ -92,9 +92,9 @@
                 <Border Background="White" BorderBrush="{StaticResource Rule}" BorderThickness="0,0,0,1">
                     <DockPanel><TextBlock Text="Sales Overview" FontWeight="SemiBold" VerticalAlignment="Center" Margin="14,0"/><TextBlock DockPanel.Dock="Right" Text="Diagram 1" Foreground="{StaticResource MutedInk}" VerticalAlignment="Center" Margin="0,0,14,0"/></DockPanel>
                 </Border>
-                <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-                    <Viewbox x:Name="DiagramView" Stretch="None">
-                        <Canvas x:Name="DiagramCanvasSurface" Width="930" Height="650" Background="{StaticResource DiagramGridBrush}" MouseLeftButtonDown="DiagramCanvasSurface_MouseLeftButtonDown">
+                <ScrollViewer x:Name="DiagramScrollViewer" Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Background="{StaticResource DiagramGridBrush}" SizeChanged="DiagramScrollViewer_SizeChanged">
+                    <Grid x:Name="DiagramView" HorizontalAlignment="Left" VerticalAlignment="Top">
+                        <Canvas x:Name="DiagramCanvasSurface" MinWidth="930" MinHeight="650" Background="{StaticResource DiagramGridBrush}" MouseLeftButtonDown="DiagramCanvasSurface_MouseLeftButtonDown">
                             <!-- relation lines -->
                             <Path Tag="CustomerOrder" Stroke="Transparent" StrokeThickness="16" Data="M 265,158 L 330,158 L 330,245 L 390,245" MouseLeftButtonDown="Relationship_MouseLeftButtonDown" Cursor="Hand"/>
                             <Path x:Name="CustomerOrderLine" Tag="CustomerOrder" Stroke="#42D9D4" StrokeThickness="2.5" StrokeDashArray="5,3" Data="M 265,158 L 330,158 L 330,245 L 390,245" IsHitTestVisible="False"/>
@@ -119,7 +119,7 @@
                             <Ellipse x:Name="RelationshipMoveHandle" Visibility="Collapsed" Width="18" Height="18" Fill="#F1BF52" Stroke="#FFF1A8" StrokeThickness="2" Cursor="SizeAll" MouseLeftButtonDown="RelationshipHandle_MouseLeftButtonDown" MouseMove="RelationshipHandle_MouseMove" MouseLeftButtonUp="RelationshipHandle_MouseLeftButtonUp" Panel.ZIndex="20" ToolTip="Drag to move selected relationship"/>
                             <TextBlock x:Name="EmptyHint" Visibility="Collapsed" Canvas.Left="365" Canvas.Top="300" Text="No matching entities" Foreground="{StaticResource MutedInk}" FontSize="18"/>
                         </Canvas>
-                    </Viewbox>
+                    </Grid>
                 </ScrollViewer>
             </Grid>
             <GridSplitter Grid.Column="3" Width="5" HorizontalAlignment="Stretch" Background="#EDF1F4"/>

@@ -38,7 +38,7 @@ public partial class MainWindow : Window
         InitializeComponent();
         SelectEntity("Order");
         SelectCard(OrderCard);
-        Loaded += (_, _) => UpdateRelationshipLines();
+        Loaded += (_, _) => { ResizeDiagramSurfaceToViewport(); UpdateRelationshipLines(); };
     }
 
     private void SelectEntity(string key)
@@ -267,6 +267,18 @@ public partial class MainWindow : Window
             Canvas.SetTop(RelationshipMoveHandle, middle.Y - 9);
         }
     }
+    private void DiagramScrollViewer_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        ResizeDiagramSurfaceToViewport();
+    }
+
+    private void ResizeDiagramSurfaceToViewport()
+    {
+        if (DiagramScrollViewer is null || DiagramCanvasSurface is null) return;
+        var scale = _zoom / 100d;
+        DiagramCanvasSurface.Width = Math.Max(930, DiagramScrollViewer.ViewportWidth / scale);
+        DiagramCanvasSurface.Height = Math.Max(650, DiagramScrollViewer.ViewportHeight / scale);
+    }
     private void ModelTree_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
     {
         if (e.NewValue is TreeViewItem { Tag: string key })
@@ -277,7 +289,7 @@ public partial class MainWindow : Window
 
     private void ZoomIn_Click(object sender, RoutedEventArgs e) => SetZoom(Math.Min(160, _zoom + 10));
     private void ZoomOut_Click(object sender, RoutedEventArgs e) => SetZoom(Math.Max(50, _zoom - 10));
-    private void SetZoom(int value) { _zoom = value; DiagramView.LayoutTransform = new ScaleTransform(_zoom / 100d, _zoom / 100d); ZoomLabel.Text = $"{_zoom}%"; }
+    private void SetZoom(int value) { _zoom = value; DiagramView.LayoutTransform = new ScaleTransform(_zoom / 100d, _zoom / 100d); ZoomLabel.Text = $"{_zoom}%"; ResizeDiagramSurfaceToViewport(); }
     private void Validate_Click(object sender, RoutedEventArgs e) { StatusText.Text = "Validation complete — no errors or warnings"; MessageBox.Show("Model validation completed successfully.\n\n5 entities checked\n4 relationships checked\n0 issues found", "Validate Model", MessageBoxButton.OK, MessageBoxImage.Information); }
     private void Generate_Click(object sender, RoutedEventArgs e) { const string ddl = "CREATE TABLE sales_order (\n  order_id INT NOT NULL PRIMARY KEY,\n  customer_id INT NOT NULL,\n  order_date DATETIME2 NOT NULL,\n  status VARCHAR(20) NOT NULL\n);"; Clipboard.SetText(ddl); StatusText.Text = "DDL generated and copied to clipboard"; MessageBox.Show(ddl + "\n\nCopied to clipboard.", "Generated SQL Server DDL", MessageBoxButton.OK, MessageBoxImage.Information); }
     private void NewEntity_Click(object sender, RoutedEventArgs e) => MessageBox.Show("Entity creation workflow is ready for your implementation.", "New Entity", MessageBoxButton.OK, MessageBoxImage.Information);
