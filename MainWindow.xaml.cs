@@ -146,7 +146,8 @@ public partial class MainWindow : Window
         if (sender is not Path { Tag: string key } hitPath) return;
         ClearCardSelection(); ClearRelationshipSelection();
         _selectedHitPath = hitPath;
-        _selectedRelationship = FindRelationshipLine(key);
+                _selectedRelationshipKey = key;
+_selectedRelationship = FindRelationshipLine(key);
         if (_selectedRelationship is null) return;
         _selectedRelationship.Stroke = new SolidColorBrush(Color.FromRgb(241, 223, 119));
         _selectedRelationship.StrokeThickness = 4;
@@ -154,10 +155,22 @@ public partial class MainWindow : Window
         RelationshipMoveHandle.Visibility = Visibility.Visible;
         Canvas.SetLeft(RelationshipMoveHandle, point.X - 9);
         Canvas.SetTop(RelationshipMoveHandle, point.Y - 9);
-        StatusText.Text = "Relationship selected — drag the gold handle to move its route";
+        StatusText.Text = "Relationship selected — drag the line or gold handle to bend its route";
+        _draggingRelationship = true;
+        _relationshipDragStart = point;
+        hitPath.CaptureMouse();
         e.Handled = true;
     }
 
+    private void RelationshipHit_MouseMove(object sender, MouseEventArgs e)
+    {
+        RelationshipHandle_MouseMove(sender, e);
+    }
+
+    private void RelationshipHit_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+    {
+        CompleteRelationshipDrag(e);
+    }
     private void RelationshipHandle_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         if (_selectedRelationship is null) return;
@@ -182,10 +195,15 @@ public partial class MainWindow : Window
 
     private void RelationshipHandle_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
+        CompleteRelationshipDrag(e);
+    }
+
+    private void CompleteRelationshipDrag(MouseButtonEventArgs e)
+    {
         if (!_draggingRelationship) return;
         _draggingRelationship = false;
-        RelationshipMoveHandle.ReleaseMouseCapture();
-        StatusText.Text = "Relationship route moved";
+        if (Mouse.Captured is UIElement captured) captured.ReleaseMouseCapture();
+        StatusText.Text = "Relationship route moved; endpoints remain connected";
         e.Handled = true;
     }
     private void ClearRelationshipSelection()

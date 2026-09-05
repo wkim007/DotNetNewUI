@@ -96,14 +96,14 @@
                     <Grid x:Name="DiagramView" HorizontalAlignment="Left" VerticalAlignment="Top">
                         <Canvas x:Name="DiagramCanvasSurface" MinWidth="930" MinHeight="650" Background="{StaticResource DiagramGridBrush}" MouseLeftButtonDown="DiagramCanvasSurface_MouseLeftButtonDown">
                             <!-- relation lines -->
-                            <Path Tag="CustomerOrder" Stroke="Transparent" StrokeThickness="16" Data="M 265,158 L 330,158 L 330,245 L 390,245" MouseLeftButtonDown="Relationship_MouseLeftButtonDown" Cursor="Hand"/>
-                            <Path x:Name="CustomerOrderLine" Tag="CustomerOrder" Stroke="#42D9D4" StrokeThickness="2.5" StrokeDashArray="5,3" Data="M 265,158 L 330,158 L 330,245 L 390,245" IsHitTestVisible="False"/>
-                            <Path Tag="OrderProduct" Stroke="Transparent" StrokeThickness="16" Data="M 610,245 L 665,245 L 665,158 L 720,158" MouseLeftButtonDown="Relationship_MouseLeftButtonDown" Cursor="Hand"/>
+                            <Path Tag="CustomerOrder" Stroke="Transparent" StrokeThickness="16" Data="M 265,158 L 330,158 L 330,245 L 390,245" MouseLeftButtonDown="Relationship_MouseLeftButtonDown" MouseMove="RelationshipHit_MouseMove" MouseLeftButtonUp="RelationshipHit_MouseLeftButtonUp" Cursor="SizeAll"/>
+                            <Path x:Name="CustomerOrderLine" Tag="CustomerOrder" Stroke="#42D9D4" StrokeThickness="2.5" StrokeDashArray="2,1.5" StrokeDashCap="Round" Data="M 265,158 L 330,158 L 330,245 L 390,245" IsHitTestVisible="False"/>
+                            <Path Tag="OrderProduct" Stroke="Transparent" StrokeThickness="16" Data="M 610,245 L 665,245 L 665,158 L 720,158" MouseLeftButtonDown="Relationship_MouseLeftButtonDown" MouseMove="RelationshipHit_MouseMove" MouseLeftButtonUp="RelationshipHit_MouseLeftButtonUp" Cursor="SizeAll"/>
                             <Path x:Name="OrderProductLine" Tag="OrderProduct" Stroke="#42D9D4" StrokeThickness="2.5" Data="M 610,245 L 665,245 L 665,158 L 720,158" IsHitTestVisible="False"/>
-                            <Path Tag="OrderOrderItem" Stroke="Transparent" StrokeThickness="16" Data="M 500,330 L 500,390" MouseLeftButtonDown="Relationship_MouseLeftButtonDown" Cursor="Hand"/>
+                            <Path Tag="OrderOrderItem" Stroke="Transparent" StrokeThickness="16" Data="M 500,330 L 500,390" MouseLeftButtonDown="Relationship_MouseLeftButtonDown" MouseMove="RelationshipHit_MouseMove" MouseLeftButtonUp="RelationshipHit_MouseLeftButtonUp" Cursor="SizeAll"/>
                             <Path x:Name="OrderOrderItemLine" Tag="OrderOrderItem" Stroke="#42D9D4" StrokeThickness="2.5" Data="M 500,330 L 500,390" IsHitTestVisible="False"/>
-                            <Path Tag="ProductOrderItem" Stroke="Transparent" StrokeThickness="16" Data="M 720,170 L 680,170 L 680,485 L 610,485" MouseLeftButtonDown="Relationship_MouseLeftButtonDown" Cursor="Hand"/>
-                            <Path x:Name="ProductOrderItemLine" Tag="ProductOrderItem" Stroke="#42D9D4" StrokeThickness="2.5" StrokeDashArray="5,3" Data="M 720,170 L 680,170 L 680,485 L 610,485" IsHitTestVisible="False"/>
+                            <Path Tag="ProductOrderItem" Stroke="Transparent" StrokeThickness="16" Data="M 720,170 L 680,170 L 680,485 L 610,485" MouseLeftButtonDown="Relationship_MouseLeftButtonDown" MouseMove="RelationshipHit_MouseMove" MouseLeftButtonUp="RelationshipHit_MouseLeftButtonUp" Cursor="SizeAll"/>
+                            <Path x:Name="ProductOrderItemLine" Tag="ProductOrderItem" Stroke="#42D9D4" StrokeThickness="2.5" StrokeDashArray="2,1.5" StrokeDashCap="Round" Data="M 720,170 L 680,170 L 680,485 L 610,485" IsHitTestVisible="False"/>
 
                             
 
