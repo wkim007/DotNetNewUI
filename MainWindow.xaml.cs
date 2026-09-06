@@ -22,6 +22,10 @@ public partial class MainWindow : Window
     private readonly Dictionary<string, Vector> _relationshipOffsets = new();
     private readonly Dictionary<string, Border> _dynamicCards = new();
     private int _newEntityNumber;
+    private int _newRelationshipNumber;
+    private readonly Dictionary<string, DynamicRelationship> _dynamicRelationships = new();
+    private string? _pendingRelationshipType;
+    private string? _relationshipSourceKey;
     private bool _draggingRelationship;
     private Point _relationshipDragStart;
     private double _relationshipHandleStartX;
@@ -66,6 +70,20 @@ public partial class MainWindow : Window
     private void Entity_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         if (e.OriginalSource is Thumb || sender is not Border { Tag: string key } card) return;
+        if (_pendingRelationshipType is not null && _relationshipSourceKey is not null)
+        {
+            if (_relationshipSourceKey == key)
+            {
+                StatusText.Text = "Choose a different target entity";
+                e.Handled = true;
+                return;
+            }
+            CreateDynamicRelationship(_relationshipSourceKey, key, _pendingRelationshipType);
+            _pendingRelationshipType = null;
+            _relationshipSourceKey = null;
+            e.Handled = true;
+            return;
+        }
         SelectEntity(key);
         SelectCard(card);
         ClearRelationshipSelection();
@@ -141,11 +159,15 @@ public partial class MainWindow : Window
         StatusText.Text = "Entity resized"; e.Handled = true;
     }
 
-    private Path? FindRelationshipLine(string key) => key switch
+    private Path? FindRelationshipLine(string key)
     {
-        "CustomerOrder" => CustomerOrderLine, "OrderProduct" => OrderProductLine,
-        "OrderOrderItem" => OrderOrderItemLine, "ProductOrderItem" => ProductOrderItemLine, _ => null
-    };
+        if (_dynamicRelationships.TryGetValue(key, out var dynamicRelationship)) return dynamicRelationship.Visible;
+        return key switch
+        {
+            "CustomerOrder" => CustomerOrderLine, "OrderProduct" => OrderProductLine,
+            "OrderOrderItem" => OrderOrderItemLine, "ProductOrderItem" => ProductOrderItemLine, _ => null
+        };
+    }
 
     private void Relationship_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
@@ -235,6 +257,9 @@ _selectedRelationship = FindRelationshipLine(key);
         UpdateRelationship("OrderProduct", OrderCard, ProductCard);
         UpdateRelationship("OrderOrderItem", OrderCard, OrderItemCard);
         UpdateRelationship("ProductOrderItem", ProductCard, OrderItemCard);
+        foreach (var (key, relationship) in _dynamicRelationships)
+            if (FindCard(relationship.SourceKey) is { } source && FindCard(relationship.TargetKey) is { } target)
+                UpdateRelationship(key, source, target);
     }
 
     private void UpdateRelationship(string key, Border source, Border target)
@@ -320,6 +345,18 @@ _selectedRelationship = FindRelationshipLine(key);
     private void DiagramTool_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not Button { ToolTip: string tool }) return;
+        if (tool is "Identifying relationship" or "Non-identifying relationship")
+        {
+            if (_selectedCard?.Tag is not string sourceKey)
+            {
+                StatusText.Text = "Select the source entity first";
+                return;
+            }
+            _relationshipSourceKey = sourceKey;
+            _pendingRelationshipType = tool;
+            StatusText.Text = $"{tool}: now select the target entity";
+            return;
+        }
         if (tool == "Entity")
         {
             AddNewEntity();
@@ -328,6 +365,56 @@ _selectedRelationship = FindRelationshipLine(key);
         StatusText.Text = $"{tool} tool selected — click the diagram to place it";
     }
 
+    private void CreateDynamicRelationship(string sourceKey, string targetKey, string relationshipType)
+    {
+        var source = FindCard(sourceKey);
+        var target = FindCard(targetKey);
+        if (source is null || target is null) return;
+
+        var key = $"DynamicRelationship{++_newRelationshipNumber}";
+        var hit = new Path
+        {
+            Tag = key, Stroke = Brushes.Transparent, StrokeThickness = 16,
+            Cursor = Cursors.SizeAll
+        };
+        hit.MouseLeftButtonDown += Relationship_MouseLeftButtonDown;
+        hit.MouseMove += RelationshipHit_MouseMove;
+        hit.MouseLeftButtonUp += RelationshipHit_MouseLeftButtonUp;
+
+        var visible = new Path
+        {
+            Tag = key,
+            Stroke = new SolidColorBrush(Color.FromRgb(66, 217, 212)),
+            StrokeThickness = 2.5,
+            IsHitTestVisible = false,
+            StrokeLineJoin = PenLineJoin.Round
+        };
+        if (relationshipType == "Non-identifying relationship")
+        {
+            visible.StrokeDashArray = new DoubleCollection([2, 1.5]);
+            visible.StrokeDashCap = PenLineCap.Round;
+        }
+
+        Panel.SetZIndex(hit, 0);
+        Panel.SetZIndex(visible, 0);
+        DiagramCanvasSurface.Children.Add(hit);
+        DiagramCanvasSurface.Children.Add(visible);
+        _dynamicRelationships[key] = new DynamicRelationship(sourceKey, targetKey, visible, hit, relationshipType == "Identifying relationship");
+        UpdateRelationship(key, source, target);
+
+        ClearCardSelection();
+        ClearRelationshipSelection();
+        _selectedHitPath = hit;
+        _selectedRelationshipKey = key;
+        _selectedRelationship = visible;
+        visible.Stroke = new SolidColorBrush(Color.FromRgb(241, 223, 119));
+        visible.StrokeThickness = 4;
+        var bounds = visible.Data.Bounds;
+        RelationshipMoveHandle.Visibility = Visibility.Visible;
+        Canvas.SetLeft(RelationshipMoveHandle, bounds.Left + bounds.Width / 2 - 9);
+        Canvas.SetTop(RelationshipMoveHandle, bounds.Top + bounds.Height / 2 - 9);
+        StatusText.Text = $"Created {relationshipType}: {sourceKey} → {targetKey}";
+    }
     private void AddNewEntity()
     {
         _newEntityNumber++;
@@ -410,3 +497,5 @@ _selectedRelationship = FindRelationshipLine(key);
 }
 
 public sealed record ColumnInfo(string Name, string Type, bool Required);
+
+public sealed record DynamicRelationship(string SourceKey, string TargetKey, Path Visible, Path Hit, bool IsIdentifying);
