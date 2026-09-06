@@ -12,6 +12,7 @@ public partial class MainWindow : Window
 {
     private int _zoom = 100;
     private Border? _selectedCard;
+    private Border? _selectedAttributeRow;
     private Border? _draggedCard;
     private Point _entityDragStart;
     private double _entityStartLeft;
@@ -22,6 +23,9 @@ public partial class MainWindow : Window
     private readonly Dictionary<string, Vector> _relationshipOffsets = new();
     private readonly Dictionary<string, Border> _dynamicCards = new();
     private int _newEntityNumber;
+    private int _newAnnotationNumber;
+    private int _newViewNumber;
+    private int _newMaterializedViewNumber;
     private int _newRelationshipNumber;
     private readonly Dictionary<string, DynamicRelationship> _dynamicRelationships = new();
     private string? _pendingRelationshipType;
@@ -44,7 +48,7 @@ public partial class MainWindow : Window
         InitializeComponent();
         SelectEntity("Order");
         SelectCard(OrderCard);
-        Loaded += (_, _) => { ResizeDiagramSurfaceToViewport(); UpdateRelationshipLines(); };
+        Loaded += (_, _) => { PrepareAttributeRows(CustomerCard, "Customer"); PrepareAttributeRows(OrderCard, "Order"); PrepareAttributeRows(ProductCard, "Product"); PrepareAttributeRows(OrderItemCard, "OrderItem"); ResizeDiagramSurfaceToViewport(); UpdateRelationshipLines(); };
     }
 
     private void SelectEntity(string key)
@@ -57,6 +61,54 @@ public partial class MainWindow : Window
         StatusText.Text = $"Selected entity: {display}";
     }
 
+    private void PrepareAttributeRows(Border card, string entityKey)
+    {
+        if (card.Child is not Grid grid) return;
+        var fields = grid.Children.OfType<StackPanel>().FirstOrDefault(panel => Grid.GetRow(panel) == 1);
+        if (fields is null || !_columns.TryGetValue(entityKey, out var attributes)) return;
+        var textRows = fields.Children.OfType<TextBlock>().ToList();
+        for (var index = 0; index < textRows.Count && index < attributes.Count; index++)
+        {
+            var text = textRows[index];
+            var childIndex = fields.Children.IndexOf(text);
+            fields.Children.RemoveAt(childIndex);
+            var row = new Border
+            {
+                Tag = new AttributeSelection(entityKey, attributes[index].Name),
+                Background = Brushes.Transparent,
+                BorderBrush = Brushes.Transparent,
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(8),
+                Padding = new Thickness(7, 1, 7, 1),
+                Margin = new Thickness(0, 1, 0, 1),
+                Cursor = Cursors.Hand,
+                Child = text
+            };
+            row.MouseLeftButtonDown += AttributeRow_MouseLeftButtonDown;
+            fields.Children.Insert(childIndex, row);
+        }
+    }
+
+    private void AttributeRow_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is not Border { Tag: AttributeSelection selection } row) return;
+        ClearAttributeSelection();
+        _selectedAttributeRow = row;
+        row.Background = new SolidColorBrush(Color.FromRgb(38, 103, 113));
+        row.BorderBrush = new SolidColorBrush(Color.FromRgb(72, 173, 180));
+        if (FindCard(selection.EntityKey) is { } card) SelectCard(card);
+        SelectEntity(selection.EntityKey);
+        StatusText.Text = $"Selected attribute: {selection.EntityKey}.{selection.AttributeName}";
+        e.Handled = true;
+    }
+
+    private void ClearAttributeSelection()
+    {
+        if (_selectedAttributeRow is null) return;
+        _selectedAttributeRow.Background = Brushes.Transparent;
+        _selectedAttributeRow.BorderBrush = Brushes.Transparent;
+        _selectedAttributeRow = null;
+    }
     private Border? FindCard(string key)
     {
         if (_dynamicCards.TryGetValue(key, out var dynamicCard)) return dynamicCard;
@@ -70,6 +122,7 @@ public partial class MainWindow : Window
     private void Entity_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         if (e.OriginalSource is Thumb || sender is not Border { Tag: string key } card) return;
+        ClearAttributeSelection();
         if (_pendingRelationshipType is not null && _relationshipSourceKey is not null)
         {
             if (_relationshipSourceKey == key)
@@ -345,26 +398,36 @@ _selectedRelationship = FindRelationshipLine(key);
     private void DiagramTool_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not Button { ToolTip: string tool }) return;
-        if (tool is "Identifying relationship" or "Non-identifying relationship")
+        switch (tool)
         {
-            if (_selectedCard?.Tag is not string sourceKey)
-            {
-                StatusText.Text = "Select the source entity first";
+            case "Entity":
+                AddNewEntity();
                 return;
-            }
-            _relationshipSourceKey = sourceKey;
-            _pendingRelationshipType = tool;
-            StatusText.Text = $"{tool}: now select the target entity";
-            return;
+            case "Annotation":
+                AddNewAnnotation();
+                return;
+            case "View":
+                AddNewView(false);
+                return;
+            case "Materialized View":
+                AddNewView(true);
+                return;
+            case "Identifying relationship":
+            case "Non-identifying relationship":
+                if (_selectedCard?.Tag is not string sourceKey)
+                {
+                    StatusText.Text = "Select the source entity first";
+                    return;
+                }
+                _relationshipSourceKey = sourceKey;
+                _pendingRelationshipType = tool;
+                StatusText.Text = $"{tool}: now select the target entity";
+                return;
+            default:
+                StatusText.Text = $"{tool} tool selected — click the diagram to place it";
+                return;
         }
-        if (tool == "Entity")
-        {
-            AddNewEntity();
-            return;
-        }
-        StatusText.Text = $"{tool} tool selected — click the diagram to place it";
     }
-
     private void CreateDynamicRelationship(string sourceKey, string targetKey, string relationshipType)
     {
         var source = FindCard(sourceKey);
@@ -414,6 +477,107 @@ _selectedRelationship = FindRelationshipLine(key);
         Canvas.SetLeft(RelationshipMoveHandle, bounds.Left + bounds.Width / 2 - 9);
         Canvas.SetTop(RelationshipMoveHandle, bounds.Top + bounds.Height / 2 - 9);
         StatusText.Text = $"Created {relationshipType}: {sourceKey} → {targetKey}";
+    }
+    private void AddNewAnnotation()
+    {
+        _newAnnotationNumber++;
+        var key = _newAnnotationNumber == 1 ? "NewAnnotation" : $"NewAnnotation{_newAnnotationNumber}";
+        _columns[key] = [];
+        var card = CreateInteractiveCard(key, 160, 105);
+        card.Background = new SolidColorBrush(Color.FromRgb(239, 244, 250));
+        card.BorderBrush = new SolidColorBrush(Color.FromRgb(137, 157, 179));
+        card.BorderThickness = new Thickness(1.5);
+        card.CornerRadius = new CornerRadius(0);
+        card.Cursor = Cursors.SizeAll;
+
+        var grid = new Grid();
+        var editor = new TextBox
+        {
+            Text = "Type annotation",
+            AcceptsReturn = true,
+            TextWrapping = TextWrapping.Wrap,
+            Background = Brushes.Transparent,
+            BorderThickness = new Thickness(0),
+            Foreground = new SolidColorBrush(Color.FromRgb(31, 47, 67)),
+            Margin = new Thickness(0, 22, 0, 0),
+            Padding = new Thickness(12, 4, 12, 12),
+            Cursor = Cursors.IBeam,
+            VerticalContentAlignment = VerticalAlignment.Top
+        };
+        editor.PreviewMouseLeftButtonDown += (_, e) => { SelectEntity(key); SelectCard(card); editor.Focus(); e.Handled = true; };
+        editor.GotKeyboardFocus += (_, _) => { SelectEntity(key); SelectCard(card); };
+        grid.Children.Add(editor);
+        grid.Children.Add(CreateResizeThumb(key));
+        card.Child = grid;
+        AddDynamicCardToCanvas(key, card);
+        StatusText.Text = $"Created annotation: {key}";
+    }
+
+    private void AddNewView(bool materialized)
+    {
+        var number = materialized ? ++_newMaterializedViewNumber : ++_newViewNumber;
+        var baseName = materialized ? "NewMaterializedView" : "NewView";
+        var key = number == 1 ? baseName : $"{baseName}{number}";
+        _columns[key] = [new("Column1", "VARCHAR(50)", false)];
+        var card = CreateInteractiveCard(key, materialized ? 270 : 245, 125);
+        card.BorderBrush = new SolidColorBrush(materialized ? Color.FromRgb(241, 184, 63) : Color.FromRgb(68, 211, 218));
+        card.BorderThickness = new Thickness(1.5);
+
+        var grid = new Grid { Background = Brushes.Transparent };
+        grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(42) });
+        grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        var header = new Border
+        {
+            Background = new SolidColorBrush(Color.FromRgb(32, 43, 58)),
+            CornerRadius = new CornerRadius(6, 6, 0, 0),
+            Child = new TextBlock { Text = key, Foreground = Brushes.White, FontWeight = FontWeights.SemiBold, FontSize = 15, Margin = new Thickness(12, 0, 12, 0), VerticalAlignment = VerticalAlignment.Center }
+        };
+        grid.Children.Add(header);
+        var fields = new StackPanel { Margin = new Thickness(10, 8, 10, 8) };
+        fields.Children.Add(new TextBlock { Text = "COL   Column1              VARCHAR(50)", Foreground = new SolidColorBrush(Color.FromRgb(220, 231, 245)), Margin = new Thickness(0, 3, 0, 3) });
+        Grid.SetRow(fields, 1);
+        grid.Children.Add(fields);
+        grid.Children.Add(CreateResizeThumb(key));
+        card.Child = grid;
+        PrepareAttributeRows(card, key);
+        AddDynamicCardToCanvas(key, card);
+        StatusText.Text = $"Created {(materialized ? "materialized view" : "view")}: {key}";
+    }
+
+    private Border CreateInteractiveCard(string key, double width, double height)
+    {
+        var card = new Border { Tag = key, Width = width, Height = height, Style = (Style)FindResource("EntityCard") };
+        card.MouseLeftButtonDown += Entity_MouseLeftButtonDown;
+        card.MouseMove += Entity_MouseMove;
+        card.MouseLeftButtonUp += Entity_MouseLeftButtonUp;
+        return card;
+    }
+
+    private Thumb CreateResizeThumb(string key)
+    {
+        var resize = new Thumb { Tag = key, Style = (Style)FindResource("CardResizeThumb") };
+        resize.DragStarted += ResizeThumb_DragStarted;
+        resize.DragDelta += ResizeThumb_DragDelta;
+        resize.DragCompleted += ResizeThumb_DragCompleted;
+        Grid.SetRowSpan(resize, 2);
+        return resize;
+    }
+
+    private void AddDynamicCardToCanvas(string key, Border card)
+    {
+        _dynamicCards[key] = card;
+        Panel.SetZIndex(card, 1);
+        DiagramCanvasSurface.Children.Add(card);
+        var scale = _zoom / 100d;
+        var sequence = _dynamicCards.Count;
+        var offset = (sequence % 5) * 18;
+        var left = (DiagramScrollViewer.HorizontalOffset + DiagramScrollViewer.ViewportWidth / 2) / scale - card.Width / 2 + offset;
+        var top = (DiagramScrollViewer.VerticalOffset + DiagramScrollViewer.ViewportHeight / 2) / scale - card.Height / 2 + offset;
+        Canvas.SetLeft(card, Math.Max(16, left));
+        Canvas.SetTop(card, Math.Max(16, top));
+        SelectEntity(key);
+        SelectCard(card);
+        ClearRelationshipSelection();
     }
     private void AddNewEntity()
     {
@@ -477,6 +641,7 @@ _selectedRelationship = FindRelationshipLine(key);
         grid.Children.Add(resize);
 
         card.Child = grid;
+        PrepareAttributeRows(card, key);
         _dynamicCards[key] = card;
         DiagramCanvasSurface.Children.Add(card);
 
@@ -499,3 +664,5 @@ _selectedRelationship = FindRelationshipLine(key);
 public sealed record ColumnInfo(string Name, string Type, bool Required);
 
 public sealed record DynamicRelationship(string SourceKey, string TargetKey, Path Visible, Path Hit, bool IsIdentifying);
+
+public sealed record AttributeSelection(string EntityKey, string AttributeName);
