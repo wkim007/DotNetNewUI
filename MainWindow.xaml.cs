@@ -20,6 +20,8 @@ public partial class MainWindow : Window
     private Path? _selectedHitPath;
     private string? _selectedRelationshipKey;
     private readonly Dictionary<string, Vector> _relationshipOffsets = new();
+    private readonly Dictionary<string, Border> _dynamicCards = new();
+    private int _newEntityNumber;
     private bool _draggingRelationship;
     private Point _relationshipDragStart;
     private double _relationshipHandleStartX;
@@ -51,11 +53,15 @@ public partial class MainWindow : Window
         StatusText.Text = $"Selected entity: {display}";
     }
 
-    private Border? FindCard(string key) => key switch
+    private Border? FindCard(string key)
     {
-        "Customer" => CustomerCard, "Order" => OrderCard, "Product" => ProductCard,
-        "OrderItem" => OrderItemCard, _ => null
-    };
+        if (_dynamicCards.TryGetValue(key, out var dynamicCard)) return dynamicCard;
+        return key switch
+        {
+            "Customer" => CustomerCard, "Order" => OrderCard, "Product" => ProductCard,
+            "OrderItem" => OrderItemCard, _ => null
+        };
+    }
 
     private void Entity_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
@@ -310,11 +316,92 @@ _selectedRelationship = FindRelationshipLine(key);
     private void SetZoom(int value) { _zoom = value; DiagramView.LayoutTransform = new ScaleTransform(_zoom / 100d, _zoom / 100d); ZoomLabel.Text = $"{_zoom}%"; ResizeDiagramSurfaceToViewport(); }
     private void Validate_Click(object sender, RoutedEventArgs e) { StatusText.Text = "Validation complete — no errors or warnings"; MessageBox.Show("Model validation completed successfully.\n\n5 entities checked\n4 relationships checked\n0 issues found", "Validate Model", MessageBoxButton.OK, MessageBoxImage.Information); }
     private void Generate_Click(object sender, RoutedEventArgs e) { const string ddl = "CREATE TABLE sales_order (\n  order_id INT NOT NULL PRIMARY KEY,\n  customer_id INT NOT NULL,\n  order_date DATETIME2 NOT NULL,\n  status VARCHAR(20) NOT NULL\n);"; Clipboard.SetText(ddl); StatusText.Text = "DDL generated and copied to clipboard"; MessageBox.Show(ddl + "\n\nCopied to clipboard.", "Generated SQL Server DDL", MessageBoxButton.OK, MessageBoxImage.Information); }
-    private void NewEntity_Click(object sender, RoutedEventArgs e) => MessageBox.Show("Entity creation workflow is ready for your implementation.", "New Entity", MessageBoxButton.OK, MessageBoxImage.Information);
+    private void NewEntity_Click(object sender, RoutedEventArgs e) => AddNewEntity();
     private void DiagramTool_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is Button { ToolTip: string tool })
-            StatusText.Text = $"{tool} tool selected — click the diagram to place it";
+        if (sender is not Button { ToolTip: string tool }) return;
+        if (tool == "Entity")
+        {
+            AddNewEntity();
+            return;
+        }
+        StatusText.Text = $"{tool} tool selected — click the diagram to place it";
+    }
+
+    private void AddNewEntity()
+    {
+        _newEntityNumber++;
+        var key = _newEntityNumber == 1 ? "NewEntity" : $"NewEntity{_newEntityNumber}";
+        _columns[key] = [new("Id", "UUID", true)];
+
+        var card = new Border
+        {
+            Tag = key,
+            Width = 230,
+            Height = 110,
+            Style = (Style)FindResource("EntityCard")
+        };
+        card.MouseLeftButtonDown += Entity_MouseLeftButtonDown;
+        card.MouseMove += Entity_MouseMove;
+        card.MouseLeftButtonUp += Entity_MouseLeftButtonUp;
+
+        var grid = new Grid { Background = Brushes.Transparent };
+        grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(38) });
+        grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+
+        var header = new Border
+        {
+            Background = new SolidColorBrush(Color.FromRgb(13, 139, 151)),
+            CornerRadius = new CornerRadius(6, 6, 0, 0),
+            Child = new TextBlock
+            {
+                Text = key,
+                Foreground = Brushes.White,
+                FontWeight = FontWeights.SemiBold,
+                FontSize = 15,
+                Margin = new Thickness(12, 0, 12, 0),
+                VerticalAlignment = VerticalAlignment.Center
+            }
+        };
+        Grid.SetRow(header, 0);
+        grid.Children.Add(header);
+
+        var fields = new StackPanel { Margin = new Thickness(10, 7, 10, 7) };
+        fields.Children.Add(new TextBlock
+        {
+            Text = "🔑   Id                         UUID",
+            Foreground = new SolidColorBrush(Color.FromRgb(220, 231, 245)),
+            FontWeight = FontWeights.SemiBold,
+            Margin = new Thickness(0, 3, 0, 3)
+        });
+        fields.Children.Add(new Separator());
+        Grid.SetRow(fields, 1);
+        grid.Children.Add(fields);
+
+        var resize = new Thumb
+        {
+            Tag = key,
+            Style = (Style)FindResource("CardResizeThumb")
+        };
+        resize.DragStarted += ResizeThumb_DragStarted;
+        resize.DragDelta += ResizeThumb_DragDelta;
+        resize.DragCompleted += ResizeThumb_DragCompleted;
+        Grid.SetRowSpan(resize, 2);
+        grid.Children.Add(resize);
+
+        card.Child = grid;
+        _dynamicCards[key] = card;
+        DiagramCanvasSurface.Children.Add(card);
+
+        var scale = _zoom / 100d;
+        var left = (DiagramScrollViewer.HorizontalOffset + DiagramScrollViewer.ViewportWidth / 2) / scale - card.Width / 2;
+        var top = (DiagramScrollViewer.VerticalOffset + DiagramScrollViewer.ViewportHeight / 2) / scale - card.Height / 2;
+        Canvas.SetLeft(card, Math.Max(16, left));
+        Canvas.SetTop(card, Math.Max(16, top));
+        SelectEntity(key);
+        SelectCard(card);
+        ClearRelationshipSelection();
+        StatusText.Text = $"Created entity: {key}";
     }
     private void AddRelationship_Click(object sender, RoutedEventArgs e) => StatusText.Text = "Relationship tool active — choose parent and child entities";
     private void AddColumn_Click(object sender, RoutedEventArgs e) { if (ColumnsGrid.ItemsSource is ObservableCollection<ColumnInfo> items) items.Add(new("new_column", "VARCHAR", false)); }
