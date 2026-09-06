@@ -311,6 +311,11 @@ _selectedRelationship = FindRelationshipLine(key);
     private void Validate_Click(object sender, RoutedEventArgs e) { StatusText.Text = "Validation complete — no errors or warnings"; MessageBox.Show("Model validation completed successfully.\n\n5 entities checked\n4 relationships checked\n0 issues found", "Validate Model", MessageBoxButton.OK, MessageBoxImage.Information); }
     private void Generate_Click(object sender, RoutedEventArgs e) { const string ddl = "CREATE TABLE sales_order (\n  order_id INT NOT NULL PRIMARY KEY,\n  customer_id INT NOT NULL,\n  order_date DATETIME2 NOT NULL,\n  status VARCHAR(20) NOT NULL\n);"; Clipboard.SetText(ddl); StatusText.Text = "DDL generated and copied to clipboard"; MessageBox.Show(ddl + "\n\nCopied to clipboard.", "Generated SQL Server DDL", MessageBoxButton.OK, MessageBoxImage.Information); }
     private void NewEntity_Click(object sender, RoutedEventArgs e) => MessageBox.Show("Entity creation workflow is ready for your implementation.", "New Entity", MessageBoxButton.OK, MessageBoxImage.Information);
+    private void DiagramTool_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { ToolTip: string tool })
+            StatusText.Text = $"{tool} tool selected — click the diagram to place it";
+    }
     private void AddRelationship_Click(object sender, RoutedEventArgs e) => StatusText.Text = "Relationship tool active — choose parent and child entities";
     private void AddColumn_Click(object sender, RoutedEventArgs e) { if (ColumnsGrid.ItemsSource is ObservableCollection<ColumnInfo> items) items.Add(new("new_column", "VARCHAR", false)); }
     private void EntityNameBox_LostFocus(object sender, RoutedEventArgs e) => SelectedEntityTitle.Text = EntityNameBox.Text.ToUpperInvariant();

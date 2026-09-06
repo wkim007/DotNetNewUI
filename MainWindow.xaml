@@ -17,6 +17,28 @@
             <Setter Property="Effect"><Setter.Value><DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.12"/></Setter.Value></Setter>
         </Style>
     <Style x:Key="CardResizeThumb" TargetType="primitives:Thumb"><Setter Property="Width" Value="18"/><Setter Property="Height" Value="18"/><Setter Property="HorizontalAlignment" Value="Right"/><Setter Property="VerticalAlignment" Value="Bottom"/><Setter Property="Margin" Value="0,0,3,3"/><Setter Property="Cursor" Value="SizeNWSE"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="primitives:Thumb"><Grid Background="Transparent"><Path Stroke="#AFC3D2" StrokeThickness="1.5" Data="M 5,15 L 15,5 M 10,15 L 15,10 M 14,15 L 15,14"/></Grid></ControlTemplate></Setter.Value></Setter></Style>
+    <Style x:Key="DiagramToolButton" TargetType="Button">
+            <Setter Property="Width" Value="100"/><Setter Property="Height" Value="78"/><Setter Property="Margin" Value="4"/><Setter Property="Padding" Value="6"/>
+            <Setter Property="Foreground" Value="#B9D9FF"/><Setter Property="Background" Value="#314866"/><Setter Property="BorderBrush" Value="#3B5576"/><Setter Property="BorderThickness" Value="1"/><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+                <Border x:Name="Card" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="12" Padding="6">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <Border x:Name="IconTile" Width="30" Height="30" CornerRadius="7" Background="#13283F" HorizontalAlignment="Center" Margin="0,0,0,5">
+                            <TextBlock x:Name="ToolIcon" Text="{TemplateBinding Tag}" Foreground="#B9D9FF" FontSize="15" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ContentPresenter HorizontalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}" TextElement.FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Border>
+                <ControlTemplate.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter TargetName="Card" Property="Background" Value="#3A526F"/><Setter TargetName="Card" Property="BorderBrush" Value="#62E6B3"/>
+                        <Setter TargetName="IconTile" Property="Background" Value="#102F35"/><Setter TargetName="ToolIcon" Property="Foreground" Value="#69F0AE"/>
+                    </Trigger>
+                    <Trigger Property="IsPressed" Value="True"><Setter TargetName="Card" Property="Background" Value="#29445B"/><Setter TargetName="ToolIcon" Property="Foreground" Value="#A7FFD1"/></Trigger>
+                    <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Card" Property="BorderBrush" Value="#62E6B3"/></Trigger>
+                </ControlTemplate.Triggers>
+            </ControlTemplate></Setter.Value></Setter>
+        </Style>
     </Window.Resources>
 
     <Grid>
@@ -63,7 +85,7 @@
 
             <!-- Explorer -->
             <Border Grid.Column="0" Background="White" BorderBrush="{StaticResource Rule}" BorderThickness="0,0,1,0">
-                <Grid><Grid.RowDefinitions><RowDefinition Height="42"/><RowDefinition Height="40"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+                <Grid><Grid.RowDefinitions><RowDefinition Height="42"/><RowDefinition Height="40"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                     <TextBlock Text="MODEL EXPLORER" Style="{StaticResource SectionTitle}" Margin="14,0" VerticalAlignment="Center"/>
                     <Border Grid.Row="1" Background="#F5F7F9" CornerRadius="4" Margin="10,3" Padding="8,0">
                         <DockPanel><TextBlock Text="⌕" FontSize="17" VerticalAlignment="Center"/><TextBox x:Name="SearchBox" TextChanged="SearchBox_TextChanged" BorderThickness="0" Background="Transparent" Margin="6,0" VerticalContentAlignment="Center" ToolTip="Filter objects"/></DockPanel>
@@ -82,6 +104,24 @@
                             <TreeViewItem Header="⚿  Indexes (7)"/>
                         </TreeViewItem>
                     </TreeView>
+                    <Border Grid.Row="3" Background="#132231" BorderBrush="#294055" BorderThickness="0,1,0,0" Padding="8,10,8,12">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" MaxHeight="340">
+                            <StackPanel>
+                                <TextBlock Text="Diagram Box" Foreground="#8FC8FF" FontSize="14" Margin="4,0,0,7"/>
+                                <WrapPanel>
+                                    <Button Style="{StaticResource DiagramToolButton}" Tag="▦" Content="Entity" ToolTip="Entity" Click="DiagramTool_Click"/>
+                                    <Button Style="{StaticResource DiagramToolButton}" Tag="≡" Content="Annotation" ToolTip="Annotation" Click="DiagramTool_Click"/>
+                                    <Button Style="{StaticResource DiagramToolButton}" Tag="▧" Content="View" ToolTip="View" Click="DiagramTool_Click"/>
+                                    <Button Style="{StaticResource DiagramToolButton}" Tag="♧" Content="Materialized View" ToolTip="Materialized View" Click="DiagramTool_Click"/>
+                                    <Button Style="{StaticResource DiagramToolButton}" Tag="↘" Content="Identifying" ToolTip="Identifying relationship" Click="DiagramTool_Click"/>
+                                    <Button Style="{StaticResource DiagramToolButton}" Tag="→" Content="Non-identifying" ToolTip="Non-identifying relationship" Click="DiagramTool_Click"/>
+                                    <Button Style="{StaticResource DiagramToolButton}" Tag="⋯" Content="View/Materialized Rel." ToolTip="View relationship" Click="DiagramTool_Click"/>
+                                </WrapPanel>
+                                <TextBlock Text="Drawing Box" Foreground="#8FC8FF" FontSize="14" Margin="4,8,0,7"/>
+                                <WrapPanel><Button Style="{StaticResource DiagramToolButton}" Tag="◇" Content="Drawing" ToolTip="Drawing" Click="DiagramTool_Click"/></WrapPanel>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Border>
                 </Grid>
             </Border>
             <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch" Background="#EDF1F4"/>
