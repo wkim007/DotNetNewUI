@@ -54,7 +54,7 @@ public partial class MainWindow : Window
         _entityHoldTimer.Tick += EntityHoldTimer_Tick;
         SelectEntity("Order");
         SelectCard(OrderCard);
-        Loaded += (_, _) => { PrepareAttributeRows(CustomerCard, "Customer"); PrepareAttributeRows(OrderCard, "Order"); PrepareAttributeRows(ProductCard, "Product"); PrepareAttributeRows(OrderItemCard, "OrderItem"); ResizeDiagramSurfaceToViewport(); UpdateRelationshipLines(); };
+        Loaded += (_, _) => { EnsureCloseButton(CustomerCard, "Customer"); EnsureCloseButton(OrderCard, "Order"); EnsureCloseButton(ProductCard, "Product"); EnsureCloseButton(OrderItemCard, "OrderItem"); PrepareAttributeRows(CustomerCard, "Customer"); PrepareAttributeRows(OrderCard, "Order"); PrepareAttributeRows(ProductCard, "Product"); PrepareAttributeRows(OrderItemCard, "OrderItem"); ResizeDiagramSurfaceToViewport(); UpdateRelationshipLines(); };
     }
 
     private void SelectEntity(string key)
@@ -134,6 +134,76 @@ public partial class MainWindow : Window
         editor.Focus();
         editor.SelectAll();
         StatusText.Text = "Type the column name and press Enter";
+    }
+    private void EnsureCloseButton(Border card, string key)
+    {
+        if (card.Child is not Grid cardGrid) return;
+        var header = cardGrid.Children.OfType<Border>().FirstOrDefault(item => Grid.GetRow(item) == 0);
+        if (header?.Child is not TextBlock title) return;
+        var headerGrid = new Grid();
+        headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        headerGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        header.Child = null;
+        Grid.SetColumn(title, 0);
+        headerGrid.Children.Add(title);
+        var close = new Button
+        {
+            Tag = key,
+            Content = "×",
+            Width = 27,
+            Height = 27,
+            Padding = new Thickness(0),
+            Margin = new Thickness(2, 3, 5, 3),
+            Background = Brushes.Transparent,
+            BorderBrush = Brushes.Transparent,
+            Foreground = new SolidColorBrush(Color.FromRgb(180, 202, 222)),
+            FontSize = 18,
+            FontWeight = FontWeights.SemiBold,
+            Cursor = Cursors.Hand,
+            ToolTip = "Remove from diagram"
+        };
+        close.Click += DeleteObject_Click;
+        Grid.SetColumn(close, 1);
+        headerGrid.Children.Add(close);
+        header.Child = headerGrid;
+    }
+
+    private void DeleteObject_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string key }) return;
+        DeleteObject(key);
+        e.Handled = true;
+    }
+
+    private void DeleteObject(string key)
+    {
+        var card = FindCard(key);
+        if (card is null) return;
+        if (_selectedCard == card) _selectedCard = null;
+        if (_selectedAttributeRow is not null && _selectedAttributeRow.IsDescendantOf(card)) _selectedAttributeRow = null;
+
+        var attached = _dynamicRelationships
+            .Where(pair => pair.Value.SourceKey == key || pair.Value.TargetKey == key)
+            .Select(pair => pair.Key)
+            .ToList();
+        foreach (var relationshipKey in attached)
+        {
+            var relationship = _dynamicRelationships[relationshipKey];
+            DiagramCanvasSurface.Children.Remove(relationship.Visible);
+            DiagramCanvasSurface.Children.Remove(relationship.Hit);
+            _dynamicRelationships.Remove(relationshipKey);
+            _relationshipOffsets.Remove(relationshipKey);
+        }
+
+        DiagramCanvasSurface.Children.Remove(card);
+        _dynamicCards.Remove(key);
+        _entityCardKeys.Remove(key);
+        _columns.Remove(key);
+        ClearRelationshipSelection();
+        UpdateRelationshipLines();
+        SelectedEntityTitle.Text = "NO SELECTION";
+        ColumnsGrid.ItemsSource = null;
+        StatusText.Text = $"Removed object: {key}";
     }
     private void PrepareAttributeRows(Border card, string entityKey)
     {
@@ -408,6 +478,14 @@ _selectedRelationship = FindRelationshipLine(key);
         var hit = DiagramCanvasSurface.Children.OfType<Path>()
             .FirstOrDefault(path => Equals(path.Tag, key) && path != visible);
         if (visible is null || hit is null) return;
+        if (!DiagramCanvasSurface.Children.Contains(source) || !DiagramCanvasSurface.Children.Contains(target))
+        {
+            visible.Visibility = Visibility.Collapsed;
+            hit.Visibility = Visibility.Collapsed;
+            return;
+        }
+        visible.Visibility = Visibility.Visible;
+        hit.Visibility = Visibility.Visible;
 
         var sourceCenter = new Point(Canvas.GetLeft(source) + source.ActualWidth / 2, Canvas.GetTop(source) + source.ActualHeight / 2);
         var targetCenter = new Point(Canvas.GetLeft(target) + target.ActualWidth / 2, Canvas.GetTop(target) + target.ActualHeight / 2);
@@ -626,6 +704,7 @@ _selectedRelationship = FindRelationshipLine(key);
         grid.Children.Add(fields);
         grid.Children.Add(CreateResizeThumb(key));
         card.Child = grid;
+        EnsureCloseButton(card, key);
         PrepareAttributeRows(card, key);
         AddDynamicCardToCanvas(key, card);
         StatusText.Text = $"Created {(materialized ? "materialized view" : "view")}: {key}";
@@ -729,6 +808,7 @@ _selectedRelationship = FindRelationshipLine(key);
         grid.Children.Add(resize);
 
         card.Child = grid;
+        EnsureCloseButton(card, key);
         PrepareAttributeRows(card, key);
         _dynamicCards[key] = card;
         DiagramCanvasSurface.Children.Add(card);
