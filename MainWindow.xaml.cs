@@ -5,6 +5,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
+using System.Windows.Threading;
 
 namespace ErwinStudioSample;
 
@@ -15,6 +16,10 @@ public partial class MainWindow : Window
     private Border? _selectedAttributeRow;
     private Border? _draggedCard;
     private Point _entityDragStart;
+    private readonly DispatcherTimer _entityHoldTimer = new() { Interval = TimeSpan.FromSeconds(2) };
+    private Border? _entityHoldCard;
+    private Point _entityHoldStart;
+    private readonly HashSet<string> _entityCardKeys = ["Customer", "Order", "Product", "OrderItem"];
     private double _entityStartLeft;
     private double _entityStartTop;
     private Path? _selectedRelationship;
@@ -46,6 +51,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        _entityHoldTimer.Tick += EntityHoldTimer_Tick;
         SelectEntity("Order");
         SelectCard(OrderCard);
         Loaded += (_, _) => { PrepareAttributeRows(CustomerCard, "Customer"); PrepareAttributeRows(OrderCard, "Order"); PrepareAttributeRows(ProductCard, "Product"); PrepareAttributeRows(OrderItemCard, "OrderItem"); ResizeDiagramSurfaceToViewport(); UpdateRelationshipLines(); };
@@ -61,6 +67,74 @@ public partial class MainWindow : Window
         StatusText.Text = $"Selected entity: {display}";
     }
 
+    private void EntityHoldTimer_Tick(object? sender, EventArgs e)
+    {
+        _entityHoldTimer.Stop();
+        var card = _entityHoldCard;
+        _entityHoldCard = null;
+        if (card?.Tag is not string entityKey || !_entityCardKeys.Contains(entityKey)) return;
+        _draggedCard = null;
+        card.ReleaseMouseCapture();
+        AddInlineColumnEditor(card, entityKey);
+    }
+
+    private void AddInlineColumnEditor(Border card, string entityKey)
+    {
+        if (card.Child is not Grid grid) return;
+        var fields = grid.Children.OfType<StackPanel>().FirstOrDefault(panel => Grid.GetRow(panel) == 1);
+        if (fields is null || fields.Children.OfType<Border>().Any(row => Equals(row.Tag, "inline-column-editor"))) return;
+
+        var row = new Border
+        {
+            Tag = "inline-column-editor",
+            Background = new SolidColorBrush(Color.FromRgb(38, 103, 113)),
+            BorderBrush = new SolidColorBrush(Color.FromRgb(72, 173, 180)),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(8),
+            Padding = new Thickness(8, 4, 8, 4),
+            Margin = new Thickness(0, 3, 0, 2)
+        };
+        ClearAttributeSelection();
+        _selectedAttributeRow = row;
+        var layout = new Grid();
+        layout.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(48) });
+        layout.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        layout.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        var badge = new TextBlock { Text = "COL", Foreground = new SolidColorBrush(Color.FromRgb(207, 222, 235)), FontWeight = FontWeights.Bold, FontSize = 10, VerticalAlignment = VerticalAlignment.Center };
+        var editor = new TextBox { Text = "New attribute", Background = Brushes.Transparent, BorderThickness = new Thickness(0), Foreground = Brushes.White, CaretBrush = Brushes.White, Padding = new Thickness(0), VerticalContentAlignment = VerticalAlignment.Center };
+        var datatype = new TextBlock { Text = "varchar(50)", Foreground = new SolidColorBrush(Color.FromRgb(166, 190, 211)), Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
+        Grid.SetColumn(badge, 0); Grid.SetColumn(editor, 1); Grid.SetColumn(datatype, 2);
+        layout.Children.Add(badge); layout.Children.Add(editor); layout.Children.Add(datatype);
+        row.Child = layout;
+        fields.Children.Add(row);
+        card.Height = Math.Max(card.ActualHeight + 40, 150);
+        _columns[entityKey].Add(new ColumnInfo("New attribute", "VARCHAR(50)", false));
+        var columnIndex = _columns[entityKey].Count - 1;
+
+        editor.PreviewMouseLeftButtonDown += (_, args) =>
+        {
+            if (editor.IsReadOnly) AttributeRow_MouseLeftButtonDown(row, args);
+            else args.Handled = true;
+        };
+        editor.KeyDown += (_, args) =>
+        {
+            if (args.Key != Key.Enter) return;
+            var name = string.IsNullOrWhiteSpace(editor.Text) ? "New attribute" : editor.Text.Trim();
+            _columns[entityKey][columnIndex] = new ColumnInfo(name, "VARCHAR(50)", false);
+            row.Tag = new AttributeSelection(entityKey, name);
+            row.MouseLeftButtonDown += AttributeRow_MouseLeftButtonDown;
+            editor.IsReadOnly = true;
+            editor.Text = name;
+            Keyboard.ClearFocus();
+            StatusText.Text = $"Added column: {entityKey}.{name} varchar(50)";
+            args.Handled = true;
+        };
+        SelectEntity(entityKey);
+        SelectCard(card);
+        editor.Focus();
+        editor.SelectAll();
+        StatusText.Text = "Type the column name and press Enter";
+    }
     private void PrepareAttributeRows(Border card, string entityKey)
     {
         if (card.Child is not Grid grid) return;
@@ -145,6 +219,13 @@ public partial class MainWindow : Window
         _entityStartLeft = Canvas.GetLeft(card);
         _entityStartTop = Canvas.GetTop(card);
         card.CaptureMouse();
+        if (_entityCardKeys.Contains(key))
+        {
+            _entityHoldCard = card;
+            _entityHoldStart = _entityDragStart;
+            _entityHoldTimer.Stop();
+            _entityHoldTimer.Start();
+        }
         e.Handled = true;
     }
 
@@ -152,6 +233,11 @@ public partial class MainWindow : Window
     {
         if (_draggedCard is null || e.LeftButton != MouseButtonState.Pressed) return;
         var point = e.GetPosition(DiagramCanvasSurface);
+        if ((point - _entityHoldStart).Length > 5)
+        {
+            _entityHoldTimer.Stop();
+            _entityHoldCard = null;
+        }
         Canvas.SetLeft(_draggedCard, Math.Max(8, _entityStartLeft + point.X - _entityDragStart.X));
         Canvas.SetTop(_draggedCard, Math.Max(8, _entityStartTop + point.Y - _entityDragStart.Y));
         UpdateRelationshipLines();
@@ -161,12 +247,13 @@ public partial class MainWindow : Window
     private void Entity_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
         if (_draggedCard is null) return;
+        _entityHoldTimer.Stop();
+        _entityHoldCard = null;
         _draggedCard.ReleaseMouseCapture();
         StatusText.Text = $"Moved entity: {_draggedCard.Tag}";
         _draggedCard = null;
         e.Handled = true;
     }
-
     private void SelectCard(Border card)
     {
         ClearCardSelection();
@@ -584,6 +671,7 @@ _selectedRelationship = FindRelationshipLine(key);
         _newEntityNumber++;
         var key = _newEntityNumber == 1 ? "NewEntity" : $"NewEntity{_newEntityNumber}";
         _columns[key] = [new("Id", "UUID", true)];
+        _entityCardKeys.Add(key);
 
         var card = new Border
         {
