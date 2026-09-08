@@ -26,6 +26,7 @@ public partial class MainWindow : Window
     private Path? _selectedHitPath;
     private string? _selectedRelationshipKey;
     private readonly Dictionary<string, Vector> _relationshipOffsets = new();
+    private readonly HashSet<string> _deletedRelationships = [];
     private readonly Dictionary<string, Border> _dynamicCards = new();
     private int _newEntityNumber;
     private int _newAnnotationNumber;
@@ -393,6 +394,10 @@ _selectedRelationship = FindRelationshipLine(key);
         RelationshipMoveHandle.Visibility = Visibility.Visible;
         Canvas.SetLeft(RelationshipMoveHandle, point.X - 9);
         Canvas.SetTop(RelationshipMoveHandle, point.Y - 9);
+        RelationshipDeleteButton.Tag = key;
+        RelationshipDeleteButton.Visibility = Visibility.Visible;
+        Canvas.SetLeft(RelationshipDeleteButton, point.X - 13);
+        Canvas.SetTop(RelationshipDeleteButton, point.Y - 47);
         StatusText.Text = "Relationship selected — drag the line or gold handle to bend its route";
         _draggingRelationship = true;
         _relationshipDragStart = point;
@@ -444,6 +449,27 @@ _selectedRelationship = FindRelationshipLine(key);
         StatusText.Text = "Relationship route moved; endpoints remain connected";
         e.Handled = true;
     }
+    private void RelationshipDeleteButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (RelationshipDeleteButton.Tag is not string key) return;
+        var selectedVisible = _selectedRelationship;
+        var selectedHit = _selectedHitPath;
+        ClearRelationshipSelection();
+        if (_dynamicRelationships.Remove(key, out var dynamicRelationship))
+        {
+            DiagramCanvasSurface.Children.Remove(dynamicRelationship.Visible);
+            DiagramCanvasSurface.Children.Remove(dynamicRelationship.Hit);
+        }
+        else
+        {
+            _deletedRelationships.Add(key);
+            if (selectedVisible is not null) selectedVisible.Visibility = Visibility.Collapsed;
+            if (selectedHit is not null) selectedHit.Visibility = Visibility.Collapsed;
+        }
+        _relationshipOffsets.Remove(key);
+        StatusText.Text = "Relationship removed";
+        e.Handled = true;
+    }
     private void ClearRelationshipSelection()
     {
         if (_selectedRelationship is not null)
@@ -453,6 +479,8 @@ _selectedRelationship = FindRelationshipLine(key);
         }
         _selectedRelationship = null; _selectedHitPath = null; _selectedRelationshipKey = null;
         RelationshipMoveHandle.Visibility = Visibility.Collapsed;
+        RelationshipDeleteButton.Visibility = Visibility.Collapsed;
+        RelationshipDeleteButton.Tag = null;
     }
 
     private void DiagramCanvasSurface_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -478,6 +506,12 @@ _selectedRelationship = FindRelationshipLine(key);
         var hit = DiagramCanvasSurface.Children.OfType<Path>()
             .FirstOrDefault(path => Equals(path.Tag, key) && path != visible);
         if (visible is null || hit is null) return;
+        if (_deletedRelationships.Contains(key))
+        {
+            visible.Visibility = Visibility.Collapsed;
+            hit.Visibility = Visibility.Collapsed;
+            return;
+        }
         if (!DiagramCanvasSurface.Children.Contains(source) || !DiagramCanvasSurface.Children.Contains(target))
         {
             visible.Visibility = Visibility.Collapsed;
@@ -532,6 +566,10 @@ _selectedRelationship = FindRelationshipLine(key);
             RelationshipMoveHandle.Visibility = Visibility.Visible;
             Canvas.SetLeft(RelationshipMoveHandle, middle.X - 9);
             Canvas.SetTop(RelationshipMoveHandle, middle.Y - 9);
+            RelationshipDeleteButton.Tag = key;
+            RelationshipDeleteButton.Visibility = Visibility.Visible;
+            Canvas.SetLeft(RelationshipDeleteButton, middle.X - 13);
+            Canvas.SetTop(RelationshipDeleteButton, middle.Y - 47);
         }
     }
     private void DiagramScrollViewer_SizeChanged(object sender, SizeChangedEventArgs e)
