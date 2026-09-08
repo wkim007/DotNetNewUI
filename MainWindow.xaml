@@ -167,23 +167,32 @@
 
             <!-- Properties -->
             <Border Grid.Column="4" Background="White" BorderBrush="{StaticResource Rule}" BorderThickness="1,0,0,0">
-                <ScrollViewer><StackPanel>
+                <ScrollViewer><Grid>
+                <StackPanel x:Name="EntityPropertiesPanel">
                     <TextBlock Text="PROPERTIES" Style="{StaticResource SectionTitle}" Margin="14,14,14,10"/>
-                    <Border Background="#EFF7F8" Padding="14,12" BorderBrush="#CFE3E6" BorderThickness="0,1">
-                        <StackPanel><TextBlock x:Name="SelectedEntityTitle" Text="ORDER" FontSize="18" FontWeight="SemiBold" Foreground="{StaticResource AccentDark}"/><TextBlock Text="Entity" Foreground="{StaticResource MutedInk}" Margin="0,2,0,0"/></StackPanel>
-                    </Border>
+                    <Border Background="#EFF7F8" Padding="14,12" BorderBrush="#CFE3E6" BorderThickness="0,1"><StackPanel><TextBlock x:Name="SelectedEntityTitle" Text="ORDER" FontSize="18" FontWeight="SemiBold" Foreground="{StaticResource AccentDark}"/><TextBlock Text="Entity" Foreground="{StaticResource MutedInk}" Margin="0,2,0,0"/></StackPanel></Border>
                     <TextBlock Text="GENERAL" Style="{StaticResource SectionTitle}" Margin="14,18,14,8"/>
                     <TextBlock Text="Name" Foreground="{StaticResource MutedInk}" Margin="14,3"/><TextBox x:Name="EntityNameBox" Text="Order" Margin="14,0,14,8" Padding="7,5" BorderBrush="{StaticResource Rule}" LostFocus="EntityNameBox_LostFocus"/>
                     <TextBlock Text="Physical name" Foreground="{StaticResource MutedInk}" Margin="14,3"/><TextBox x:Name="PhysicalNameBox" Text="sales_order" Margin="14,0,14,8" Padding="7,5" BorderBrush="{StaticResource Rule}"/>
                     <TextBlock Text="Definition" Foreground="{StaticResource MutedInk}" Margin="14,3"/><TextBox Text="Customer purchase transaction." Height="62" TextWrapping="Wrap" AcceptsReturn="True" Margin="14,0,14,8" Padding="7,5" BorderBrush="{StaticResource Rule}"/>
                     <TextBlock Text="COLUMNS" Style="{StaticResource SectionTitle}" Margin="14,18,14,8"/>
-                    <DataGrid x:Name="ColumnsGrid" Margin="10,0" AutoGenerateColumns="False" CanUserAddRows="False" HeadersVisibility="Column" GridLinesVisibility="Horizontal" BorderThickness="0" RowHeaderWidth="0">
-                        <DataGrid.Columns><DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*"/><DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="92"/><DataGridCheckBoxColumn Header="NN" Binding="{Binding Required}" Width="36"/></DataGrid.Columns>
-                    </DataGrid>
+                    <DataGrid x:Name="ColumnsGrid" Margin="10,0" AutoGenerateColumns="False" CanUserAddRows="False" HeadersVisibility="Column" GridLinesVisibility="Horizontal" BorderThickness="0" RowHeaderWidth="0"><DataGrid.Columns><DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*"/><DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="92"/><DataGridCheckBoxColumn Header="NN" Binding="{Binding Required}" Width="36"/></DataGrid.Columns></DataGrid>
                     <Button Content="＋  Add column" HorizontalAlignment="Left" Margin="8,6" Click="AddColumn_Click" Foreground="{StaticResource AccentDark}"/>
-                </StackPanel></ScrollViewer>
-            </Border>
-        </Grid>
+                </StackPanel>
+                <StackPanel x:Name="RelationshipPropertiesPanel" Visibility="Collapsed">
+                    <TextBlock Text="RELATIONSHIP PROPERTIES" Style="{StaticResource SectionTitle}" Margin="14,14,14,10"/>
+                    <Border Background="#EFF7F8" Padding="14,12" BorderBrush="#CFE3E6" BorderThickness="0,1"><StackPanel><TextBlock x:Name="SelectedRelationshipTitle" Text="RELATIONSHIP" TextWrapping="Wrap" FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource AccentDark}"/><TextBlock Text="Relationship" Foreground="{StaticResource MutedInk}" Margin="0,2,0,0"/></StackPanel></Border>
+                    <TextBlock Text="Name" Foreground="{StaticResource MutedInk}" Margin="14,14,14,3"/><TextBox x:Name="RelationshipNameBox" Margin="14,0,14,8" Padding="7,5" BorderBrush="{StaticResource Rule}"/>
+                    <TextBlock Text="Physical name" Foreground="{StaticResource MutedInk}" Margin="14,3"/><TextBox x:Name="RelationshipPhysicalNameBox" Margin="14,0,14,8" Padding="7,5" BorderBrush="{StaticResource Rule}"/>
+                    <TextBlock Text="Description" Foreground="{StaticResource MutedInk}" Margin="14,3"/><TextBox x:Name="RelationshipDescriptionBox" Text="contains" Margin="14,0,14,8" Padding="7,5" BorderBrush="{StaticResource Rule}"/>
+                    <TextBlock Text="Parent object" Foreground="{StaticResource MutedInk}" Margin="14,3"/><TextBox x:Name="RelationshipParentBox" IsReadOnly="True" Margin="14,0,14,8" Padding="7,5" BorderBrush="{StaticResource Rule}"/>
+                    <TextBlock Text="Child object" Foreground="{StaticResource MutedInk}" Margin="14,3"/><TextBox x:Name="RelationshipChildBox" IsReadOnly="True" Margin="14,0,14,8" Padding="7,5" BorderBrush="{StaticResource Rule}"/>
+                    <TextBlock Text="Cardinality" Foreground="{StaticResource MutedInk}" Margin="14,3"/><ComboBox x:Name="CardinalityComboBox" Margin="14,0,14,8" Padding="7,5" SelectedValuePath="Content" SelectionChanged="CardinalityComboBox_SelectionChanged"><ComboBoxItem Content="1:1"/><ComboBoxItem Content="1:N"/><ComboBoxItem Content="N:1"/><ComboBoxItem Content="N:N"/></ComboBox>
+                    <TextBlock Text="Relationship type" Foreground="{StaticResource MutedInk}" Margin="14,3"/><TextBox x:Name="RelationshipTypeBox" IsReadOnly="True" Margin="14,0,14,12" Padding="7,5" BorderBrush="{StaticResource Rule}"/>
+                    <Button Content="Delete Relationship" Click="DeleteSelectedRelationship_Click" Background="#F06D82" Foreground="White" FontWeight="SemiBold" HorizontalAlignment="Left" Margin="14,4" Padding="14,8"/>
+                </StackPanel>
+                </Grid></ScrollViewer>
+            </Border>        </Grid>
 
         <Border Grid.Row="3" Background="#E9EEF1" BorderBrush="#D0D9DF" BorderThickness="0,1,0,0">
             <DockPanel Margin="10,0"><TextBlock x:Name="StatusText" Text="Ready" VerticalAlignment="Center" Foreground="{StaticResource MutedInk}"/><TextBlock DockPanel.Dock="Right" Text="5 entities   •   4 relationships   •   SQL Server 2022" VerticalAlignment="Center" Foreground="{StaticResource MutedInk}"/></DockPanel>

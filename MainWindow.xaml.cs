@@ -25,8 +25,10 @@ public partial class MainWindow : Window
     private Path? _selectedRelationship;
     private Path? _selectedHitPath;
     private string? _selectedRelationshipKey;
+    private bool _updatingRelationshipInspector;
     private readonly Dictionary<string, Vector> _relationshipOffsets = new();
     private readonly HashSet<string> _deletedRelationships = [];
+    private readonly Dictionary<string, TextBlock> _relationshipLabels = new();
     private readonly Dictionary<string, Border> _dynamicCards = new();
     private int _newEntityNumber;
     private int _newAnnotationNumber;
@@ -55,7 +57,7 @@ public partial class MainWindow : Window
         _entityHoldTimer.Tick += EntityHoldTimer_Tick;
         SelectEntity("Order");
         SelectCard(OrderCard);
-        Loaded += (_, _) => { EnsureCloseButton(CustomerCard, "Customer"); EnsureCloseButton(OrderCard, "Order"); EnsureCloseButton(ProductCard, "Product"); EnsureCloseButton(OrderItemCard, "OrderItem"); PrepareAttributeRows(CustomerCard, "Customer"); PrepareAttributeRows(OrderCard, "Order"); PrepareAttributeRows(ProductCard, "Product"); PrepareAttributeRows(OrderItemCard, "OrderItem"); ResizeDiagramSurfaceToViewport(); UpdateRelationshipLines(); };
+        Loaded += (_, _) => { EnsureRelationshipLabel("CustomerOrder", "1:N"); EnsureRelationshipLabel("OrderProduct", "1:N"); EnsureRelationshipLabel("OrderOrderItem", "1:N"); EnsureRelationshipLabel("ProductOrderItem", "1:N"); EnsureCloseButton(CustomerCard, "Customer"); EnsureCloseButton(OrderCard, "Order"); EnsureCloseButton(ProductCard, "Product"); EnsureCloseButton(OrderItemCard, "OrderItem"); PrepareAttributeRows(CustomerCard, "Customer"); PrepareAttributeRows(OrderCard, "Order"); PrepareAttributeRows(ProductCard, "Product"); PrepareAttributeRows(OrderItemCard, "OrderItem"); ResizeDiagramSurfaceToViewport(); UpdateRelationshipLines(); };
     }
 
     private void SelectEntity(string key)
@@ -136,6 +138,25 @@ public partial class MainWindow : Window
         editor.SelectAll();
         StatusText.Text = "Type the column name and press Enter";
     }
+    private TextBlock EnsureRelationshipLabel(string relationshipKey, string cardinality)
+    {
+        if (_relationshipLabels.TryGetValue(relationshipKey, out var existing)) return existing;
+        var label = new TextBlock
+        {
+            Text = cardinality,
+            Tag = relationshipKey,
+            Foreground = new SolidColorBrush(Color.FromRgb(185, 220, 244)),
+            Background = new SolidColorBrush(Color.FromArgb(220, 13, 21, 32)),
+            FontSize = 12,
+            FontWeight = FontWeights.SemiBold,
+            Padding = new Thickness(4, 1, 4, 1),
+            IsHitTestVisible = false
+        };
+        Panel.SetZIndex(label, 6);
+        _relationshipLabels[relationshipKey] = label;
+        DiagramCanvasSurface.Children.Add(label);
+        return label;
+    }
     private void EnsureCloseButton(Border card, string key)
     {
         if (card.Child is not Grid cardGrid) return;
@@ -193,6 +214,7 @@ public partial class MainWindow : Window
             DiagramCanvasSurface.Children.Remove(relationship.Visible);
             DiagramCanvasSurface.Children.Remove(relationship.Hit);
             _dynamicRelationships.Remove(relationshipKey);
+            if (_relationshipLabels.Remove(relationshipKey, out var relationshipLabel)) DiagramCanvasSurface.Children.Remove(relationshipLabel);
             _relationshipOffsets.Remove(relationshipKey);
         }
 
@@ -386,7 +408,8 @@ public partial class MainWindow : Window
         ClearCardSelection(); ClearRelationshipSelection();
         _selectedHitPath = hitPath;
                 _selectedRelationshipKey = key;
-_selectedRelationship = FindRelationshipLine(key);
+        ShowRelationshipProperties(key);
+        _selectedRelationship = FindRelationshipLine(key);
         if (_selectedRelationship is null) return;
         _selectedRelationship.Stroke = new SolidColorBrush(Color.FromRgb(241, 223, 119));
         _selectedRelationship.StrokeThickness = 4;
@@ -449,6 +472,57 @@ _selectedRelationship = FindRelationshipLine(key);
         StatusText.Text = "Relationship route moved; endpoints remain connected";
         e.Handled = true;
     }
+    private void ShowRelationshipProperties(string key)
+    {
+        var info = GetRelationshipInfo(key);
+        if (info is null) return;
+        var (source, target, type) = info.Value;
+        EntityPropertiesPanel.Visibility = Visibility.Collapsed;
+        RelationshipPropertiesPanel.Visibility = Visibility.Visible;
+        SelectedRelationshipTitle.Text = $"{source} → {target}".ToUpperInvariant();
+        RelationshipNameBox.Text = $"{source} -> {target}";
+        RelationshipPhysicalNameBox.Text = $"{source.ToLowerInvariant()}-{target.ToLowerInvariant()}";
+        RelationshipDescriptionBox.Text = "contains";
+        RelationshipParentBox.Text = source;
+        RelationshipChildBox.Text = target;
+        RelationshipTypeBox.Text = type;
+        var cardinality = _relationshipLabels.TryGetValue(key, out var label) ? label.Text : "1:N";
+        _updatingRelationshipInspector = true;
+        CardinalityComboBox.SelectedValue = cardinality;
+        _updatingRelationshipInspector = false;
+    }
+
+    private (string Source, string Target, string Type)? GetRelationshipInfo(string key)
+    {
+        if (_dynamicRelationships.TryGetValue(key, out var dynamicRelationship))
+            return (dynamicRelationship.SourceKey, dynamicRelationship.TargetKey,
+                dynamicRelationship.IsIdentifying ? "Identifying" : "Non-identifying");
+        return key switch
+        {
+            "CustomerOrder" => ("Customer", "Order", "Non-identifying"),
+            "OrderProduct" => ("Order", "Product", "Identifying"),
+            "OrderOrderItem" => ("Order", "OrderItem", "Identifying"),
+            "ProductOrderItem" => ("Product", "OrderItem", "Non-identifying"),
+            _ => null
+        };
+    }
+
+    private void CardinalityComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_updatingRelationshipInspector || _selectedRelationshipKey is null) return;
+        if (CardinalityComboBox.SelectedValue is not string cardinality) return;
+        var label = EnsureRelationshipLabel(_selectedRelationshipKey, cardinality);
+        label.Text = cardinality;
+        UpdateRelationshipLines();
+        StatusText.Text = $"Cardinality changed to {cardinality}";
+    }
+
+    private void DeleteSelectedRelationship_Click(object sender, RoutedEventArgs e)
+    {
+        if (_selectedRelationshipKey is null) return;
+        RelationshipDeleteButton.Tag = _selectedRelationshipKey;
+        RelationshipDeleteButton_Click(RelationshipDeleteButton, e);
+    }
     private void RelationshipDeleteButton_Click(object sender, RoutedEventArgs e)
     {
         if (RelationshipDeleteButton.Tag is not string key) return;
@@ -459,10 +533,12 @@ _selectedRelationship = FindRelationshipLine(key);
         {
             DiagramCanvasSurface.Children.Remove(dynamicRelationship.Visible);
             DiagramCanvasSurface.Children.Remove(dynamicRelationship.Hit);
+            if (_relationshipLabels.Remove(key, out var label)) DiagramCanvasSurface.Children.Remove(label);
         }
         else
         {
             _deletedRelationships.Add(key);
+            if (_relationshipLabels.TryGetValue(key, out var staticLabel)) staticLabel.Visibility = Visibility.Collapsed;
             if (selectedVisible is not null) selectedVisible.Visibility = Visibility.Collapsed;
             if (selectedHit is not null) selectedHit.Visibility = Visibility.Collapsed;
         }
@@ -481,6 +557,8 @@ _selectedRelationship = FindRelationshipLine(key);
         RelationshipMoveHandle.Visibility = Visibility.Collapsed;
         RelationshipDeleteButton.Visibility = Visibility.Collapsed;
         RelationshipDeleteButton.Tag = null;
+        RelationshipPropertiesPanel.Visibility = Visibility.Collapsed;
+        EntityPropertiesPanel.Visibility = Visibility.Visible;
     }
 
     private void DiagramCanvasSurface_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -506,6 +584,7 @@ _selectedRelationship = FindRelationshipLine(key);
         var hit = DiagramCanvasSurface.Children.OfType<Path>()
             .FirstOrDefault(path => Equals(path.Tag, key) && path != visible);
         if (visible is null || hit is null) return;
+        var cardinalityLabel = EnsureRelationshipLabel(key, "1:N");
         if (_deletedRelationships.Contains(key) ||
             !DiagramCanvasSurface.Children.Contains(source) ||
             !DiagramCanvasSurface.Children.Contains(target))
@@ -554,6 +633,10 @@ _selectedRelationship = FindRelationshipLine(key);
         var geometry = new PathGeometry([figure]);
         visible.Data = geometry;
         hit.Data = geometry.Clone();
+
+        cardinalityLabel.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        Canvas.SetLeft(cardinalityLabel, handlePoint.X - cardinalityLabel.DesiredSize.Width / 2);
+        Canvas.SetTop(cardinalityLabel, handlePoint.Y - 25);
 
         if (_selectedRelationshipKey == key)
         {
@@ -660,12 +743,14 @@ _selectedRelationship = FindRelationshipLine(key);
         DiagramCanvasSurface.Children.Add(hit);
         DiagramCanvasSurface.Children.Add(visible);
         _dynamicRelationships[key] = new DynamicRelationship(sourceKey, targetKey, visible, hit, relationshipType == "Identifying relationship");
+        EnsureRelationshipLabel(key, "1:N");
         UpdateRelationship(key, source, target);
 
         ClearCardSelection();
         ClearRelationshipSelection();
         _selectedHitPath = hit;
         _selectedRelationshipKey = key;
+                ShowRelationshipProperties(key);
         _selectedRelationship = visible;
         visible.Stroke = new SolidColorBrush(Color.FromRgb(241, 223, 119));
         visible.StrokeThickness = 4;
