@@ -506,13 +506,9 @@ _selectedRelationship = FindRelationshipLine(key);
         var hit = DiagramCanvasSurface.Children.OfType<Path>()
             .FirstOrDefault(path => Equals(path.Tag, key) && path != visible);
         if (visible is null || hit is null) return;
-        if (_deletedRelationships.Contains(key))
-        {
-            visible.Visibility = Visibility.Collapsed;
-            hit.Visibility = Visibility.Collapsed;
-            return;
-        }
-        if (!DiagramCanvasSurface.Children.Contains(source) || !DiagramCanvasSurface.Children.Contains(target))
+        if (_deletedRelationships.Contains(key) ||
+            !DiagramCanvasSurface.Children.Contains(source) ||
+            !DiagramCanvasSurface.Children.Contains(target))
         {
             visible.Visibility = Visibility.Collapsed;
             hit.Visibility = Visibility.Collapsed;
@@ -526,32 +522,31 @@ _selectedRelationship = FindRelationshipLine(key);
         var dx = targetCenter.X - sourceCenter.X;
         var dy = targetCenter.Y - sourceCenter.Y;
         var horizontal = Math.Abs(dx) >= Math.Abs(dy);
-        Point start;
-        Point end;
-        List<Point> route;
         _relationshipOffsets.TryGetValue(key, out var offset);
+        List<Point> route;
+        Point handlePoint;
 
         if (horizontal)
         {
             var direction = Math.Sign(dx == 0 ? 1 : dx);
-            start = new Point(sourceCenter.X + direction * source.ActualWidth / 2, sourceCenter.Y);
-            end = new Point(targetCenter.X - direction * target.ActualWidth / 2, targetCenter.Y);
+            var start = new Point(sourceCenter.X + direction * source.ActualWidth / 2, sourceCenter.Y);
+            var end = new Point(targetCenter.X - direction * target.ActualWidth / 2, targetCenter.Y);
             var startStub = new Point(start.X + direction * 24, start.Y);
             var endStub = new Point(end.X - direction * 24, end.Y);
-            var trunkX = (startStub.X + endStub.X) / 2 + offset.X;
             var trunkY = (start.Y + end.Y) / 2 + offset.Y;
-            route = [start, startStub, new Point(startStub.X, trunkY), new Point(trunkX, trunkY), new Point(endStub.X, trunkY), endStub, end];
+            route = [start, startStub, new Point(startStub.X, trunkY), new Point(endStub.X, trunkY), endStub, end];
+            handlePoint = new Point((startStub.X + endStub.X) / 2, trunkY);
         }
         else
         {
             var direction = Math.Sign(dy == 0 ? 1 : dy);
-            start = new Point(sourceCenter.X, sourceCenter.Y + direction * source.ActualHeight / 2);
-            end = new Point(targetCenter.X, targetCenter.Y - direction * target.ActualHeight / 2);
+            var start = new Point(sourceCenter.X, sourceCenter.Y + direction * source.ActualHeight / 2);
+            var end = new Point(targetCenter.X, targetCenter.Y - direction * target.ActualHeight / 2);
             var startStub = new Point(start.X, start.Y + direction * 24);
             var endStub = new Point(end.X, end.Y - direction * 24);
             var trunkX = (start.X + end.X) / 2 + offset.X;
-            var trunkY = (startStub.Y + endStub.Y) / 2 + offset.Y;
-            route = [start, startStub, new Point(trunkX, startStub.Y), new Point(trunkX, trunkY), new Point(trunkX, endStub.Y), endStub, end];
+            route = [start, startStub, new Point(trunkX, startStub.Y), new Point(trunkX, endStub.Y), endStub, end];
+            handlePoint = new Point(trunkX, (startStub.Y + endStub.Y) / 2);
         }
 
         var figure = new PathFigure { StartPoint = route[0], IsClosed = false, IsFilled = false };
@@ -562,14 +557,13 @@ _selectedRelationship = FindRelationshipLine(key);
 
         if (_selectedRelationshipKey == key)
         {
-            var middle = route[route.Count / 2];
             RelationshipMoveHandle.Visibility = Visibility.Visible;
-            Canvas.SetLeft(RelationshipMoveHandle, middle.X - 9);
-            Canvas.SetTop(RelationshipMoveHandle, middle.Y - 9);
+            Canvas.SetLeft(RelationshipMoveHandle, handlePoint.X - 9);
+            Canvas.SetTop(RelationshipMoveHandle, handlePoint.Y - 9);
             RelationshipDeleteButton.Tag = key;
             RelationshipDeleteButton.Visibility = Visibility.Visible;
-            Canvas.SetLeft(RelationshipDeleteButton, middle.X - 13);
-            Canvas.SetTop(RelationshipDeleteButton, middle.Y - 47);
+            Canvas.SetLeft(RelationshipDeleteButton, handlePoint.X - 13);
+            Canvas.SetTop(RelationshipDeleteButton, handlePoint.Y - 47);
         }
     }
     private void DiagramScrollViewer_SizeChanged(object sender, SizeChangedEventArgs e)
