@@ -14,6 +14,8 @@ public partial class MainWindow : Window
     private int _zoom = 100;
     private Border? _selectedCard;
     private Border? _selectedAttributeRow;
+    private Border? _attributeDragRow;
+    private Point _attributeDragStart;
     private Border? _draggedCard;
     private Point _entityDragStart;
     private readonly DispatcherTimer _entityHoldTimer = new() { Interval = TimeSpan.FromSeconds(2) };
@@ -45,10 +47,10 @@ public partial class MainWindow : Window
 
     private readonly Dictionary<string, ObservableCollection<ColumnInfo>> _columns = new()
     {
-        ["Customer"] = [new("customer_id", "INT", true), new("first_name", "VARCHAR", true), new("last_name", "VARCHAR", true), new("email", "VARCHAR", true)],
-        ["Order"] = [new("order_id", "INT", true), new("customer_id", "INT", true), new("order_date", "DATETIME", true), new("status", "VARCHAR", true)],
-        ["OrderItem"] = [new("order_item_id", "INT", true), new("order_id", "INT", true), new("product_id", "INT", true), new("quantity", "INT", true)],
-        ["Product"] = [new("product_id", "INT", true), new("category_id", "INT", true), new("name", "VARCHAR", true), new("unit_price", "DECIMAL", true)]
+        ["Customer"] = [new("customer_id", "INT", true, true), new("first_name", "VARCHAR", true), new("last_name", "VARCHAR", true), new("email", "VARCHAR", true)],
+        ["Order"] = [new("order_id", "INT", true, true), new("customer_id", "INT", true), new("order_date", "DATETIME", true), new("status", "VARCHAR", true)],
+        ["OrderItem"] = [new("order_item_id", "INT", true, true), new("order_id", "INT", true), new("product_id", "INT", true), new("quantity", "INT", true)],
+        ["Product"] = [new("product_id", "INT", true, true), new("category_id", "INT", true), new("name", "VARCHAR", true), new("unit_price", "DECIMAL", true)]
     };
 
     public MainWindow()
@@ -126,6 +128,7 @@ public partial class MainWindow : Window
             _columns[entityKey][columnIndex] = new ColumnInfo(name, "VARCHAR(50)", false);
             row.Tag = new AttributeSelection(entityKey, name);
             row.MouseLeftButtonDown += AttributeRow_MouseLeftButtonDown;
+            ConfigureAttributeDrag(row);
             editor.IsReadOnly = true;
             editor.Text = name;
             Keyboard.ClearFocus();
@@ -252,10 +255,137 @@ public partial class MainWindow : Window
                 Child = text
             };
             row.MouseLeftButtonDown += AttributeRow_MouseLeftButtonDown;
+            ConfigureAttributeDrag(row);
             fields.Children.Insert(childIndex, row);
+        }
+
+        foreach (var separator in fields.Children.OfType<Separator>().ToList())
+        {
+            var index = fields.Children.IndexOf(separator);
+            fields.Children.RemoveAt(index);
+            fields.Children.Insert(index, CreatePkDivider(entityKey));
         }
     }
 
+    private void ConfigureAttributeDrag(Border row)
+    {
+        row.PreviewMouseLeftButtonDown += AttributeDrag_PreviewMouseLeftButtonDown;
+        row.PreviewMouseMove += AttributeDrag_PreviewMouseMove;
+    }
+
+    private Border CreatePkDivider(string entityKey)
+    {
+        var divider = new Border
+        {
+            Tag = new PkDividerTag(entityKey), AllowDrop = true, Height = 18,
+            Margin = new Thickness(0, 3, 0, 3),
+            Background = new SolidColorBrush(Color.FromRgb(28, 52, 68)),
+            BorderBrush = new SolidColorBrush(Color.FromRgb(45, 77, 96)),
+            BorderThickness = new Thickness(0, 1, 0, 1), CornerRadius = new CornerRadius(5),
+            Cursor = Cursors.Hand, ToolTip = "Drop a column here to switch PK / non-PK",
+            Child = new TextBlock
+            {
+                Text = "Drop here to switch PK",
+                Foreground = new SolidColorBrush(Color.FromRgb(151, 174, 195)), FontSize = 9,
+                FontWeight = FontWeights.SemiBold, HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            }
+        };
+        divider.DragEnter += PkDivider_DragEnter;
+        divider.DragLeave += PkDivider_DragLeave;
+        divider.DragOver += PkDivider_DragOver;
+        divider.Drop += PkDivider_Drop;
+        return divider;
+    }
+    private void AttributeDrag_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is not Border { Tag: AttributeSelection }) return;
+        _attributeDragRow = (Border)sender;
+        _attributeDragStart = e.GetPosition(DiagramCanvasSurface);
+    }
+
+    private void AttributeDrag_PreviewMouseMove(object sender, MouseEventArgs e)
+    {
+        if (e.LeftButton != MouseButtonState.Pressed || _attributeDragRow is null) return;
+        var point = e.GetPosition(DiagramCanvasSurface);
+        if ((point - _attributeDragStart).Length < 5) return;
+        if (_attributeDragRow.Tag is not AttributeSelection selection) return;
+        var data = new AttributeDragData(selection.EntityKey, selection.AttributeName, _attributeDragRow);
+        DragDrop.DoDragDrop(_attributeDragRow, data, DragDropEffects.Move);
+        _attributeDragRow = null;
+    }
+
+    private void PkDivider_DragEnter(object sender, DragEventArgs e)
+    {
+        if (sender is Border divider && e.Data.GetDataPresent(typeof(AttributeDragData)))
+            divider.Background = new SolidColorBrush(Color.FromRgb(38, 103, 113));
+    }
+
+    private void PkDivider_DragLeave(object sender, DragEventArgs e)
+    {
+        if (sender is Border divider)
+            divider.Background = new SolidColorBrush(Color.FromRgb(28, 52, 68));
+    }
+
+    private void PkDivider_DragOver(object sender, DragEventArgs e)
+    {
+        e.Effects = e.Data.GetDataPresent(typeof(AttributeDragData)) ? DragDropEffects.Move : DragDropEffects.None;
+        e.Handled = true;
+    }
+
+    private void PkDivider_Drop(object sender, DragEventArgs e)
+    {
+        if (sender is not Border { Tag: PkDividerTag dividerTag } divider ||
+            e.Data.GetData(typeof(AttributeDragData)) is not AttributeDragData drag ||
+            drag.EntityKey != dividerTag.EntityKey || !_columns.TryGetValue(dividerTag.EntityKey, out var columns))
+        {
+            e.Effects = DragDropEffects.None;
+            return;
+        }
+        var entityKey = dividerTag.EntityKey;
+        divider.Background = new SolidColorBrush(Color.FromRgb(28, 52, 68));
+        var oldIndex = columns.ToList().FindIndex(column => column.Name == drag.AttributeName);
+        if (oldIndex < 0) return;
+        var column = columns[oldIndex];
+        columns.RemoveAt(oldIndex);
+        var updated = column with { IsPrimaryKey = !column.IsPrimaryKey };
+        var newIndex = columns.Count(item => item.IsPrimaryKey);
+        columns.Insert(newIndex, updated);
+
+        if (divider.Parent is StackPanel fields)
+        {
+            fields.Children.Remove(drag.Row);
+            var dividerIndex = fields.Children.IndexOf(divider);
+            fields.Children.Insert(updated.IsPrimaryKey ? dividerIndex : dividerIndex + 1, drag.Row);
+        }
+        drag.Row.Tag = new AttributeSelection(dividerTag.EntityKey, updated.Name);
+        UpdateAttributeRowAppearance(drag.Row, updated);
+        ClearAttributeSelection();
+        AttributeRow_MouseLeftButtonDown(drag.Row, new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left) { RoutedEvent = Mouse.MouseDownEvent });
+        ColumnsGrid.Items.Refresh();
+        StatusText.Text = updated.IsPrimaryKey
+            ? $"Moved {updated.Name} to the PK area"
+            : $"Moved {updated.Name} to the non-PK area";
+        e.Effects = DragDropEffects.Move;
+        e.Handled = true;
+    }
+
+    private static void UpdateAttributeRowAppearance(Border row, ColumnInfo column)
+    {
+        if (row.Child is TextBlock text)
+        {
+            var marker = column.IsPrimaryKey ? "🔑" : "   ";
+            text.Text = $"{marker}  {column.Name}        {column.Type}";
+            text.FontWeight = column.IsPrimaryKey ? FontWeights.SemiBold : FontWeights.Normal;
+        }
+        else if (row.Child is Grid layout && layout.Children.OfType<TextBlock>().FirstOrDefault() is { } badge)
+        {
+            badge.Text = column.IsPrimaryKey ? "PK" : "COL";
+            badge.Foreground = column.IsPrimaryKey
+                ? new SolidColorBrush(Color.FromRgb(255, 210, 107))
+                : new SolidColorBrush(Color.FromRgb(207, 222, 235));
+        }
+    }
     private void AttributeRow_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         if (sender is not Border { Tag: AttributeSelection selection } row) return;
@@ -866,7 +996,7 @@ public partial class MainWindow : Window
     {
         _newEntityNumber++;
         var key = _newEntityNumber == 1 ? "NewEntity" : $"NewEntity{_newEntityNumber}";
-        _columns[key] = [new("Id", "UUID", true)];
+        _columns[key] = [new("Id", "UUID", true, true)];
         _entityCardKeys.Add(key);
 
         var card = new Border
@@ -946,8 +1076,14 @@ public partial class MainWindow : Window
     private void SearchBox_TextChanged(object sender, TextChangedEventArgs e) { if (EmptyHint is null) return; EmptyHint.Visibility = string.IsNullOrWhiteSpace(SearchBox.Text) || new[] { "customer", "order", "item", "product", "category" }.Any(x => x.Contains(SearchBox.Text, StringComparison.OrdinalIgnoreCase)) ? Visibility.Collapsed : Visibility.Visible; StatusText.Text = string.IsNullOrWhiteSpace(SearchBox.Text) ? "Ready" : $"Filtering objects by ‘{SearchBox.Text}’"; }
 }
 
-public sealed record ColumnInfo(string Name, string Type, bool Required);
+public sealed record ColumnInfo(string Name, string Type, bool Required, bool IsPrimaryKey = false);
 
 public sealed record DynamicRelationship(string SourceKey, string TargetKey, Path Visible, Path Hit, bool IsIdentifying);
 
 public sealed record AttributeSelection(string EntityKey, string AttributeName);
+
+public sealed record AttributeDragData(string EntityKey, string AttributeName, Border Row);
+
+public sealed record PkDividerTag(string EntityKey);
+
+
