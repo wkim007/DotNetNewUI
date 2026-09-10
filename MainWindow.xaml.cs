@@ -47,10 +47,10 @@ public partial class MainWindow : Window
 
     private readonly Dictionary<string, ObservableCollection<ColumnInfo>> _columns = new()
     {
-        ["Customer"] = [new("customer_id", "INT", true, true), new("first_name", "VARCHAR", true), new("last_name", "VARCHAR", true), new("email", "VARCHAR", true)],
-        ["Order"] = [new("order_id", "INT", true, true), new("customer_id", "INT", true), new("order_date", "DATETIME", true), new("status", "VARCHAR", true)],
-        ["OrderItem"] = [new("order_item_id", "INT", true, true), new("order_id", "INT", true), new("product_id", "INT", true), new("quantity", "INT", true)],
-        ["Product"] = [new("product_id", "INT", true, true), new("category_id", "INT", true), new("name", "VARCHAR", true), new("unit_price", "DECIMAL", true)]
+        ["Customer"] = [new("customer_id", "INT", true, true), new("first_name", "VARCHAR", true), new("last_name", "VARCHAR", true), new("email", "VARCHAR", true), new("created_at", "DATETIME", false)],
+        ["Order"] = [new("order_id", "INT", true, true), new("customer_id", "INT", true, IsForeignKey: true), new("order_date", "DATETIME", true), new("status", "VARCHAR", true)],
+        ["OrderItem"] = [new("order_item_id", "INT", true, true), new("order_id", "INT", true, IsForeignKey: true), new("product_id", "INT", true, IsForeignKey: true), new("quantity", "INT", true)],
+        ["Product"] = [new("product_id", "INT", true, true), new("category_id", "INT", true, IsForeignKey: true), new("name", "VARCHAR", true), new("unit_price", "DECIMAL", true)]
     };
 
     public MainWindow()
@@ -105,7 +105,7 @@ public partial class MainWindow : Window
         layout.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(48) });
         layout.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         layout.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        var badge = new TextBlock { Text = "COL", Foreground = new SolidColorBrush(Color.FromRgb(207, 222, 235)), FontWeight = FontWeights.Bold, FontSize = 10, VerticalAlignment = VerticalAlignment.Center };
+        var badge = CreateColumnBadge(new ColumnInfo("New attribute", "VARCHAR(50)", false));
         var editor = new TextBox { Text = "New attribute", Background = Brushes.Transparent, BorderThickness = new Thickness(0), Foreground = Brushes.White, CaretBrush = Brushes.White, Padding = new Thickness(0), VerticalContentAlignment = VerticalAlignment.Center };
         var datatype = new TextBlock { Text = "varchar(50)", Foreground = new SolidColorBrush(Color.FromRgb(166, 190, 211)), Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
         Grid.SetColumn(badge, 0); Grid.SetColumn(editor, 1); Grid.SetColumn(datatype, 2);
@@ -123,7 +123,7 @@ public partial class MainWindow : Window
         };
         editor.KeyDown += (_, args) =>
         {
-            if (args.Key != Key.Enter) return;
+            if (args.Key != Key.Enter || editor.IsReadOnly) return;
             var name = string.IsNullOrWhiteSpace(editor.Text) ? "New attribute" : editor.Text.Trim();
             _columns[entityKey][columnIndex] = new ColumnInfo(name, "VARCHAR(50)", false);
             row.Tag = new AttributeSelection(entityKey, name);
@@ -252,7 +252,7 @@ public partial class MainWindow : Window
                 Padding = new Thickness(7, 1, 7, 1),
                 Margin = new Thickness(0, 1, 0, 1),
                 Cursor = Cursors.Hand,
-                Child = text
+                Child = CreateAttributeLayout(attributes[index], text.Text)
             };
             row.MouseLeftButtonDown += AttributeRow_MouseLeftButtonDown;
             ConfigureAttributeDrag(row);
@@ -372,19 +372,65 @@ public partial class MainWindow : Window
 
     private static void UpdateAttributeRowAppearance(Border row, ColumnInfo column)
     {
-        if (row.Child is TextBlock text)
+        if (row.Child is Grid layout && layout.Children.OfType<Border>().FirstOrDefault() is { } badge)
+            ApplyColumnBadge(badge, column);
+    }
+
+    private static Border CreateColumnBadge(ColumnInfo column)
+    {
+        var badge = new Border
         {
-            var marker = column.IsPrimaryKey ? "🔑" : "   ";
-            text.Text = $"{marker}  {column.Name}        {column.Type}";
-            text.FontWeight = column.IsPrimaryKey ? FontWeights.SemiBold : FontWeights.Normal;
-        }
-        else if (row.Child is Grid layout && layout.Children.OfType<TextBlock>().FirstOrDefault() is { } badge)
+            Width = 36, Height = 20, CornerRadius = new CornerRadius(10),
+            HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Center,
+            Child = new TextBlock
+            {
+                FontSize = 9, FontWeight = FontWeights.Bold,
+                HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
+            }
+        };
+        ApplyColumnBadge(badge, column);
+        return badge;
+    }
+
+    private static void ApplyColumnBadge(Border badge, ColumnInfo column)
+    {
+        var label = (TextBlock)badge.Child;
+        label.Text = column.IsPrimaryKey ? "PK" : column.IsForeignKey ? "FK" : "COL";
+        label.Foreground = new SolidColorBrush(column.IsPrimaryKey
+            ? Color.FromRgb(255, 210, 107)
+            : column.IsForeignKey ? Color.FromRgb(143, 193, 255) : Color.FromRgb(207, 222, 235));
+        badge.Background = new SolidColorBrush(column.IsPrimaryKey
+            ? Color.FromRgb(76, 76, 62)
+            : column.IsForeignKey ? Color.FromRgb(55, 77, 101) : Color.FromRgb(48, 62, 79));
+    }
+
+    private static Grid CreateAttributeLayout(ColumnInfo column, string originalText)
+    {
+        var layout = new Grid { Margin = new Thickness(0, 2, 0, 2) };
+        layout.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(44) });
+        layout.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        layout.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        var badge = CreateColumnBadge(column);
+        var name = new TextBlock
         {
-            badge.Text = column.IsPrimaryKey ? "PK" : "COL";
-            badge.Foreground = column.IsPrimaryKey
-                ? new SolidColorBrush(Color.FromRgb(255, 210, 107))
-                : new SolidColorBrush(Color.FromRgb(207, 222, 235));
-        }
+            Text = column.Name, Foreground = new SolidColorBrush(Color.FromRgb(220, 231, 245)),
+            FontSize = 11, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center,
+            TextTrimming = TextTrimming.CharacterEllipsis, ToolTip = column.Name
+        };
+        // Preserve datatype lengths displayed on the original sample cards.
+        var nameIndex = originalText.IndexOf(column.Name, StringComparison.Ordinal);
+        var type = nameIndex >= 0 ? originalText[(nameIndex + column.Name.Length)..].Trim() : column.Type;
+        var datatype = new TextBlock
+        {
+            Text = type, Foreground = new SolidColorBrush(Color.FromRgb(166, 190, 211)),
+            FontSize = 10, Margin = new Thickness(6, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center
+        };
+        Grid.SetColumn(name, 1);
+        Grid.SetColumn(datatype, 2);
+        layout.Children.Add(badge);
+        layout.Children.Add(name);
+        layout.Children.Add(datatype);
+        return layout;
     }
     private void AttributeRow_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
@@ -483,7 +529,7 @@ public partial class MainWindow : Window
         _selectedCard = card;
         card.BorderBrush = new SolidColorBrush(Color.FromRgb(241, 191, 82));
         card.BorderThickness = new Thickness(2);
-        card.Effect = new System.Windows.Media.Effects.DropShadowEffect { Color = Color.FromRgb(241, 191, 82), BlurRadius = 14, Opacity = .35, ShadowDepth = 0 };
+        // Keep selection on the border so effects do not rasterize the card text.
         Panel.SetZIndex(card, 10);
     }
 
@@ -492,7 +538,7 @@ public partial class MainWindow : Window
         if (_selectedCard is null) return;
         _selectedCard.ClearValue(Border.BorderBrushProperty);
         _selectedCard.ClearValue(Border.BorderThicknessProperty);
-        _selectedCard.ClearValue(Border.EffectProperty);
+
         Panel.SetZIndex(_selectedCard, 1);
         _selectedCard = null;
     }
@@ -1076,7 +1122,7 @@ public partial class MainWindow : Window
     private void SearchBox_TextChanged(object sender, TextChangedEventArgs e) { if (EmptyHint is null) return; EmptyHint.Visibility = string.IsNullOrWhiteSpace(SearchBox.Text) || new[] { "customer", "order", "item", "product", "category" }.Any(x => x.Contains(SearchBox.Text, StringComparison.OrdinalIgnoreCase)) ? Visibility.Collapsed : Visibility.Visible; StatusText.Text = string.IsNullOrWhiteSpace(SearchBox.Text) ? "Ready" : $"Filtering objects by ‘{SearchBox.Text}’"; }
 }
 
-public sealed record ColumnInfo(string Name, string Type, bool Required, bool IsPrimaryKey = false);
+public sealed record ColumnInfo(string Name, string Type, bool Required, bool IsPrimaryKey = false, bool IsForeignKey = false);
 
 public sealed record DynamicRelationship(string SourceKey, string TargetKey, Path Visible, Path Hit, bool IsIdentifying);
 

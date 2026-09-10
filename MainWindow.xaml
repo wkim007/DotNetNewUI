@@ -4,7 +4,7 @@
         xmlns:primitives="clr-namespace:System.Windows.Controls.Primitives;assembly=PresentationFramework"
         Title="Data Architect Studio — Sales Model" Height="850" Width="1440"
         MinHeight="650" MinWidth="1080" WindowStartupLocation="CenterScreen"
-        Background="{StaticResource Canvas}" FontFamily="Segoe UI" FontSize="13">
+        Background="{StaticResource Canvas}" FontFamily="Segoe UI" FontSize="13" UseLayoutRounding="True" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display">
     <Window.Resources>
         <DrawingBrush x:Key="DiagramGridBrush" TileMode="Tile" Viewport="0,0,20,20" ViewportUnits="Absolute"><DrawingBrush.Drawing><GeometryDrawing Brush="#0D1520"><GeometryDrawing.Pen><Pen Brush="#182535" Thickness="1"/></GeometryDrawing.Pen><GeometryDrawing.Geometry><RectangleGeometry Rect="0,0,20,20"/></GeometryDrawing.Geometry></GeometryDrawing></DrawingBrush.Drawing></DrawingBrush>
         <Style x:Key="SectionTitle" TargetType="TextBlock">
@@ -14,7 +14,7 @@
         <Style x:Key="EntityCard" TargetType="Border">
             <Setter Property="Background" Value="#202B3A"/><Setter Property="BorderBrush" Value="#33465A"/>
             <Setter Property="BorderThickness" Value="1"/><Setter Property="CornerRadius" Value="7"/>
-            <Setter Property="Effect"><Setter.Value><DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.12"/></Setter.Value></Setter>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
         </Style>
     <Style x:Key="CardResizeThumb" TargetType="primitives:Thumb"><Setter Property="Width" Value="18"/><Setter Property="Height" Value="18"/><Setter Property="HorizontalAlignment" Value="Right"/><Setter Property="VerticalAlignment" Value="Bottom"/><Setter Property="Margin" Value="0,0,3,3"/><Setter Property="Cursor" Value="SizeNWSE"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="primitives:Thumb"><Grid Background="Transparent"><Path Stroke="#AFC3D2" StrokeThickness="1.5" Data="M 5,15 L 15,5 M 10,15 L 15,10 M 14,15 L 15,14"/></Grid></ControlTemplate></Setter.Value></Setter></Style>
     <Style x:Key="DiagramToolButton" TargetType="Button">
