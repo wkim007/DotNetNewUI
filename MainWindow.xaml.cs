@@ -57,12 +57,88 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        DiagramCanvasSurface.LayoutUpdated += (_, _) => ApplyProjectViewMode();
         _entityHoldTimer.Tick += EntityHoldTimer_Tick;
         SelectEntity("Order");
         SelectCard(OrderCard);
         Loaded += (_, _) => { EnsureRelationshipLabel("CustomerOrder", "1:N"); EnsureRelationshipLabel("OrderProduct", "1:N"); EnsureRelationshipLabel("OrderOrderItem", "1:N"); EnsureRelationshipLabel("ProductOrderItem", "1:N"); EnsureCloseButton(CustomerCard, "Customer"); EnsureCloseButton(OrderCard, "Order"); EnsureCloseButton(ProductCard, "Product"); EnsureCloseButton(OrderItemCard, "OrderItem"); PrepareAttributeRows(CustomerCard, "Customer"); PrepareAttributeRows(OrderCard, "Order"); PrepareAttributeRows(ProductCard, "Product"); PrepareAttributeRows(OrderItemCard, "OrderItem"); ResizeDiagramSurfaceToViewport(); UpdateRelationshipLines(); };
     }
 
+    private string _modelName = "Sales Model";
+    private string _modelDescription = "";
+
+    private void ProjectViewMode_Changed(object sender, SelectionChangedEventArgs e) => ApplyProjectViewMode();
+
+    private void ApplyProjectViewMode()
+    {
+        if (DiagramCanvasSurface is null || ViewModeBox is null) return;
+        var visibility = ViewModeBox.SelectedIndex == 1 ? Visibility.Collapsed : Visibility.Visible;
+        foreach (var text in Descendants<TextBlock>(DiagramCanvasSurface))
+            if (Equals(text.Tag, "ColumnDatatype") && text.Visibility != visibility) text.Visibility = visibility;
+    }
+
+    private static IEnumerable<T> Descendants<T>(DependencyObject root) where T : DependencyObject
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            var child = VisualTreeHelper.GetChild(root, i);
+            if (child is T item) yield return item;
+            foreach (var nested in Descendants<T>(child)) yield return nested;
+        }
+    }
+
+    private Window SettingsWindow(string title, StackPanel content) => new Window
+    {
+        Title = title, Owner = this, Width = 380, SizeToContent = SizeToContent.Height,
+        ResizeMode = ResizeMode.NoResize, WindowStartupLocation = WindowStartupLocation.CenterOwner,
+        Background = new SolidColorBrush(Color.FromRgb(238, 244, 250)), Content = content
+    };
+
+    private void ModelProperties_Click(object sender, RoutedEventArgs e)
+    {
+        var panel = new StackPanel { Margin = new Thickness(20) };
+        panel.Children.Add(new TextBlock { Text = "Model name" });
+        var name = new TextBox { Text = _modelName, Margin = new Thickness(0, 6, 0, 14) };
+        panel.Children.Add(name);
+        panel.Children.Add(new TextBlock { Text = "Description" });
+        var description = new TextBox { Text = _modelDescription, Height = 90, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 14) };
+        panel.Children.Add(description);
+        panel.Children.Add(new TextBlock { Text = $"Database: {ProjectDatabaseBox.Text} {ProjectVersionBox.Text}\nSubject area: {ProjectSubjectBox.Text}", TextWrapping = TextWrapping.Wrap });
+        var save = new Button { Content = "Apply", Margin = new Thickness(0, 16, 0, 0) };
+        panel.Children.Add(save);
+        var dialog = SettingsWindow("Model Properties", panel);
+        save.Click += (_, _) =>
+        {
+            if (string.IsNullOrWhiteSpace(name.Text)) { name.Focus(); return; }
+            _modelName = name.Text.Trim();
+            _modelDescription = description.Text;
+            Title = $"Data Architect Studio — {_modelName}";
+            if (ModelTree.Items[0] is TreeViewItem root) root.Header = _modelName;
+            dialog.Close();
+        };
+        dialog.ShowDialog();
+    }
+
+    private void ThemeSettings_Click(object sender, RoutedEventArgs e)
+    {
+        var panel = new StackPanel { Margin = new Thickness(20) };
+        panel.Children.Add(new TextBlock { Text = "Diagram background", Margin = new Thickness(0, 0, 0, 12) });
+        var dialog = SettingsWindow("Theme Settings", panel);
+        foreach (var option in new[] { "Dark grid", "Dark solid", "Light" })
+        {
+            var button = new Button { Content = option, Margin = new Thickness(0, 4, 0, 4) };
+            button.Click += (_, _) =>
+            {
+                Brush brush = option == "Dark grid" ? (Brush)FindResource("DiagramGridBrush")
+                    : new SolidColorBrush(option == "Light" ? Color.FromRgb(238, 244, 250) : Color.FromRgb(13, 21, 32));
+                DiagramCanvasSurface.Background = brush;
+                DiagramScrollViewer.Background = brush;
+                dialog.Close();
+            };
+            panel.Children.Add(button);
+        }
+        dialog.ShowDialog();
+    }
     private void SelectEntity(string key)
     {
         var display = key == "OrderItem" ? "Order Item" : key;
@@ -108,7 +184,7 @@ public partial class MainWindow : Window
         layout.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         var badge = CreateColumnBadge(new ColumnInfo("New attribute", "VARCHAR(50)", false));
         var editor = new TextBox { Text = "New attribute", Background = Brushes.Transparent, BorderThickness = new Thickness(0), Foreground = Brushes.White, CaretBrush = Brushes.White, Padding = new Thickness(0), VerticalContentAlignment = VerticalAlignment.Center };
-        var datatype = new TextBlock { Text = "varchar(50)", Foreground = new SolidColorBrush(Color.FromRgb(166, 190, 211)), Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
+        var datatype = new TextBlock { Tag = "ColumnDatatype", Text = "varchar(50)", Foreground = new SolidColorBrush(Color.FromRgb(166, 190, 211)), Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
         Grid.SetColumn(badge, 0); Grid.SetColumn(editor, 1); Grid.SetColumn(datatype, 2);
         layout.Children.Add(badge); layout.Children.Add(editor); layout.Children.Add(datatype);
         row.Child = layout;
@@ -424,7 +500,7 @@ public partial class MainWindow : Window
         var type = nameIndex >= 0 ? originalText[(nameIndex + column.Name.Length)..].Trim() : column.Type;
         var datatype = new TextBlock
         {
-            Text = type, Foreground = new SolidColorBrush(Color.FromRgb(166, 190, 211)),
+            Tag = "ColumnDatatype", Text = type, Foreground = new SolidColorBrush(Color.FromRgb(166, 190, 211)),
             FontSize = 10, Margin = new Thickness(6, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center
         };
         Grid.SetColumn(name, 1);
