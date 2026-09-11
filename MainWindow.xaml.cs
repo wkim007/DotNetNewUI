@@ -34,6 +34,7 @@ public partial class MainWindow : Window
     private readonly Dictionary<string, Border> _dynamicCards = new();
     private int _newEntityNumber;
     private int _newAnnotationNumber;
+    private readonly HashSet<string> _viewCardKeys = [];
     private int _newViewNumber;
     private int _newMaterializedViewNumber;
     private int _newRelationshipNumber;
@@ -224,6 +225,7 @@ public partial class MainWindow : Window
         DiagramCanvasSurface.Children.Remove(card);
         _dynamicCards.Remove(key);
         _entityCardKeys.Remove(key);
+        _viewCardKeys.Remove(key);
         _columns.Remove(key);
         ClearRelationshipSelection();
         UpdateRelationshipLines();
@@ -435,6 +437,7 @@ public partial class MainWindow : Window
     private void AttributeRow_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         if (sender is not Border { Tag: AttributeSelection selection } row) return;
+        if (HandleViewRelationshipClick(selection.EntityKey, e)) return;
         ClearAttributeSelection();
         _selectedAttributeRow = row;
         row.Background = new SolidColorBrush(Color.FromRgb(38, 103, 113));
@@ -465,6 +468,7 @@ public partial class MainWindow : Window
     private void Entity_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         if (e.OriginalSource is Thumb || sender is not Border { Tag: string key } card) return;
+        if (HandleViewRelationshipClick(key, e)) return;
         ClearAttributeSelection();
         if (_pendingRelationshipType is not null && _relationshipSourceKey is not null)
         {
@@ -672,7 +676,7 @@ public partial class MainWindow : Window
     {
         if (_dynamicRelationships.TryGetValue(key, out var dynamicRelationship))
             return (dynamicRelationship.SourceKey, dynamicRelationship.TargetKey,
-                dynamicRelationship.IsIdentifying ? "Identifying" : "Non-identifying");
+                dynamicRelationship.IsViewRelationship ? "View / Materialized view" : dynamicRelationship.IsIdentifying ? "Identifying" : "Non-identifying");
         return key switch
         {
             "CustomerOrder" => ("Customer", "Order", "Non-identifying"),
@@ -868,6 +872,14 @@ public partial class MainWindow : Window
             case "Materialized View":
                 AddNewView(true);
                 return;
+            case "View relationship":
+                _pendingRelationshipType = tool;
+                _relationshipSourceKey = _selectedCard?.Tag is string selectedKey &&
+                    (_entityCardKeys.Contains(selectedKey) || _viewCardKeys.Contains(selectedKey)) ? selectedKey : null;
+                StatusText.Text = _relationshipSourceKey is null
+                    ? "Select an entity, view, or materialized view as the source"
+                    : "Select an entity and a view/materialized view to connect";
+                return;
             case "Identifying relationship":
             case "Non-identifying relationship":
                 if (_selectedCard?.Tag is not string sourceKey)
@@ -884,11 +896,44 @@ public partial class MainWindow : Window
                 return;
         }
     }
+    private bool CanConnectView(string source, string target) =>
+        FindCard(source) is { } sourceCard && DiagramCanvasSurface.Children.Contains(sourceCard) &&
+        FindCard(target) is { } targetCard && DiagramCanvasSurface.Children.Contains(targetCard) &&
+        ((_entityCardKeys.Contains(source) && _viewCardKeys.Contains(target)) ||
+         (_viewCardKeys.Contains(source) && _entityCardKeys.Contains(target)));
+
+    private bool HandleViewRelationshipClick(string key, MouseButtonEventArgs e)
+    {
+        if (_pendingRelationshipType != "View relationship") return false;
+        e.Handled = true;
+        if (_relationshipSourceKey is null)
+        {
+            if (!_entityCardKeys.Contains(key) && !_viewCardKeys.Contains(key))
+            {
+                StatusText.Text = "Choose an entity, view, or materialized view";
+                return true;
+            }
+            _relationshipSourceKey = key;
+            if (FindCard(key) is { } card) SelectCard(card);
+            StatusText.Text = "Select the other endpoint: one entity and one view/materialized view are required";
+            return true;
+        }
+        if (!CanConnectView(_relationshipSourceKey, key))
+        {
+            StatusText.Text = "Invalid connection: connect one entity with one view or materialized view";
+            return true;
+        }
+        CreateDynamicRelationship(_relationshipSourceKey, key, "View relationship");
+        _pendingRelationshipType = null;
+        _relationshipSourceKey = null;
+        return true;
+    }
     private void CreateDynamicRelationship(string sourceKey, string targetKey, string relationshipType)
     {
         var source = FindCard(sourceKey);
         var target = FindCard(targetKey);
         if (source is null || target is null) return;
+        if (relationshipType == "View relationship" && !CanConnectView(sourceKey, targetKey)) return;
 
         var key = $"DynamicRelationship{++_newRelationshipNumber}";
         var hit = new Path
@@ -908,7 +953,12 @@ public partial class MainWindow : Window
             IsHitTestVisible = false,
             StrokeLineJoin = PenLineJoin.Round
         };
-        if (relationshipType == "Non-identifying relationship")
+        if (relationshipType == "View relationship")
+        {
+            visible.StrokeDashArray = new DoubleCollection([0.1, 2.4]);
+            visible.StrokeDashCap = PenLineCap.Round;
+        }
+        else if (relationshipType == "Non-identifying relationship")
         {
             visible.StrokeDashArray = new DoubleCollection([2, 1.5]);
             visible.StrokeDashCap = PenLineCap.Round;
@@ -918,7 +968,7 @@ public partial class MainWindow : Window
         Panel.SetZIndex(visible, 0);
         DiagramCanvasSurface.Children.Add(hit);
         DiagramCanvasSurface.Children.Add(visible);
-        _dynamicRelationships[key] = new DynamicRelationship(sourceKey, targetKey, visible, hit, relationshipType == "Identifying relationship");
+        _dynamicRelationships[key] = new DynamicRelationship(sourceKey, targetKey, visible, hit, relationshipType == "Identifying relationship", relationshipType == "View relationship");
         EnsureRelationshipLabel(key, "1:N");
         UpdateRelationship(key, source, target);
 
@@ -976,6 +1026,7 @@ public partial class MainWindow : Window
         var number = materialized ? ++_newMaterializedViewNumber : ++_newViewNumber;
         var baseName = materialized ? "NewMaterializedView" : "NewView";
         var key = number == 1 ? baseName : $"{baseName}{number}";
+        _viewCardKeys.Add(key);
         _columns[key] = [new("Column1", "VARCHAR(50)", false)];
         var card = CreateInteractiveCard(key, materialized ? 270 : 245, 125);
         card.BorderBrush = new SolidColorBrush(materialized ? Color.FromRgb(241, 184, 63) : Color.FromRgb(68, 211, 218));
@@ -1124,7 +1175,7 @@ public partial class MainWindow : Window
 
 public sealed record ColumnInfo(string Name, string Type, bool Required, bool IsPrimaryKey = false, bool IsForeignKey = false);
 
-public sealed record DynamicRelationship(string SourceKey, string TargetKey, Path Visible, Path Hit, bool IsIdentifying);
+public sealed record DynamicRelationship(string SourceKey, string TargetKey, Path Visible, Path Hit, bool IsIdentifying, bool IsViewRelationship = false);
 
 public sealed record AttributeSelection(string EntityKey, string AttributeName);
 
