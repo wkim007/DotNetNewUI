@@ -57,7 +57,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        DiagramCanvasSurface.LayoutUpdated += (_, _) => ApplyProjectViewMode();
+        DiagramCanvasSurface.LayoutUpdated += (_, _) => { ApplyProjectViewMode(); ApplyTheme(); };
         _entityHoldTimer.Tick += EntityHoldTimer_Tick;
         SelectEntity("Order");
         SelectCard(OrderCard);
@@ -160,26 +160,6 @@ public partial class MainWindow : Window
             UpdateRelationshipLines();
             StatusText.Text = $"Relationship line style: {value}";
         });
-        dialog.ShowDialog();
-    }
-    private void ThemeSettings_Click(object sender, RoutedEventArgs e)
-    {
-        var panel = new StackPanel { Margin = new Thickness(20) };
-        panel.Children.Add(new TextBlock { Text = "Diagram background", Margin = new Thickness(0, 0, 0, 12) });
-        var dialog = SettingsWindow("Theme Settings", panel);
-        foreach (var option in new[] { "Dark grid", "Dark solid", "Light" })
-        {
-            var button = new Button { Content = option, Margin = new Thickness(0, 4, 0, 4) };
-            button.Click += (_, _) =>
-            {
-                Brush brush = option == "Dark grid" ? (Brush)FindResource("DiagramGridBrush")
-                    : new SolidColorBrush(option == "Light" ? Color.FromRgb(238, 244, 250) : Color.FromRgb(13, 21, 32));
-                DiagramCanvasSurface.Background = brush;
-                DiagramScrollViewer.Background = brush;
-                dialog.Close();
-            };
-            panel.Children.Add(button);
-        }
         dialog.ShowDialog();
     }
     private void SelectEntity(string key)
