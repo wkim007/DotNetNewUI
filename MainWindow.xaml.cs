@@ -64,8 +64,9 @@ public partial class MainWindow : Window
         Loaded += (_, _) => { EnsureRelationshipLabel("CustomerOrder", "1:N"); EnsureRelationshipLabel("OrderProduct", "1:N"); EnsureRelationshipLabel("OrderOrderItem", "1:N"); EnsureRelationshipLabel("ProductOrderItem", "1:N"); EnsureCloseButton(CustomerCard, "Customer"); EnsureCloseButton(OrderCard, "Order"); EnsureCloseButton(ProductCard, "Product"); EnsureCloseButton(OrderItemCard, "OrderItem"); PrepareAttributeRows(CustomerCard, "Customer"); PrepareAttributeRows(OrderCard, "Order"); PrepareAttributeRows(ProductCard, "Product"); PrepareAttributeRows(OrderItemCard, "OrderItem"); ResizeDiagramSurfaceToViewport(); UpdateRelationshipLines(); };
     }
 
-    private string _modelName = "Sales Model";
-    private string _modelDescription = "";
+    private string _logicalNotation = "IDEF1x";
+    private string _physicalNotation = "IDEF1x";
+    private string _relationshipLineStyle = "line";
 
     private void ProjectViewMode_Changed(object sender, SelectionChangedEventArgs e) => ApplyProjectViewMode();
 
@@ -96,29 +97,71 @@ public partial class MainWindow : Window
 
     private void ModelProperties_Click(object sender, RoutedEventArgs e)
     {
+        var ink = new SolidColorBrush(Color.FromRgb(227, 235, 246));
+        var muted = new SolidColorBrush(Color.FromRgb(166, 188, 211));
         var panel = new StackPanel { Margin = new Thickness(20) };
-        panel.Children.Add(new TextBlock { Text = "Model name" });
-        var name = new TextBox { Text = _modelName, Margin = new Thickness(0, 6, 0, 14) };
-        panel.Children.Add(name);
-        panel.Children.Add(new TextBlock { Text = "Description" });
-        var description = new TextBox { Text = _modelDescription, Height = 90, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 6, 0, 14) };
-        panel.Children.Add(description);
-        panel.Children.Add(new TextBlock { Text = $"Database: {ProjectDatabaseBox.Text} {ProjectVersionBox.Text}\nSubject area: {ProjectSubjectBox.Text}", TextWrapping = TextWrapping.Wrap });
-        var save = new Button { Content = "Apply", Margin = new Thickness(0, 16, 0, 0) };
-        panel.Children.Add(save);
-        var dialog = SettingsWindow("Model Properties", panel);
-        save.Click += (_, _) =>
+        var dialog = new Window
         {
-            if (string.IsNullOrWhiteSpace(name.Text)) { name.Focus(); return; }
-            _modelName = name.Text.Trim();
-            _modelDescription = description.Text;
-            Title = $"Data Architect Studio — {_modelName}";
-            if (ModelTree.Items[0] is TreeViewItem root) root.Header = _modelName;
-            dialog.Close();
+            Title = "Model Properties", Owner = this, Width = 620,
+            SizeToContent = SizeToContent.Height, ResizeMode = ResizeMode.NoResize,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            Background = new SolidColorBrush(Color.FromRgb(23, 35, 47)),
+            Content = panel, UseLayoutRounding = true
         };
+        var header = new DockPanel { Margin = new Thickness(0, 0, 0, 20) };
+        var close = new Button
+        {
+            Content = "Close", Background = new SolidColorBrush(Color.FromRgb(49, 69, 94)),
+            Foreground = ink, Padding = new Thickness(14, 10, 14, 10), FontWeight = FontWeights.SemiBold
+        };
+        close.Click += (_, _) => dialog.Close();
+        DockPanel.SetDock(close, Dock.Right);
+        header.Children.Add(close);
+        header.Children.Add(new TextBlock { Text = "Model Properties", Foreground = ink, FontSize = 26, FontWeight = FontWeights.Bold, VerticalAlignment = VerticalAlignment.Center });
+        panel.Children.Add(header);
+        var settings = new StackPanel();
+        panel.Children.Add(new Border
+        {
+            Background = new SolidColorBrush(Color.FromRgb(19, 33, 46)),
+            BorderBrush = new SolidColorBrush(Color.FromRgb(39, 60, 79)), BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(18), Padding = new Thickness(16), Child = settings
+        });
+        settings.Children.Add(new TextBlock { Text = "NOTATION", Foreground = muted, FontWeight = FontWeights.Bold, FontSize = 14, Margin = new Thickness(0, 0, 0, 14) });
+        void AddOption(string label, string[] options, string current, Action<string> apply)
+        {
+            settings.Children.Add(new TextBlock { Text = label, Foreground = muted, Margin = new Thickness(0, 0, 0, 8) });
+            var combo = new ComboBox
+            {
+                ItemsSource = options, SelectedItem = current, IsEditable = true, IsReadOnly = true,
+                Background = Brushes.White, Foreground = new SolidColorBrush(Color.FromRgb(20, 33, 48)),
+                BorderBrush = new SolidColorBrush(Color.FromRgb(43, 59, 78)),
+                Padding = new Thickness(10, 7, 10, 7), MinHeight = 36, Margin = new Thickness(0, 0, 0, 16)
+            };
+            var itemStyle = new Style(typeof(ComboBoxItem));
+            itemStyle.Setters.Add(new Setter(Control.BackgroundProperty, Brushes.White));
+                        itemStyle.Setters.Add(new Setter(Control.ForegroundProperty, new SolidColorBrush(Color.FromRgb(20, 33, 48))));
+            var highlighted = new Trigger { Property = ComboBoxItem.IsHighlightedProperty, Value = true };
+            highlighted.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(191, 219, 254))));
+            highlighted.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.Black));
+            itemStyle.Triggers.Add(highlighted);
+            var selected = new Trigger { Property = ComboBoxItem.IsSelectedProperty, Value = true };
+            selected.Setters.Add(new Setter(Control.BackgroundProperty, new SolidColorBrush(Color.FromRgb(191, 219, 254))));
+            selected.Setters.Add(new Setter(Control.ForegroundProperty, Brushes.Black));
+            itemStyle.Triggers.Add(selected);
+            combo.ItemContainerStyle = itemStyle;
+            combo.SelectionChanged += (_, _) => { if (combo.SelectedItem is string value) apply(value); };
+            settings.Children.Add(combo);
+        }
+        AddOption("Logical Notation", ["IDEF1x", "Information Engineering"], _logicalNotation, value => _logicalNotation = value);
+        AddOption("Physical Notation", ["IDEF1x", "Information Engineering", "Data Warehousing", "Graph"], _physicalNotation, value => _physicalNotation = value);
+        AddOption("Line Style", ["curve", "line"], _relationshipLineStyle, value =>
+        {
+            _relationshipLineStyle = value;
+            UpdateRelationshipLines();
+            StatusText.Text = $"Relationship line style: {value}";
+        });
         dialog.ShowDialog();
     }
-
     private void ThemeSettings_Click(object sender, RoutedEventArgs e)
     {
         var panel = new StackPanel { Margin = new Thickness(20) };
@@ -885,7 +928,18 @@ public partial class MainWindow : Window
         }
 
         var figure = new PathFigure { StartPoint = route[0], IsClosed = false, IsFilled = false };
-        foreach (var point in route.Skip(1)) figure.Segments.Add(new LineSegment(point, true));
+        if (_relationshipLineStyle == "curve")
+        {
+            // Two cubic segments share a tangent at the draggable route midpoint.
+            var tangent = horizontal ? new Vector(Math.Sign(dx == 0 ? 1 : dx) * 30, 0)
+                : new Vector(0, Math.Sign(dy == 0 ? 1 : dy) * 30);
+            figure.Segments.Add(new BezierSegment(route[1], handlePoint - tangent, handlePoint, true));
+            figure.Segments.Add(new BezierSegment(handlePoint + tangent, route[^2], route[^1], true));
+        }
+        else
+        {
+            foreach (var point in route.Skip(1)) figure.Segments.Add(new LineSegment(point, true));
+        }
         var geometry = new PathGeometry([figure]);
         visible.Data = geometry;
         hit.Data = geometry.Clone();
