@@ -57,6 +57,20 @@ public partial class MainWindow
             pair.Marker.SetBinding(Shape.StrokeProperty, new Binding(nameof(Shape.Stroke)) { Source = line });
             pair.Marker.SetBinding(Shape.StrokeThicknessProperty, new Binding(nameof(Shape.StrokeThickness)) { Source = line });
         }
+        else if (notation == "Graph")
+        {
+            var tip = route[^1];
+            var direction = route[^2] - tip;
+            if (direction.Length > 0) direction.Normalize();
+            var normal = new Vector(-direction.Y, direction.X);
+            var rear = tip + direction * 12;
+            var arrow = new PathFigure { StartPoint = tip, IsClosed = true, IsFilled = true };
+            arrow.Segments.Add(new LineSegment(rear + normal * 5, true));
+            arrow.Segments.Add(new LineSegment(rear - normal * 5, true));
+            geometry.Children.Add(new PathGeometry([arrow]));
+            pair.Marker.SetBinding(Shape.StrokeProperty, new Binding(nameof(Shape.Stroke)) { Source = line });
+            pair.Marker.SetBinding(Shape.StrokeThicknessProperty, new Binding(nameof(Shape.StrokeThickness)) { Source = line });
+        }
         else
         {
             var direction = route[^2] - route[^1];
@@ -74,7 +88,7 @@ public partial class MainWindow
     private void SyncNotationEndpoints()
     {
         var notation = ViewModeBox.SelectedIndex == 1 ? _logicalNotation : _physicalNotation;
-        var enabled = notation == "Information Engineering" || notation == "IDEF1x" || string.IsNullOrEmpty(notation);
+        var enabled = notation == "Graph" || notation == "Information Engineering" || notation == "IDEF1x" || string.IsNullOrEmpty(notation);
         foreach (var (key, pair) in _notationEndpoints.ToArray())
         {
             if (!DiagramCanvasSurface.Children.Contains(pair.Line))
@@ -85,7 +99,9 @@ public partial class MainWindow
             }
             var visibility = enabled && pair.Line.Visibility == Visibility.Visible ? Visibility.Visible : Visibility.Collapsed;
             if (pair.Marker.Visibility != visibility) pair.Marker.Visibility = visibility;
-            var color = notation == "Information Engineering"
+            var color = notation == "Graph" && pair.Line.Stroke is SolidColorBrush lineBrush
+                ? lineBrush.Color
+                : notation == "Information Engineering"
                 ? (Color)ColorConverter.ConvertFromString(ActiveTheme.DiagramFill)
                 : Color.FromRgb(145, 163, 178);
             if (pair.Marker.Fill is not SolidColorBrush brush || brush.Color != color)
