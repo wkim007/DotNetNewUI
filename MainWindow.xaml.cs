@@ -68,7 +68,7 @@ public partial class MainWindow : Window
     private string _physicalNotation = "IDEF1x";
     private string _relationshipLineStyle = "line";
 
-    private void ProjectViewMode_Changed(object sender, SelectionChangedEventArgs e) => ApplyProjectViewMode();
+    private void ProjectViewMode_Changed(object sender, SelectionChangedEventArgs e) { ApplyProjectViewMode(); if (IsLoaded) UpdateRelationshipLines(); }
 
     private void ApplyProjectViewMode()
     {
@@ -152,8 +152,8 @@ public partial class MainWindow : Window
             combo.SelectionChanged += (_, _) => { if (combo.SelectedItem is string value) apply(value); };
             settings.Children.Add(combo);
         }
-        AddOption("Logical Notation", ["IDEF1x", "Information Engineering"], _logicalNotation, value => _logicalNotation = value);
-        AddOption("Physical Notation", ["IDEF1x", "Information Engineering", "Data Warehousing", "Graph"], _physicalNotation, value => _physicalNotation = value);
+        AddOption("Logical Notation", ["IDEF1x", "Information Engineering"], _logicalNotation, value => { _logicalNotation = value; UpdateRelationshipLines(); });
+        AddOption("Physical Notation", ["IDEF1x", "Information Engineering", "Data Warehousing", "Graph"], _physicalNotation, value => { _physicalNotation = value; UpdateRelationshipLines(); });
         AddOption("Line Style", ["curve", "line"], _relationshipLineStyle, value =>
         {
             _relationshipLineStyle = value;
@@ -913,8 +913,11 @@ public partial class MainWindow : Window
             // Two cubic segments share a tangent at the draggable route midpoint.
             var tangent = horizontal ? new Vector(Math.Sign(dx == 0 ? 1 : dx) * 30, 0)
                 : new Vector(0, Math.Sign(dy == 0 ? 1 : dy) * 30);
-            figure.Segments.Add(new BezierSegment(route[1], handlePoint - tangent, handlePoint, true));
-            figure.Segments.Add(new BezierSegment(handlePoint + tangent, route[^2], route[^1], true));
+            // Reserve straight terminal sections for notation symbols.
+            figure.Segments.Add(new LineSegment(route[1], true));
+            figure.Segments.Add(new BezierSegment(route[1] + tangent, handlePoint - tangent, handlePoint, true));
+            figure.Segments.Add(new BezierSegment(handlePoint + tangent, route[^2] - tangent, route[^2], true));
+            figure.Segments.Add(new LineSegment(route[^1], true));
         }
         else
         {
@@ -923,6 +926,7 @@ public partial class MainWindow : Window
         var geometry = new PathGeometry([figure]);
         visible.Data = geometry;
         hit.Data = geometry.Clone();
+        UpdateNotationEndpoints(key, visible, route, cardinalityLabel.Text);
 
         cardinalityLabel.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
         Canvas.SetLeft(cardinalityLabel, handlePoint.X - cardinalityLabel.DesiredSize.Width / 2);

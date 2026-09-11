@@ -146,6 +146,7 @@ public partial class MainWindow
     private void ApplyTheme()
     {
         if (DiagramCanvasSurface is null) return;
+        SyncNotationEndpoints();
         var theme = ActiveTheme;
         void Font(Control control, string family) { var value = family + ", Segoe UI"; if (control.FontFamily.Source != value) control.FontFamily = new FontFamily(value); }
         void TextFont(TextBlock text, string family) { var value = family + ", Segoe UI"; if (text.FontFamily.Source != value) text.FontFamily = new FontFamily(value); }
