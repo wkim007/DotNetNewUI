@@ -186,7 +186,7 @@
             <Grid Grid.Column="2" Background="#F4F6F8">
                 <Grid.RowDefinitions><RowDefinition Height="36"/><RowDefinition Height="*"/></Grid.RowDefinitions>
                 <Border Background="White" BorderBrush="{StaticResource Rule}" BorderThickness="0,0,0,1">
-                    <DockPanel><TextBlock Text="Sales Overview" FontWeight="SemiBold" VerticalAlignment="Center" Margin="14,0"/><TextBlock DockPanel.Dock="Right" Text="Diagram 1" Foreground="{StaticResource MutedInk}" VerticalAlignment="Center" Margin="0,0,14,0"/></DockPanel>
+                    <DockPanel Background="#0E1924"><Button DockPanel.Dock="Right" Content="+ Diagram" Click="AddDiagram_Click" Style="{StaticResource ProjectSettingsButton}" Padding="10,5" Margin="6,2"/><ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"><StackPanel x:Name="DiagramTabs" Orientation="Horizontal"/></ScrollViewer></DockPanel>
                 </Border>
                 <ScrollViewer x:Name="DiagramScrollViewer" Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Background="{StaticResource DiagramGridBrush}" SizeChanged="DiagramScrollViewer_SizeChanged">
                     <Grid x:Name="DiagramView" HorizontalAlignment="Left" VerticalAlignment="Top">

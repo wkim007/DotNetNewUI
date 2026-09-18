@@ -61,7 +61,7 @@ public partial class MainWindow : Window
         _entityHoldTimer.Tick += EntityHoldTimer_Tick;
         SelectEntity("Order");
         SelectCard(OrderCard);
-        Loaded += (_, _) => { EnsureRelationshipLabel("CustomerOrder", "1:N"); EnsureRelationshipLabel("OrderProduct", "1:N"); EnsureRelationshipLabel("OrderOrderItem", "1:N"); EnsureRelationshipLabel("ProductOrderItem", "1:N"); EnsureCloseButton(CustomerCard, "Customer"); EnsureCloseButton(OrderCard, "Order"); EnsureCloseButton(ProductCard, "Product"); EnsureCloseButton(OrderItemCard, "OrderItem"); PrepareAttributeRows(CustomerCard, "Customer"); PrepareAttributeRows(OrderCard, "Order"); PrepareAttributeRows(ProductCard, "Product"); PrepareAttributeRows(OrderItemCard, "OrderItem"); ResizeDiagramSurfaceToViewport(); UpdateRelationshipLines(); };
+        Loaded += (_, _) => { EnsureRelationshipLabel("CustomerOrder", "1:N"); EnsureRelationshipLabel("OrderProduct", "1:N"); EnsureRelationshipLabel("OrderOrderItem", "1:N"); EnsureRelationshipLabel("ProductOrderItem", "1:N"); EnsureCloseButton(CustomerCard, "Customer"); EnsureCloseButton(OrderCard, "Order"); EnsureCloseButton(ProductCard, "Product"); EnsureCloseButton(OrderItemCard, "OrderItem"); PrepareAttributeRows(CustomerCard, "Customer"); PrepareAttributeRows(OrderCard, "Order"); PrepareAttributeRows(ProductCard, "Product"); PrepareAttributeRows(OrderItemCard, "OrderItem"); ResizeDiagramSurfaceToViewport(); UpdateRelationshipLines(); InitializeDiagrams(); };
     }
 
     private string _logicalNotation = "IDEF1x";
@@ -556,6 +556,7 @@ public partial class MainWindow : Window
     }
     private Border? FindCard(string key)
     {
+        if (!_columns.ContainsKey(key)) return null;
         if (_dynamicCards.TryGetValue(key, out var dynamicCard)) return dynamicCard;
         return key switch
         {
