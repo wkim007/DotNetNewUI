@@ -35,6 +35,7 @@ public partial class MainWindow : Window
     private int _newEntityNumber;
     private int _newAnnotationNumber;
     private readonly HashSet<string> _viewCardKeys = [];
+    private readonly HashSet<string> _materializedViewKeys = [];
     private int _newViewNumber;
     private int _newMaterializedViewNumber;
     private int _newRelationshipNumber;
@@ -68,7 +69,7 @@ public partial class MainWindow : Window
     private string _physicalNotation = "IDEF1x";
     private string _relationshipLineStyle = "line";
 
-    private void ProjectViewMode_Changed(object sender, SelectionChangedEventArgs e) { ApplyProjectViewMode(); if (IsLoaded) UpdateRelationshipLines(); }
+    private void ProjectViewMode_Changed(object sender, SelectionChangedEventArgs e) { ApplyProjectViewMode(); if (IsLoaded) { UpdateRelationshipLines(); RefreshModelExplorer(); } }
 
     private void ApplyProjectViewMode()
     {
@@ -164,7 +165,9 @@ public partial class MainWindow : Window
     }
     private void SelectEntity(string key)
     {
-        var display = key == "OrderItem" ? "Order Item" : key;
+        var display = EntityDisplayName(key);
+        EntityNameBox.Tag = key;
+        RefreshModelExplorer();
         SelectedEntityTitle.Text = display.ToUpperInvariant();
         EntityNameBox.Text = display;
         PhysicalNameBox.Text = key switch { "OrderItem" => "order_item", "Order" => "sales_order", _ => key.ToLowerInvariant() };
@@ -325,7 +328,10 @@ public partial class MainWindow : Window
         _dynamicCards.Remove(key);
         _entityCardKeys.Remove(key);
         _viewCardKeys.Remove(key);
+        _materializedViewKeys.Remove(key);
         _columns.Remove(key);
+        _entityDisplayNames.Remove(key);
+        RefreshModelExplorer();
         ClearRelationshipSelection();
         UpdateRelationshipLines();
         SelectedEntityTitle.Text = "NO SELECTION";
@@ -1142,6 +1148,7 @@ public partial class MainWindow : Window
         var baseName = materialized ? "NewMaterializedView" : "NewView";
         var key = number == 1 ? baseName : $"{baseName}{number}";
         _viewCardKeys.Add(key);
+        if (materialized) _materializedViewKeys.Add(key);
         _columns[key] = [new("Column1", "VARCHAR(50)", false)];
         var card = CreateInteractiveCard(key, materialized ? 270 : 245, 125);
         card.BorderBrush = new SolidColorBrush(materialized ? Color.FromRgb(241, 184, 63) : Color.FromRgb(68, 211, 218));
@@ -1284,8 +1291,26 @@ public partial class MainWindow : Window
     }
     private void AddRelationship_Click(object sender, RoutedEventArgs e) => StatusText.Text = "Relationship tool active — choose parent and child entities";
     private void AddColumn_Click(object sender, RoutedEventArgs e) { if (ColumnsGrid.ItemsSource is ObservableCollection<ColumnInfo> items) items.Add(new("new_column", "VARCHAR", false)); }
-    private void EntityNameBox_LostFocus(object sender, RoutedEventArgs e) => SelectedEntityTitle.Text = EntityNameBox.Text.ToUpperInvariant();
-    private void SearchBox_TextChanged(object sender, TextChangedEventArgs e) { if (EmptyHint is null) return; EmptyHint.Visibility = string.IsNullOrWhiteSpace(SearchBox.Text) || new[] { "customer", "order", "item", "product", "category" }.Any(x => x.Contains(SearchBox.Text, StringComparison.OrdinalIgnoreCase)) ? Visibility.Collapsed : Visibility.Visible; StatusText.Text = string.IsNullOrWhiteSpace(SearchBox.Text) ? "Ready" : $"Filtering objects by ‘{SearchBox.Text}’"; }
+    private void EntityNameBox_LostFocus(object sender, RoutedEventArgs e)
+    {
+        if (EntityNameBox.Tag is not string key || !_columns.ContainsKey(key)) return;
+        var name = EntityNameBox.Text.Trim();
+        if (name.Length == 0) { EntityNameBox.Text = EntityDisplayName(key); return; }
+        _entityDisplayNames[key] = name;
+        SelectedEntityTitle.Text = name.ToUpperInvariant();
+        if (FindCard(key)?.Child is Grid content)
+        {
+            var header = content.Children.OfType<Border>().FirstOrDefault(b => Grid.GetRow(b) == 0);
+            if (header is not null && Descendants<TextBlock>(header).FirstOrDefault() is { } title) title.Text = name;
+        }
+        RefreshModelExplorer();
+    }
+
+    private void SearchBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (ModelTree is null || EmptyHint is null) return;
+        RefreshModelExplorer();
+    }
 }
 
 public sealed record ColumnInfo(string Name, string Type, bool Required, bool IsPrimaryKey = false, bool IsForeignKey = false);

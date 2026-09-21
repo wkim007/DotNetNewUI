@@ -22,6 +22,7 @@ public partial class MainWindow
         public Dictionary<string, Border> Cards { get; set; } = [];
         public HashSet<string> Entities { get; set; } = [];
         public HashSet<string> Views { get; set; } = [];
+        public HashSet<string> MaterializedViews { get; set; } = [];
         public Dictionary<string, DynamicRelationship> Relationships { get; set; } = [];
         public Dictionary<string, TextBlock> Labels { get; set; } = [];
         public Dictionary<string, Vector> Offsets { get; set; } = [];
@@ -37,7 +38,7 @@ public partial class MainWindow
         if (_activeDiagram is not null) return;
         _activeDiagram = new DiagramState { Title = $"ER_Diagram_{++_diagramNumber}" };
         _diagrams.Add(_activeDiagram);
-        SaveActiveDiagram(); RenderDiagramTabs();
+        SaveActiveDiagram(); RenderDiagramTabs(); RefreshModelExplorer();
     }
 
     private bool IsSharedDiagramElement(UIElement element) =>
@@ -48,7 +49,7 @@ public partial class MainWindow
         if (_activeDiagram is not { } diagram) return;
         diagram.Elements = DiagramCanvasSurface.Children.Cast<UIElement>().Where(e => !IsSharedDiagramElement(e)).ToList();
         diagram.Columns = new(_columns); diagram.Cards = new(_dynamicCards);
-        diagram.Entities = new(_entityCardKeys); diagram.Views = new(_viewCardKeys);
+        diagram.Entities = new(_entityCardKeys); diagram.Views = new(_viewCardKeys); diagram.MaterializedViews = new(_materializedViewKeys);
         diagram.Relationships = new(_dynamicRelationships); diagram.Labels = new(_relationshipLabels);
         diagram.Offsets = new(_relationshipOffsets); diagram.Deleted = new(_deletedRelationships);
         diagram.Endpoints = new(_notationEndpoints); diagram.Zoom = _zoom;
@@ -77,17 +78,14 @@ public partial class MainWindow
         RestoreMap(_relationshipOffsets, diagram.Offsets); RestoreMap(_notationEndpoints, diagram.Endpoints);
         _entityCardKeys.Clear(); _entityCardKeys.UnionWith(diagram.Entities);
         _viewCardKeys.Clear(); _viewCardKeys.UnionWith(diagram.Views);
+        _materializedViewKeys.Clear(); _materializedViewKeys.UnionWith(diagram.MaterializedViews);
         _deletedRelationships.Clear(); _deletedRelationships.UnionWith(diagram.Deleted);
         foreach (var element in diagram.Elements) DiagramCanvasSurface.Children.Add(element);
         SelectedEntityTitle.Text = "NO SELECTION"; EntityNameBox.Text = ""; PhysicalNameBox.Text = ""; ColumnsGrid.ItemsSource = null;
         EmptyHint.Visibility = Visibility.Collapsed;
         SetZoom(diagram.Zoom);
         UpdateRelationshipLines(); ApplyProjectViewMode(); ApplyTheme(); RenderDiagramTabs();
-        // Populate the explorer from the active diagram instead of retaining stale entity entries.
-        ModelTree.Items.Clear();
-        var root = new TreeViewItem { Header = diagram.Title, IsExpanded = true };
-        foreach (var key in _columns.Keys) root.Items.Add(new TreeViewItem { Header = key, Tag = key });
-        ModelTree.Items.Add(root);
+        RefreshModelExplorer();
         Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
         {
             if (_activeDiagram != diagram) return;
