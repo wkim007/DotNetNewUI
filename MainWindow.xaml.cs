@@ -310,20 +310,13 @@ public partial class MainWindow : Window
         if (_selectedCard == card) _selectedCard = null;
         if (_selectedAttributeRow is not null && _selectedAttributeRow.IsDescendantOf(card)) _selectedAttributeRow = null;
 
-        var attached = _dynamicRelationships
-            .Where(pair => pair.Value.SourceKey == key || pair.Value.TargetKey == key)
-            .Select(pair => pair.Key)
+        // Use the same complete cleanup for sample and user-created relationships.
+        var attached = new[] { "CustomerOrder", "OrderProduct", "OrderOrderItem", "ProductOrderItem" }
+            .Concat(_dynamicRelationships.Keys)
+            .Where(relationshipKey => GetRelationshipInfo(relationshipKey) is { } info &&
+                (info.Source == key || info.Target == key))
             .ToList();
-        foreach (var relationshipKey in attached)
-        {
-            var relationship = _dynamicRelationships[relationshipKey];
-            DiagramCanvasSurface.Children.Remove(relationship.Visible);
-            DiagramCanvasSurface.Children.Remove(relationship.Hit);
-            _dynamicRelationships.Remove(relationshipKey);
-            if (_relationshipLabels.Remove(relationshipKey, out var relationshipLabel)) DiagramCanvasSurface.Children.Remove(relationshipLabel);
-            _relationshipOffsets.Remove(relationshipKey);
-        }
-
+        foreach (var relationshipKey in attached) DeleteRelationship(relationshipKey);
         DiagramCanvasSurface.Children.Remove(card);
         _dynamicCards.Remove(key);
         _entityCardKeys.Remove(key);
@@ -812,9 +805,17 @@ public partial class MainWindow : Window
     private void RelationshipDeleteButton_Click(object sender, RoutedEventArgs e)
     {
         if (RelationshipDeleteButton.Tag is not string key) return;
-        var selectedVisible = _selectedRelationship;
-        var selectedHit = _selectedHitPath;
-        ClearRelationshipSelection();
+        DeleteRelationship(key);
+        e.Handled = true;
+    }
+
+    private void DeleteRelationship(string key)
+    {
+        var selectedVisible = FindRelationshipLine(key);
+        if (selectedVisible is null || !DiagramCanvasSurface.Children.Contains(selectedVisible)) return;
+        var selectedHit = DiagramCanvasSurface.Children.OfType<Path>()
+            .FirstOrDefault(path => Equals(path.Tag, key) && path != selectedVisible);
+        if (_selectedRelationshipKey == key) ClearRelationshipSelection();
         if (_dynamicRelationships.Remove(key, out var dynamicRelationship))
         {
             DiagramCanvasSurface.Children.Remove(dynamicRelationship.Visible);
@@ -829,8 +830,9 @@ public partial class MainWindow : Window
             if (selectedHit is not null) selectedHit.Visibility = Visibility.Collapsed;
         }
         _relationshipOffsets.Remove(key);
+        RefreshModelExplorer();
+        SyncNotationEndpoints();
         StatusText.Text = "Relationship removed";
-        e.Handled = true;
     }
     private void ClearRelationshipSelection()
     {
@@ -877,10 +879,13 @@ public partial class MainWindow : Window
         {
             visible.Visibility = Visibility.Collapsed;
             hit.Visibility = Visibility.Collapsed;
+            cardinalityLabel.Visibility = Visibility.Collapsed;
+            if (_notationEndpoints.TryGetValue(key, out var endpoint)) endpoint.Marker.Visibility = Visibility.Collapsed;
             return;
         }
         visible.Visibility = Visibility.Visible;
         hit.Visibility = Visibility.Visible;
+        cardinalityLabel.Visibility = Visibility.Visible;
 
         var sourceCenter = new Point(Canvas.GetLeft(source) + source.ActualWidth / 2, Canvas.GetTop(source) + source.ActualHeight / 2);
         var targetCenter = new Point(Canvas.GetLeft(target) + target.ActualWidth / 2, Canvas.GetTop(target) + target.ActualHeight / 2);
@@ -964,6 +969,20 @@ public partial class MainWindow : Window
     }
     private void ModelTree_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
     {
+        if (e.NewValue is TreeViewItem { Tag: ExplorerRelationship relationship })
+        {
+            var line = FindRelationshipLine(relationship.Key);
+            if (line is null || !DiagramCanvasSurface.Children.Contains(line)) return;
+            ClearAttributeSelection(); ClearCardSelection(); ClearRelationshipSelection();
+            _selectedRelationshipKey = relationship.Key;
+            _selectedRelationship = line;
+            _selectedHitPath = DiagramCanvasSurface.Children.OfType<Path>()
+                .FirstOrDefault(path => Equals(path.Tag, relationship.Key) && path != line);
+            ShowRelationshipProperties(relationship.Key);
+            UpdateRelationshipLines(); ApplyTheme();
+            StatusText.Text = "Selected relationship";
+            return;
+        }
         if (e.NewValue is TreeViewItem { Tag: string key })
         {
             SelectEntity(key); if (FindCard(key) is { } card) SelectCard(card); ClearRelationshipSelection();
@@ -1105,6 +1124,7 @@ public partial class MainWindow : Window
         RelationshipMoveHandle.Visibility = Visibility.Visible;
         Canvas.SetLeft(RelationshipMoveHandle, bounds.Left + bounds.Width / 2 - 9);
         Canvas.SetTop(RelationshipMoveHandle, bounds.Top + bounds.Height / 2 - 9);
+        RefreshModelExplorer();
         StatusText.Text = $"Created {relationshipType}: {sourceKey} → {targetKey}";
     }
     private void AddNewAnnotation()
