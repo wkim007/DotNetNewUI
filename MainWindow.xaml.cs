@@ -217,7 +217,7 @@ public partial class MainWindow : Window
         fields.Children.Add(row);
         card.Height = Math.Max(card.ActualHeight + 40, 150);
         _columns[entityKey].Add(new ColumnInfo("New attribute", "VARCHAR(50)", false));
-        var columnIndex = _columns[entityKey].Count - 1;
+        var pendingColumn = _columns[entityKey][^1];
 
         editor.PreviewMouseLeftButtonDown += (_, args) =>
         {
@@ -228,6 +228,8 @@ public partial class MainWindow : Window
         {
             if (args.Key != Key.Enter || editor.IsReadOnly) return;
             var name = string.IsNullOrWhiteSpace(editor.Text) ? "New attribute" : editor.Text.Trim();
+            var columnIndex = _columns[entityKey].IndexOf(pendingColumn);
+            if (columnIndex < 0) return;
             _columns[entityKey][columnIndex] = new ColumnInfo(name, "VARCHAR(50)", false);
             row.Tag = new AttributeSelection(entityKey, name);
             row.MouseLeftButtonDown += AttributeRow_MouseLeftButtonDown;
@@ -371,6 +373,10 @@ public partial class MainWindow : Window
     {
         row.PreviewMouseLeftButtonDown += AttributeDrag_PreviewMouseLeftButtonDown;
         row.PreviewMouseMove += AttributeDrag_PreviewMouseMove;
+        row.AllowDrop = true;
+        row.PreviewDragOver += AttributeReorder_DragOver;
+        row.PreviewDragLeave += (_, _) => ClearReorderHint(row);
+        row.PreviewDrop += AttributeReorder_Drop;
     }
 
     private Border CreatePkDivider(string entityKey)
@@ -385,7 +391,7 @@ public partial class MainWindow : Window
             Cursor = Cursors.Hand, ToolTip = "Drop a column here to switch PK / non-PK",
             Child = new TextBlock
             {
-                Text = "Drop here to switch PK",
+                Text = "Drag here to switch PK or non-PK",
                 Foreground = new SolidColorBrush(Color.FromRgb(151, 174, 195)), FontSize = 9,
                 FontWeight = FontWeights.SemiBold, HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center
