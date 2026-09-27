@@ -58,6 +58,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        InitializeDrawingPalette();
         DiagramCanvasSurface.LayoutUpdated += (_, _) => { ApplyProjectViewMode(); ApplyTheme(); };
         _entityHoldTimer.Tick += EntityHoldTimer_Tick;
         SelectEntity("Order");

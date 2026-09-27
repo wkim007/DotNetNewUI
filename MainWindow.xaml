@@ -174,7 +174,12 @@
                                     <Button Style="{StaticResource DiagramToolButton}" Tag="⋯" Content="View/Materialized Rel." ToolTip="View relationship" Click="DiagramTool_Click"/>
                                 </UniformGrid>
                                 <TextBlock Text="Drawing Box" Foreground="#8FC8FF" FontSize="14" Margin="4,8,0,7"/>
-                                <UniformGrid Columns="2"><Button Style="{StaticResource DiagramToolButton}" Tag="◇" Content="Drawing" ToolTip="Drawing" Click="DiagramTool_Click"/></UniformGrid>
+                                <UniformGrid Columns="2"><Button x:Name="DrawingToolButton" Style="{StaticResource DiagramToolButton}" Tag="◇" Content="Drawing" ToolTip="Drawing" Click="DrawingTool_Click"/></UniformGrid>                                <Border x:Name="DrawingPalette" Visibility="Collapsed" Background="#132231" BorderBrush="#344B67" BorderThickness="1" CornerRadius="14" Padding="6" Margin="2,6,2,0">
+                                    <StackPanel>
+                                        <TextBlock Text="CHOOSE SHAPE" Foreground="#DCE7F5" FontWeight="Bold" Margin="4,4,4,8"/>
+                                        <UniformGrid x:Name="DrawingShapeButtons" Columns="2"/>
+                                    </StackPanel>
+                                </Border>
                             </StackPanel>
                         </ScrollViewer>
                     </Border>
