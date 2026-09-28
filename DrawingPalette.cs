@@ -10,6 +10,7 @@ public partial class MainWindow
 {
     private void InitializeDrawingPalette()
     {
+        DiagramCanvasSurface.PreviewMouseLeftButtonDown += DrawingConnectorTarget_Click;
         var shapes = new[] { ("Rectangle", "□"), ("Round Rectangle", "▢"), ("Ellipse", "○"), ("Diamond", "◇"),
             ("Hexagon", "⬡"), ("Octogon", "⬢"), ("Parallelogram", "▱"), ("Pentagon", "⬠"),
             ("Star", "★"), ("Cross", "✚"), ("Triangle Up", "▲"), ("Triangle Down", "▼"),
@@ -18,7 +19,7 @@ public partial class MainWindow
         {
             var button = new Button { Content = name, Tag = icon, ToolTip = name, Height = 76, MinWidth = 0,
                 Style = (Style)FindResource("DiagramToolButton"), Margin = new Thickness(3) };
-            button.Click += (_, _) => { DrawingPalette.Visibility = Visibility.Collapsed; AddDrawingShape(name); };
+            button.Click += (_, _) => { DrawingPalette.Visibility = Visibility.Collapsed; if (name == "Connector") BeginDrawingConnector(); else AddDrawingShape(name); };
             DrawingShapeButtons.Children.Add(button);
         }
         PreviewMouseDown += (_, args) =>
@@ -29,7 +30,7 @@ public partial class MainWindow
             DrawingPalette.Visibility = Visibility.Collapsed;
         };
         Deactivated += (_, _) => DrawingPalette.Visibility = Visibility.Collapsed;
-        PreviewKeyDown += (_, args) => { if (args.Key == Key.Escape) DrawingPalette.Visibility = Visibility.Collapsed; };
+        PreviewKeyDown += (_, args) => { if (args.Key == Key.Escape) { DrawingPalette.Visibility = Visibility.Collapsed; _connectorSource = null; } };
     }
 
     private void DrawingTool_Click(object sender, RoutedEventArgs e)
@@ -73,7 +74,7 @@ public partial class MainWindow
             "Triangle Right" => Polygon(new(3, 3), new(137, 50), new(3, 97)),
             _ => new LineGeometry(new Point(3, 97), new Point(137, 3))
         };
-        var shape = new Path { Data = geometry, Width = width, Height = height, Stroke = ThemeBrush(ActiveTheme.LineColor),
+        var shape = new Path { Tag = "DrawingShape", Data = geometry, Width = width, Height = height, Stroke = ThemeBrush(ActiveTheme.LineColor),
             StrokeThickness = ActiveTheme.LineWidth, Fill = name == "Connector" ? null : ThemeBrush(ActiveTheme.EntityFill),
             Cursor = Cursors.SizeAll, ToolTip = name };
         DiagramCanvasSurface.Children.Add(shape); Panel.SetZIndex(shape, 1);
@@ -81,7 +82,7 @@ public partial class MainWindow
         Canvas.SetLeft(shape, Math.Max(8, (DiagramScrollViewer.HorizontalOffset + DiagramScrollViewer.ViewportWidth / 2) / scale - width / 2));
         Canvas.SetTop(shape, Math.Max(8, (DiagramScrollViewer.VerticalOffset + DiagramScrollViewer.ViewportHeight / 2) / scale - height / 2));
         Point start = default; double left = 0, top = 0;
-        shape.MouseLeftButtonDown += (_, args) => { start = args.GetPosition(DiagramCanvasSurface); left = Canvas.GetLeft(shape); top = Canvas.GetTop(shape); shape.CaptureMouse(); args.Handled = true; };
+        shape.MouseLeftButtonDown += (_, args) => { ClearCardSelection(); ClearRelationshipSelection(); _selectedDrawing = shape; StatusText.Text = $"Selected {name}"; start = args.GetPosition(DiagramCanvasSurface); left = Canvas.GetLeft(shape); top = Canvas.GetTop(shape); shape.CaptureMouse(); args.Handled = true; };
         shape.MouseMove += (_, args) =>
         {
             if (!shape.IsMouseCaptured || args.LeftButton != MouseButtonState.Pressed) return;

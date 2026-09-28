@@ -65,6 +65,7 @@ public partial class MainWindow
     private void SwitchDiagram(DiagramState diagram)
     {
         if (_activeDiagram == diagram) return;
+        _connectorSource = null; _selectedDrawing = null;
         _entityHoldTimer.Stop(); _entityHoldCard = null; _draggedCard = null; _attributeDragRow = null;
         _draggingRelationship = false; Mouse.Capture(null);
         _pendingRelationshipType = null; _relationshipSourceKey = null;

@@ -59,7 +59,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         InitializeDrawingPalette();
-        DiagramCanvasSurface.LayoutUpdated += (_, _) => { ApplyProjectViewMode(); ApplyTheme(); };
+        DiagramCanvasSurface.LayoutUpdated += (_, _) => { ApplyProjectViewMode(); ApplyTheme(); UpdateDrawingConnectors(); };
         _entityHoldTimer.Tick += EntityHoldTimer_Tick;
         SelectEntity("Order");
         SelectCard(OrderCard);
@@ -635,6 +635,7 @@ public partial class MainWindow : Window
     }
     private void SelectCard(Border card)
     {
+        _selectedDrawing = null;
         ClearCardSelection();
         _selectedCard = card;
         card.BorderBrush = new SolidColorBrush(Color.FromRgb(241, 191, 82));
