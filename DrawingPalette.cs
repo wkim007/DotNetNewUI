@@ -74,15 +74,32 @@ public partial class MainWindow
             "Triangle Right" => Polygon(new(3, 3), new(137, 50), new(3, 97)),
             _ => new LineGeometry(new Point(3, 97), new Point(137, 3))
         };
-        var shape = new Path { Tag = "DrawingShape", Data = geometry, Width = width, Height = height, Stroke = ThemeBrush(ActiveTheme.LineColor),
+        var outline = new Path { Data = geometry, Width = width, Height = height, Stroke = ThemeBrush(ActiveTheme.LineColor),
             StrokeThickness = ActiveTheme.LineWidth, Fill = name == "Connector" ? null : ThemeBrush(ActiveTheme.EntityFill),
             Cursor = Cursors.SizeAll, ToolTip = name };
+        var shape = new Grid { Tag = "DrawingShape", Width = width, Height = height, Cursor = Cursors.SizeAll };
+        shape.Children.Add(outline);
+        var editor = new TextBox
+        {
+            Text = "Drawing", AcceptsReturn = true, TextWrapping = TextWrapping.Wrap,
+            Background = Brushes.Transparent, BorderThickness = new Thickness(0),
+            Foreground = Brushes.White, CaretBrush = Brushes.White,
+            FontFamily = new FontFamily(ActiveTheme.DefaultFont + ", Segoe UI"), FontSize = 12,
+            HorizontalContentAlignment = HorizontalAlignment.Center, VerticalContentAlignment = VerticalAlignment.Center,
+            TextAlignment = TextAlignment.Center, Margin = new Thickness(32, 28, 32, 28),
+            Padding = new Thickness(2), Cursor = Cursors.IBeam,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto
+        };
+        System.Windows.Automation.AutomationProperties.SetName(editor, name + " text");
+        editor.PreviewMouseLeftButtonDown += (_, _) => SelectDrawing(shape);
+        editor.GotKeyboardFocus += (_, _) => { SelectDrawing(shape); };
+        shape.Children.Add(editor);
         DiagramCanvasSurface.Children.Add(shape); Panel.SetZIndex(shape, 1);
         var scale = _zoom / 100d;
         Canvas.SetLeft(shape, Math.Max(8, (DiagramScrollViewer.HorizontalOffset + DiagramScrollViewer.ViewportWidth / 2) / scale - width / 2));
         Canvas.SetTop(shape, Math.Max(8, (DiagramScrollViewer.VerticalOffset + DiagramScrollViewer.ViewportHeight / 2) / scale - height / 2));
         Point start = default; double left = 0, top = 0;
-        shape.MouseLeftButtonDown += (_, args) => { ClearCardSelection(); ClearRelationshipSelection(); _selectedDrawing = shape; StatusText.Text = $"Selected {name}"; start = args.GetPosition(DiagramCanvasSurface); left = Canvas.GetLeft(shape); top = Canvas.GetTop(shape); shape.CaptureMouse(); args.Handled = true; };
+        shape.MouseLeftButtonDown += (_, args) => { if (args.OriginalSource is DependencyObject source && (source == editor || editor.IsAncestorOf(source))) return; SelectDrawing(shape); StatusText.Text = $"Selected {name}"; start = args.GetPosition(DiagramCanvasSurface); left = Canvas.GetLeft(shape); top = Canvas.GetTop(shape); shape.CaptureMouse(); args.Handled = true; };
         shape.MouseMove += (_, args) =>
         {
             if (!shape.IsMouseCaptured || args.LeftButton != MouseButtonState.Pressed) return;
@@ -91,7 +108,8 @@ public partial class MainWindow
         };
         shape.MouseLeftButtonUp += (_, args) => { shape.ReleaseMouseCapture(); args.Handled = true; };
         var menu = new ContextMenu(); var delete = new MenuItem { Header = "Delete" };
-        delete.Click += (_, _) => DiagramCanvasSurface.Children.Remove(shape); menu.Items.Add(delete); shape.ContextMenu = menu;
-        StatusText.Text = $"Added {name}";
+        delete.Click += (_, _) => { if (_selectedDrawing == shape) ClearDrawingSelection(); DiagramCanvasSurface.Children.Remove(shape); }; menu.Items.Add(delete); shape.ContextMenu = menu;
+        editor.Focus(); editor.SelectAll();
+        StatusText.Text = $"Added {name} — type text, or drag the outer shape to move";
     }
 }

@@ -8,7 +8,43 @@ namespace ErwinStudioSample;
 
 public partial class MainWindow
 {
+    private Path? _selectedDrawingConnector;
     private FrameworkElement? _selectedDrawing;
+    private Path? _selectedDrawingOutline;
+    private Brush? _drawingOriginalStroke;
+    private double _drawingOriginalWidth;
+
+    private void SelectDrawing(FrameworkElement drawing)
+    {
+        if (_selectedDrawing == drawing) return;
+        ClearAttributeSelection();
+        ClearCardSelection();
+        ClearRelationshipSelection();
+        _selectedDrawing = drawing;
+        _selectedDrawingOutline = drawing is Grid grid ? grid.Children.OfType<Path>().FirstOrDefault() : drawing as Path;
+        if (_selectedDrawingOutline is { } outline)
+        {
+            _drawingOriginalStroke = outline.Stroke;
+            _drawingOriginalWidth = outline.StrokeThickness;
+            outline.Stroke = new SolidColorBrush(Color.FromRgb(241, 191, 82));
+            outline.StrokeThickness = Math.Max(3, _drawingOriginalWidth + 1);
+        }
+        Panel.SetZIndex(drawing, 10);
+    }
+
+    private void ClearDrawingSelection()
+    {
+        ClearDrawingConnectorSelection();
+        if (_selectedDrawingOutline is { } outline)
+        {
+            outline.Stroke = _drawingOriginalStroke;
+            outline.StrokeThickness = _drawingOriginalWidth;
+        }
+        if (_selectedDrawing is { } drawing) Panel.SetZIndex(drawing, 1);
+        _selectedDrawing = null;
+        _selectedDrawingOutline = null;
+        _drawingOriginalStroke = null;
+    }
     private FrameworkElement? _connectorSource;
     private sealed class DrawingConnection(FrameworkElement source, FrameworkElement target)
     {
@@ -17,6 +53,27 @@ public partial class MainWindow
         public string LastGeometry { get; set; } = "";
     }
 
+    private void SelectDrawingConnector(Path line)
+    {
+        ClearAttributeSelection(); ClearCardSelection(); ClearRelationshipSelection();
+        _connectorSource = null;
+        _selectedDrawingConnector = line;
+        line.Stroke = ThemeBrush("#F1BF52");
+        line.StrokeThickness = 2.5;
+        line.Fill = ThemeBrush("#F1BF52");
+        ((DrawingConnection)line.Tag).LastGeometry = "";
+        UpdateDrawingConnectors();
+        StatusText.Text = "Drawing connector selected";
+    }
+
+    private void ClearDrawingConnectorSelection()
+    {
+        if (_selectedDrawingConnector is not { } line) return;
+        _selectedDrawingConnector = null;
+        line.Stroke = ThemeBrush("#8FAFFF"); line.StrokeThickness = 1.8; line.Fill = null;
+        if (line.Tag is DrawingConnection link) link.LastGeometry = "";
+        UpdateDrawingConnectors();
+    }
     private void BeginDrawingConnector()
     {
         var source = _selectedDrawing ?? (FrameworkElement?)_selectedCard;
@@ -37,7 +94,7 @@ public partial class MainWindow
         while (target is not null && VisualTreeHelper.GetParent(target) != DiagramCanvasSurface)
             target = VisualTreeHelper.GetParent(target);
         if (target is not FrameworkElement element ||
-            !(element is Border { Tag: string } || element is Path { Tag: "DrawingShape" })) return;
+            !(element is Border { Tag: string } || element is FrameworkElement { Tag: "DrawingShape" })) return;
         e.Handled = true;
         if (element == _connectorSource) { StatusText.Text = "Choose a different target object"; return; }
         if (!DiagramCanvasSurface.Children.Contains(_connectorSource)) { _connectorSource = null; return; }
@@ -46,8 +103,9 @@ public partial class MainWindow
             Tag = new DrawingConnection(_connectorSource, element), Stroke = ThemeBrush("#8FAFFF"),
             StrokeThickness = 1.8, Cursor = Cursors.Hand, ToolTip = "Drawing connector"
         };
+        line.MouseLeftButtonDown += (_, args) => { SelectDrawingConnector(line); args.Handled = true; };
         var menu = new ContextMenu(); var delete = new MenuItem { Header = "Delete" };
-        delete.Click += (_, _) => DiagramCanvasSurface.Children.Remove(line); menu.Items.Add(delete); line.ContextMenu = menu;
+        delete.Click += (_, _) => { if (_selectedDrawingConnector == line) ClearDrawingConnectorSelection(); DiagramCanvasSurface.Children.Remove(line); }; menu.Items.Add(delete); line.ContextMenu = menu;
         Panel.SetZIndex(line, 0); DiagramCanvasSurface.Children.Add(line);
         _connectorSource = null; UpdateDrawingConnectors(); StatusText.Text = "Connector created";
     }
@@ -58,10 +116,11 @@ public partial class MainWindow
         {
             var link = (DrawingConnection)line.Tag;
             if (!DiagramCanvasSurface.Children.Contains(link.Source) || !DiagramCanvasSurface.Children.Contains(link.Target))
-            { DiagramCanvasSurface.Children.Remove(line); continue; }
+            { if (_selectedDrawingConnector == line) _selectedDrawingConnector = null; DiagramCanvasSurface.Children.Remove(line); continue; }
             Rect Bounds(FrameworkElement item)
             {
-                var local = item is Path shape ? shape.Data.Bounds : new Rect(0, 0, item.ActualWidth, item.ActualHeight);
+                var drawingPath = item is Grid { Tag: "DrawingShape" } drawing ? drawing.Children.OfType<Path>().FirstOrDefault() : item as Path;
+                var local = drawingPath is not null ? drawingPath.Data.Bounds : new Rect(0, 0, item.ActualWidth, item.ActualHeight);
                 local.Offset(Canvas.GetLeft(item), Canvas.GetTop(item)); return local;
             }
             var source = Bounds(link.Source); var target = Bounds(link.Target);
@@ -82,7 +141,17 @@ public partial class MainWindow
                 figure.Segments.Add(new BezierSegment(start + tangent, end - tangent, end, true));
             }
             else figure.Segments.Add(new LineSegment(end, true));
-            line.Data = new PathGeometry([figure]);
+            if (line == _selectedDrawingConnector)
+            {
+                var geometry = new GeometryGroup();
+                geometry.Children.Add(new PathGeometry([figure]));
+                // Offset dots slightly outside the objects so card borders cannot cover them.
+                var outward = horizontal ? new Vector(sign * 4, 0) : new Vector(0, sign * 4);
+                geometry.Children.Add(new EllipseGeometry(start + outward, 3, 3));
+                geometry.Children.Add(new EllipseGeometry(end - outward, 3, 3));
+                line.Data = geometry;
+            }
+            else line.Data = new PathGeometry([figure]);
         }
     }
 }

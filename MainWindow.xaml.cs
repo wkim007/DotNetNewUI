@@ -635,7 +635,7 @@ public partial class MainWindow : Window
     }
     private void SelectCard(Border card)
     {
-        _selectedDrawing = null;
+        ClearDrawingSelection();
         ClearCardSelection();
         _selectedCard = card;
         card.BorderBrush = new SolidColorBrush(Color.FromRgb(241, 191, 82));
@@ -646,6 +646,7 @@ public partial class MainWindow : Window
 
     private void ClearCardSelection()
     {
+        ClearDrawingSelection();
         if (_selectedCard is null) return;
         _selectedCard.ClearValue(Border.BorderBrushProperty);
         _selectedCard.ClearValue(Border.BorderThicknessProperty);
