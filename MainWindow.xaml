@@ -167,11 +167,12 @@
                                 <UniformGrid Columns="2">
                                     <Button Style="{StaticResource DiagramToolButton}" Tag="▦" Content="Entity" ToolTip="Entity" Click="DiagramTool_Click"/>
                                     <Button Style="{StaticResource DiagramToolButton}" Tag="≡" Content="Annotation" ToolTip="Annotation" Click="DiagramTool_Click"/>
-                                    <Button Style="{StaticResource DiagramToolButton}" Tag="▧" Content="View" ToolTip="View" Click="DiagramTool_Click"/>
-                                    <Button Style="{StaticResource DiagramToolButton}" Tag="♧" Content="Materialized View" ToolTip="Materialized View" Click="DiagramTool_Click"/>
+                                    <Button Style="{StaticResource DiagramToolButton}" Tag="▧" x:Name="ViewToolButton" Content="View" ToolTip="View" Click="DiagramTool_Click"/>
+                                    <Button Style="{StaticResource DiagramToolButton}" Tag="♧" x:Name="MaterializedViewToolButton" Content="Materialized View" ToolTip="Materialized View" Click="DiagramTool_Click"/>
                                     <Button Style="{StaticResource DiagramToolButton}" Tag="↘" Content="Identifying" ToolTip="Identifying relationship" Click="DiagramTool_Click"/>
                                     <Button Style="{StaticResource DiagramToolButton}" Tag="→" Content="Non-identifying" ToolTip="Non-identifying relationship" Click="DiagramTool_Click"/>
-                                    <Button Style="{StaticResource DiagramToolButton}" Tag="⋯" Content="View/Materialized Rel." ToolTip="View relationship" Click="DiagramTool_Click"/>
+                                    <Button Style="{StaticResource DiagramToolButton}" Tag="⋯" x:Name="ViewRelationshipToolButton" Content="View/Materialized Rel." ToolTip="View relationship" Click="DiagramTool_Click"/>
+                                    <Button x:Name="SubCategoryToolButton" Visibility="Collapsed" Style="{StaticResource DiagramToolButton}" Tag="○" Content="Sub-Category" ToolTip="Sub-Category" Click="DiagramTool_Click"/>
                                 </UniformGrid>
                                 <TextBlock Text="Drawing Box" Foreground="#8FC8FF" FontSize="14" Margin="4,8,0,7"/>
                                 <UniformGrid Columns="2"><Button x:Name="DrawingToolButton" Style="{StaticResource DiagramToolButton}" Tag="◇" Content="Drawing" ToolTip="Drawing" Click="DrawingTool_Click"/></UniformGrid>                                <Border x:Name="DrawingPalette" Visibility="Collapsed" Background="#132231" BorderBrush="#344B67" BorderThickness="1" CornerRadius="14" Padding="6" Margin="2,6,2,0">

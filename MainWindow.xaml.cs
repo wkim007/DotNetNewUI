@@ -59,6 +59,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         InitializeDrawingPalette();
+        UpdateDiagramTools();
         DiagramCanvasSurface.LayoutUpdated += (_, _) => { ApplyProjectViewMode(); ApplyTheme(); UpdateDrawingConnectors(); RefreshEndpointHandles(); };
         _entityHoldTimer.Tick += EntityHoldTimer_Tick;
         SelectEntity("Order");
@@ -70,7 +71,7 @@ public partial class MainWindow : Window
     private string _physicalNotation = "IDEF1x";
     private string _relationshipLineStyle = "line";
 
-    private void ProjectViewMode_Changed(object sender, SelectionChangedEventArgs e) { ApplyProjectViewMode(); if (IsLoaded) { UpdateRelationshipLines(); RefreshModelExplorer(); } }
+    private void ProjectViewMode_Changed(object sender, SelectionChangedEventArgs e) { ApplyProjectViewMode(); UpdateDiagramTools(); if (IsLoaded) { UpdateRelationshipLines(); RefreshModelExplorer(); } }
 
     private void ApplyProjectViewMode()
     {
@@ -542,6 +543,7 @@ public partial class MainWindow : Window
     private void AttributeRow_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         if (sender is not Border { Tag: AttributeSelection selection } row) return;
+        if (HandleSubCategoryClick(selection.EntityKey, e)) return;
         if (HandleViewRelationshipClick(selection.EntityKey, e)) return;
         ClearAttributeSelection();
         _selectedAttributeRow = row;
@@ -574,6 +576,7 @@ public partial class MainWindow : Window
     private void Entity_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         if (e.OriginalSource is Thumb || sender is not Border { Tag: string key } card) return;
+        if (HandleSubCategoryClick(key, e)) return;
         if (HandleViewRelationshipClick(key, e)) return;
         ClearAttributeSelection();
         if (_pendingRelationshipType is not null && _relationshipSourceKey is not null)
@@ -784,7 +787,7 @@ public partial class MainWindow : Window
     {
         if (_dynamicRelationships.TryGetValue(key, out var dynamicRelationship))
             return (dynamicRelationship.SourceKey, dynamicRelationship.TargetKey,
-                dynamicRelationship.IsViewRelationship ? "View / Materialized view" : dynamicRelationship.IsIdentifying ? "Identifying" : "Non-identifying");
+                dynamicRelationship.IsSubCategory ? "Sub-Category" : dynamicRelationship.IsViewRelationship ? "View / Materialized view" : dynamicRelationship.IsIdentifying ? "Identifying" : "Non-identifying");
         return key switch
         {
             "CustomerOrder" => ("Customer", "Order", "Non-identifying"),
@@ -957,9 +960,18 @@ public partial class MainWindow : Window
         hit.Data = geometry.Clone();
         UpdateNotationEndpoints(key, visible, route, cardinalityLabel.Text);
 
+        if (_dynamicRelationships.TryGetValue(key, out var subtype) && subtype.IsSubCategory)
+        {
+            cardinalityLabel.Visibility = ViewModeBox.SelectedIndex == 1 ? Visibility.Visible : Visibility.Collapsed;
+            cardinalityLabel.Text = "○";
+            cardinalityLabel.FontSize = 28;
+            cardinalityLabel.Padding = new Thickness(0);
+            cardinalityLabel.Foreground = visible.Stroke;
+            cardinalityLabel.Background = ThemeBrush(ActiveTheme.DiagramFill);
+        }
         cardinalityLabel.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
         Canvas.SetLeft(cardinalityLabel, handlePoint.X - cardinalityLabel.DesiredSize.Width / 2);
-        Canvas.SetTop(cardinalityLabel, handlePoint.Y - 25);
+        Canvas.SetTop(cardinalityLabel, handlePoint.Y - (cardinalityLabel.Text == "○" ? cardinalityLabel.DesiredSize.Height / 2 : 25));
 
         if (_selectedRelationshipKey == key)
         {
@@ -1028,6 +1040,13 @@ public partial class MainWindow : Window
                 return;
             case "Materialized View":
                 AddNewView(true);
+                return;
+            case "Sub-Category":
+                if (ViewModeBox.SelectedIndex != 1) return;
+                if (_selectedCard?.Tag is not string parent || !_entityCardKeys.Contains(parent))
+                { StatusText.Text = "Select a source entity first"; return; }
+                _pendingRelationshipType = tool; _relationshipSourceKey = parent;
+                StatusText.Text = "Sub-Category: select a target entity";
                 return;
             case "View relationship":
                 _pendingRelationshipType = tool;
@@ -1125,7 +1144,7 @@ public partial class MainWindow : Window
         Panel.SetZIndex(visible, 0);
         DiagramCanvasSurface.Children.Add(hit);
         DiagramCanvasSurface.Children.Add(visible);
-        _dynamicRelationships[key] = new DynamicRelationship(sourceKey, targetKey, visible, hit, relationshipType == "Identifying relationship", relationshipType == "View relationship");
+        _dynamicRelationships[key] = new DynamicRelationship(sourceKey, targetKey, visible, hit, relationshipType == "Identifying relationship", relationshipType == "View relationship", relationshipType == "Sub-Category");
         EnsureRelationshipLabel(key, "1:N");
         UpdateRelationship(key, source, target);
 
@@ -1352,7 +1371,7 @@ public partial class MainWindow : Window
 
 public sealed record ColumnInfo(string Name, string Type, bool Required, bool IsPrimaryKey = false, bool IsForeignKey = false);
 
-public sealed record DynamicRelationship(string SourceKey, string TargetKey, Path Visible, Path Hit, bool IsIdentifying, bool IsViewRelationship = false);
+public sealed record DynamicRelationship(string SourceKey, string TargetKey, Path Visible, Path Hit, bool IsIdentifying, bool IsViewRelationship = false, bool IsSubCategory = false);
 
 public sealed record AttributeSelection(string EntityKey, string AttributeName);
 

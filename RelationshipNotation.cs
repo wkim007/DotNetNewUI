@@ -50,6 +50,7 @@ public partial class MainWindow
         }
         var ends = cardinality.Split(':');
         var notation = ViewModeBox.SelectedIndex == 1 ? _logicalNotation : _physicalNotation;
+        if (_dynamicRelationships.TryGetValue(key, out var subcategory) && subcategory.IsSubCategory) notation = "IDEF1x";
         if (notation == "Information Engineering")
         {
             Endpoint(route[0], route[1], ends.Length == 2 && ends[0] == "N");
@@ -97,9 +98,11 @@ public partial class MainWindow
                 _notationEndpoints.Remove(key);
                 continue;
             }
-            var visibility = enabled && pair.Line.Visibility == Visibility.Visible ? Visibility.Visible : Visibility.Collapsed;
+            var isSubCategory = _dynamicRelationships.TryGetValue(key, out var relationship) && relationship.IsSubCategory;
+            var visibility = (enabled || isSubCategory) && pair.Line.Visibility == Visibility.Visible ? Visibility.Visible : Visibility.Collapsed;
             if (pair.Marker.Visibility != visibility) pair.Marker.Visibility = visibility;
-            var color = notation == "Graph" && pair.Line.Stroke is SolidColorBrush lineBrush
+            var color = isSubCategory ? Color.FromRgb(145, 163, 178)
+                : notation == "Graph" && pair.Line.Stroke is SolidColorBrush lineBrush
                 ? lineBrush.Color
                 : notation == "Information Engineering"
                 ? (Color)ColorConverter.ConvertFromString(ActiveTheme.DiagramFill)
