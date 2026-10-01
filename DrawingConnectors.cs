@@ -110,6 +110,47 @@ public partial class MainWindow
         _connectorSource = null; UpdateDrawingConnectors(); StatusText.Text = "Connector created";
     }
 
+    private static Point ProjectDrawingEndpoint(FrameworkElement element, Point desired)
+    {
+        var outline = element is Grid { Tag: "DrawingShape" } grid
+            ? grid.Children.OfType<Path>().FirstOrDefault() : element as Path;
+        if (outline?.Data is null) return desired;
+        // Project to the rendered contour, not its bounding rectangle. Flattening also
+        // supports ellipses and rounded rectangles with a subpixel approximation.
+        var flattened = outline.Data.GetFlattenedPathGeometry(0.1, ToleranceType.Absolute);
+        var offset = new Vector(Canvas.GetLeft(element), Canvas.GetTop(element));
+        var transform = flattened.Transform ?? Transform.Identity;
+        Point ToCanvas(Point point) => transform.Transform(point) + offset;
+        var closest = desired;
+        var shortest = double.PositiveInfinity;
+        void Consider(Point a, Point b)
+        {
+            var edge = b - a;
+            var t = edge.LengthSquared < 0.000001 ? 0 : Math.Clamp(Vector.Multiply(desired - a, edge) / edge.LengthSquared, 0, 1);
+            var candidate = a + edge * t;
+            var distance = (candidate - desired).LengthSquared;
+            if (distance < shortest) { shortest = distance; closest = candidate; }
+        }
+        foreach (var figure in flattened.Figures)
+        {
+            var first = ToCanvas(figure.StartPoint);
+            var previous = first;
+            foreach (var segment in figure.Segments)
+            {
+                if (segment is PolyLineSegment polyline)
+                    foreach (var point in polyline.Points)
+                    {
+                        var next = ToCanvas(point); Consider(previous, next); previous = next;
+                    }
+                else if (segment is LineSegment line)
+                {
+                    var next = ToCanvas(line.Point); Consider(previous, next); previous = next;
+                }
+            }
+            if (figure.IsClosed) Consider(previous, first);
+        }
+        return closest;
+    }
     private void UpdateDrawingConnectors()
     {
         foreach (var line in DiagramCanvasSurface.Children.OfType<Path>().Where(p => p.Tag is DrawingConnection).ToArray())
@@ -135,12 +176,19 @@ public partial class MainWindow
             var end = horizontal ? new Point(b.X - sign * target.Width / 2, b.Y) : new Point(b.X, b.Y - sign * target.Height / 2);
             start = ResolveEndpoint(line, true, source, start);
             end = ResolveEndpoint(line, false, target, end);
+            var startNormal = EndpointNormal(start, source);
+            var endNormal = EndpointNormal(end, target);
+            start = ProjectDrawingEndpoint(link.Source, start);
+            end = ProjectDrawingEndpoint(link.Target, end);
+            var positions = _endpointPositions.GetOrCreateValue(line);
+            positions.Start = start;
+            positions.End = end;
             var figure = new PathFigure { StartPoint = start, IsFilled = false };
             if (_relationshipLineStyle == "curve")
             {
                 var distance = Math.Max(24, (end - start).Length / 2);
                 var tangent = horizontal ? new Vector(sign * distance, 0) : new Vector(0, sign * distance);
-                figure.Segments.Add(new BezierSegment(start + EndpointNormal(start, source) * distance, end + EndpointNormal(end, target) * distance, end, true));
+                figure.Segments.Add(new BezierSegment(start + startNormal * distance, end + endNormal * distance, end, true));
             }
             else figure.Segments.Add(new LineSegment(end, true));
             if (line == _selectedDrawingConnector)
