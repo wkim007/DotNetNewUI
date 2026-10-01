@@ -42,7 +42,7 @@ public partial class MainWindow
     }
 
     private bool IsSharedDiagramElement(UIElement element) =>
-        element == RelationshipMoveHandle || element == RelationshipDeleteButton || element == EmptyHint;
+        element == _sourceEndpointHandle || element == _targetEndpointHandle || element == RelationshipMoveHandle || element == RelationshipDeleteButton || element == EmptyHint;
 
     private void SaveActiveDiagram()
     {

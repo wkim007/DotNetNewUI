@@ -133,12 +133,14 @@ public partial class MainWindow
             var sign = horizontal ? (b.X >= a.X ? 1 : -1) : (b.Y >= a.Y ? 1 : -1);
             var start = horizontal ? new Point(a.X + sign * source.Width / 2, a.Y) : new Point(a.X, a.Y + sign * source.Height / 2);
             var end = horizontal ? new Point(b.X - sign * target.Width / 2, b.Y) : new Point(b.X, b.Y - sign * target.Height / 2);
+            start = ResolveEndpoint(line, true, source, start);
+            end = ResolveEndpoint(line, false, target, end);
             var figure = new PathFigure { StartPoint = start, IsFilled = false };
             if (_relationshipLineStyle == "curve")
             {
                 var distance = Math.Max(24, (end - start).Length / 2);
                 var tangent = horizontal ? new Vector(sign * distance, 0) : new Vector(0, sign * distance);
-                figure.Segments.Add(new BezierSegment(start + tangent, end - tangent, end, true));
+                figure.Segments.Add(new BezierSegment(start + EndpointNormal(start, source) * distance, end + EndpointNormal(end, target) * distance, end, true));
             }
             else figure.Segments.Add(new LineSegment(end, true));
             if (line == _selectedDrawingConnector)

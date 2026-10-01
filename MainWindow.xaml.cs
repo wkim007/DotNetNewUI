@@ -59,7 +59,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         InitializeDrawingPalette();
-        DiagramCanvasSurface.LayoutUpdated += (_, _) => { ApplyProjectViewMode(); ApplyTheme(); UpdateDrawingConnectors(); };
+        DiagramCanvasSurface.LayoutUpdated += (_, _) => { ApplyProjectViewMode(); ApplyTheme(); UpdateDrawingConnectors(); RefreshEndpointHandles(); };
         _entityHoldTimer.Tick += EntityHoldTimer_Tick;
         SelectEntity("Order");
         SelectCard(OrderCard);
@@ -928,6 +928,14 @@ public partial class MainWindow : Window
             handlePoint = new Point(trunkX, (startStub.Y + endStub.Y) / 2);
         }
 
+        var sourceBounds = EndpointBounds(source);
+        var targetBounds = EndpointBounds(target);
+        route[0] = ResolveEndpoint(visible, true, sourceBounds, route[0]);
+        route[^1] = ResolveEndpoint(visible, false, targetBounds, route[^1]);
+        route[1] = route[0] + EndpointNormal(route[0], sourceBounds) * 24;
+        route[^2] = route[^1] + EndpointNormal(route[^1], targetBounds) * 24;
+        if (horizontal) { route[2] = new Point(route[1].X, route[2].Y); route[3] = new Point(route[^2].X, route[3].Y); }
+        else { route[2] = new Point(route[2].X, route[1].Y); route[3] = new Point(route[3].X, route[^2].Y); }
         var figure = new PathFigure { StartPoint = route[0], IsClosed = false, IsFilled = false };
         if (_relationshipLineStyle == "curve")
         {
@@ -936,8 +944,8 @@ public partial class MainWindow : Window
                 : new Vector(0, Math.Sign(dy == 0 ? 1 : dy) * 30);
             // Reserve straight terminal sections for notation symbols.
             figure.Segments.Add(new LineSegment(route[1], true));
-            figure.Segments.Add(new BezierSegment(route[1] + tangent, handlePoint - tangent, handlePoint, true));
-            figure.Segments.Add(new BezierSegment(handlePoint + tangent, route[^2] - tangent, route[^2], true));
+            figure.Segments.Add(new BezierSegment(route[1] + EndpointNormal(route[0], sourceBounds) * 30, handlePoint - tangent, handlePoint, true));
+            figure.Segments.Add(new BezierSegment(handlePoint + tangent, route[^2] + EndpointNormal(route[^1], targetBounds) * 30, route[^2], true));
             figure.Segments.Add(new LineSegment(route[^1], true));
         }
         else
