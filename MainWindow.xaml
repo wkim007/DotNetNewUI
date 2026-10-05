@@ -239,7 +239,7 @@
                     <TextBlock Text="Definition" Foreground="{StaticResource MutedInk}" Margin="14,3"/><TextBox Text="Customer purchase transaction." Height="62" TextWrapping="Wrap" AcceptsReturn="True" Margin="14,0,14,8" Padding="7,5" BorderBrush="{StaticResource Rule}"/>
                     <TextBlock Text="COLUMNS" Style="{StaticResource SectionTitle}" Margin="14,18,14,8"/>
                     <DataGrid x:Name="ColumnsGrid" Margin="10,0" AutoGenerateColumns="False" CanUserAddRows="False" HeadersVisibility="Column" GridLinesVisibility="Horizontal" BorderThickness="0" RowHeaderWidth="0"><DataGrid.Columns><DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*"/><DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="92"/><DataGridCheckBoxColumn Header="NN" Binding="{Binding Required}" Width="36"/></DataGrid.Columns></DataGrid>
-                    <Button Content="＋  Add column" HorizontalAlignment="Left" Margin="8,6" Click="AddColumn_Click" Foreground="{StaticResource AccentDark}"/>
+                    <Button x:Name="AddColumnButton" Content="＋  Add column" HorizontalAlignment="Left" Margin="8,6" Click="AddColumn_Click" Foreground="{StaticResource AccentDark}"/>
                 </StackPanel>
                 <StackPanel x:Name="RelationshipPropertiesPanel" Visibility="Collapsed">
                     <TextBlock Text="RELATIONSHIP PROPERTIES" Style="{StaticResource SectionTitle}" Margin="14,14,14,10"/>

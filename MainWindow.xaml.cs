@@ -173,6 +173,8 @@ public partial class MainWindow : Window
         SelectedEntityTitle.Text = display.ToUpperInvariant();
         EntityNameBox.Text = display;
         PhysicalNameBox.Text = key switch { "OrderItem" => "order_item", "Order" => "sales_order", _ => key.ToLowerInvariant() };
+        ColumnsGrid.IsReadOnly = _viewCardKeys.Contains(key);
+        AddColumnButton.IsEnabled = !_viewCardKeys.Contains(key);
         ColumnsGrid.ItemsSource = _columns.GetValueOrDefault(key, []);
         StatusText.Text = $"Selected entity: {display}";
     }
@@ -298,6 +300,7 @@ public partial class MainWindow : Window
         Grid.SetColumn(close, 1);
         headerGrid.Children.Add(close);
         header.Child = headerGrid;
+        ConfigureHoldRename(header, () => BeginTitleRename(card, key, title), card);
     }
 
     private void DeleteObject_Click(object sender, RoutedEventArgs e)
@@ -375,6 +378,7 @@ public partial class MainWindow : Window
     {
         row.PreviewMouseLeftButtonDown += AttributeDrag_PreviewMouseLeftButtonDown;
         row.PreviewMouseMove += AttributeDrag_PreviewMouseMove;
+        ConfigureHoldRename(row, () => BeginColumnRename(row));
         row.AllowDrop = true;
         row.PreviewDragOver += AttributeReorder_DragOver;
         row.PreviewDragLeave += (_, _) => ClearReorderHint(row);
@@ -1346,7 +1350,7 @@ public partial class MainWindow : Window
         StatusText.Text = $"Created entity: {key}";
     }
     private void AddRelationship_Click(object sender, RoutedEventArgs e) => StatusText.Text = "Relationship tool active — choose parent and child entities";
-    private void AddColumn_Click(object sender, RoutedEventArgs e) { if (ColumnsGrid.ItemsSource is ObservableCollection<ColumnInfo> items) items.Add(new("new_column", "VARCHAR", false)); }
+    private void AddColumn_Click(object sender, RoutedEventArgs e) { if (EntityNameBox.Tag is string key && !_viewCardKeys.Contains(key) && ColumnsGrid.ItemsSource is ObservableCollection<ColumnInfo> items) items.Add(new("new_column", "VARCHAR", false)); }
     private void EntityNameBox_LostFocus(object sender, RoutedEventArgs e)
     {
         if (EntityNameBox.Tag is not string key || !_columns.ContainsKey(key)) return;
