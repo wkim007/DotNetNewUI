@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
@@ -94,12 +95,55 @@ public partial class MainWindow
         editor.PreviewMouseLeftButtonDown += (_, _) => SelectDrawing(shape);
         editor.GotKeyboardFocus += (_, _) => { SelectDrawing(shape); };
         shape.Children.Add(editor);
+        void RemoveDrawing()
+        {
+            if (_selectedDrawing == shape) ClearDrawingSelection();
+            if (_connectorSource == shape) _connectorSource = null;
+            DiagramCanvasSurface.Children.Remove(shape);
+            UpdateDrawingConnectors(); RefreshEndpointHandles();
+        }
+        var close = new Button
+        {
+            Content = "×", Width = 22, Height = 22, Padding = new Thickness(0),
+            HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top,
+            Margin = new Thickness(0, 0, 0, 0), Foreground = ThemeBrush("#A9C9E8"),
+            Background = Brushes.Transparent, ToolTip = "Delete drawing", Cursor = Cursors.Hand
+        };
+        close.Click += (_, args) => { RemoveDrawing(); args.Handled = true; };
+        shape.Children.Add(close);
+        var resize = new Thumb { Style = (Style)FindResource("CardResizeThumb"), ToolTip = "Resize drawing" };
+        Point resizeStart = default;
+        double initialWidth = width, initialHeight = height;
+        resize.DragStarted += (_, args) =>
+        {
+            SelectDrawing(shape);
+            resizeStart = Mouse.GetPosition(DiagramCanvasSurface);
+            initialWidth = shape.Width; initialHeight = shape.Height;
+            args.Handled = true;
+        };
+        resize.DragDelta += (_, args) =>
+        {
+            var delta = Mouse.GetPosition(DiagramCanvasSurface) - resizeStart;
+            shape.Width = Math.Max(100, initialWidth + delta.X);
+            shape.Height = Math.Max(80, initialHeight + delta.Y);
+            outline.Width = shape.Width; outline.Height = shape.Height;
+            var resized = geometry.Clone();
+            resized.Transform = new ScaleTransform(shape.Width / width, shape.Height / height);
+            outline.Data = resized;
+            editor.Margin = new Thickness(shape.Width * 32 / width, shape.Height * 28 / height,
+                shape.Width * 32 / width, shape.Height * 28 / height);
+            UpdateDrawingConnectors(); RefreshEndpointHandles();
+            StatusText.Text = $"Resizing {name}: {shape.Width:0} × {shape.Height:0}";
+            args.Handled = true;
+        };
+        resize.DragCompleted += (_, args) => { StatusText.Text = $"Resized {name}"; args.Handled = true; };
+        shape.Children.Add(resize);
         DiagramCanvasSurface.Children.Add(shape); Panel.SetZIndex(shape, 1);
         var scale = _zoom / 100d;
         Canvas.SetLeft(shape, Math.Max(8, (DiagramScrollViewer.HorizontalOffset + DiagramScrollViewer.ViewportWidth / 2) / scale - width / 2));
         Canvas.SetTop(shape, Math.Max(8, (DiagramScrollViewer.VerticalOffset + DiagramScrollViewer.ViewportHeight / 2) / scale - height / 2));
         Point start = default; double left = 0, top = 0;
-        shape.MouseLeftButtonDown += (_, args) => { if (args.OriginalSource is DependencyObject source && (source == editor || editor.IsAncestorOf(source))) return; SelectDrawing(shape); StatusText.Text = $"Selected {name}"; start = args.GetPosition(DiagramCanvasSurface); left = Canvas.GetLeft(shape); top = Canvas.GetTop(shape); shape.CaptureMouse(); args.Handled = true; };
+        shape.MouseLeftButtonDown += (_, args) => { if (args.OriginalSource is DependencyObject source && (source == editor || editor.IsAncestorOf(source) || source == close || close.IsAncestorOf(source) || source == resize || resize.IsAncestorOf(source))) return; SelectDrawing(shape); StatusText.Text = $"Selected {name}"; start = args.GetPosition(DiagramCanvasSurface); left = Canvas.GetLeft(shape); top = Canvas.GetTop(shape); shape.CaptureMouse(); args.Handled = true; };
         shape.MouseMove += (_, args) =>
         {
             if (!shape.IsMouseCaptured || args.LeftButton != MouseButtonState.Pressed) return;
@@ -108,7 +152,7 @@ public partial class MainWindow
         };
         shape.MouseLeftButtonUp += (_, args) => { shape.ReleaseMouseCapture(); args.Handled = true; };
         var menu = new ContextMenu(); var delete = new MenuItem { Header = "Delete" };
-        delete.Click += (_, _) => { if (_selectedDrawing == shape) ClearDrawingSelection(); DiagramCanvasSurface.Children.Remove(shape); }; menu.Items.Add(delete); shape.ContextMenu = menu;
+        delete.Click += (_, _) => RemoveDrawing(); menu.Items.Add(delete); shape.ContextMenu = menu;
         editor.Focus(); editor.SelectAll();
         StatusText.Text = $"Added {name} — type text, or drag the outer shape to move";
     }

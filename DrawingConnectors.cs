@@ -92,7 +92,10 @@ public partial class MainWindow
         if (_connectorSource is null) return;
         var target = e.OriginalSource as DependencyObject;
         while (target is not null && VisualTreeHelper.GetParent(target) != DiagramCanvasSurface)
+        {
+            if (target is Button or System.Windows.Controls.Primitives.Thumb) return;
             target = VisualTreeHelper.GetParent(target);
+        }
         if (target is not FrameworkElement element ||
             !(element is Border { Tag: string } || element is FrameworkElement { Tag: "DrawingShape" })) return;
         e.Handled = true;
