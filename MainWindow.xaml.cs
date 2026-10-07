@@ -1195,6 +1195,18 @@ public partial class MainWindow : Window
         };
         editor.PreviewMouseLeftButtonDown += (_, e) => { SelectEntity(key); SelectCard(card); editor.Focus(); e.Handled = true; };
         editor.GotKeyboardFocus += (_, _) => { SelectEntity(key); SelectCard(card); };
+        var close = new Button
+        {
+            Tag = key, Content = "×", Width = 22, Height = 22,
+            HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top,
+            Margin = new Thickness(0, 1, 2, 0), Padding = new Thickness(0),
+            Background = Brushes.Transparent, BorderBrush = Brushes.Transparent,
+            Foreground = new SolidColorBrush(Color.FromRgb(65, 85, 105)),
+            FontSize = 16, Cursor = Cursors.Hand, ToolTip = "Delete annotation"
+        };
+        close.Click += DeleteObject_Click;
+        Panel.SetZIndex(close, 2);
+        grid.Children.Add(close);
         grid.Children.Add(editor);
         grid.Children.Add(CreateResizeThumb(key));
         card.Child = grid;
