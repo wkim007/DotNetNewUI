@@ -169,6 +169,7 @@ public partial class MainWindow : Window
     {
         var display = EntityDisplayName(key);
         EntityNameBox.Tag = key;
+        LoadObjectDefinition(key);
         RefreshModelExplorer();
         SelectedEntityTitle.Text = display.ToUpperInvariant();
         EntityNameBox.Text = display;
@@ -271,6 +272,7 @@ public partial class MainWindow : Window
     }
     private void EnsureCloseButton(Border card, string key)
     {
+        ConfigureObjectToolTip(card, key);
         if (card.Child is not Grid cardGrid) return;
         var header = cardGrid.Children.OfType<Border>().FirstOrDefault(item => Grid.GetRow(item) == 0);
         if (header?.Child is not TextBlock title) return;
@@ -331,6 +333,8 @@ public partial class MainWindow : Window
         _materializedViewKeys.Remove(key);
         _columns.Remove(key);
         _entityDisplayNames.Remove(key);
+        _objectDefinitions.Remove(key);
+        LoadObjectDefinition(null);
         RefreshModelExplorer();
         ClearRelationshipSelection();
         UpdateRelationshipLines();

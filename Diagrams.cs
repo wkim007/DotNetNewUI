@@ -82,6 +82,7 @@ public partial class MainWindow
         _materializedViewKeys.Clear(); _materializedViewKeys.UnionWith(diagram.MaterializedViews);
         _deletedRelationships.Clear(); _deletedRelationships.UnionWith(diagram.Deleted);
         foreach (var element in diagram.Elements) DiagramCanvasSurface.Children.Add(element);
+        LoadObjectDefinition(null);
         SelectedEntityTitle.Text = "NO SELECTION"; EntityNameBox.Text = ""; PhysicalNameBox.Text = ""; ColumnsGrid.ItemsSource = null;
         EmptyHint.Visibility = Visibility.Collapsed;
         SetZoom(diagram.Zoom);

@@ -140,6 +140,7 @@
                             <TextBox x:Name="ProjectSubjectBox" Text="&lt;model&gt;"/>
                             <Button Style="{StaticResource ProjectSettingsButton}" Content="Model Properties" Click="ModelProperties_Click" Margin="0,16,0,8"/>
                             <Button Style="{StaticResource ProjectSettingsButton}" Content="Theme Settings" Click="ThemeSettings_Click"/>
+                            <CheckBox x:Name="ObjectTooltipsToggle" Content="Tun On Tooltip" IsChecked="True" Checked="ObjectTooltipsToggle_Changed" Unchecked="ObjectTooltipsToggle_Changed" Foreground="#DCE7F5" Margin="0,14,0,2" VerticalContentAlignment="Center"/>
                         </StackPanel>
                     </Border>
                     <TextBlock Text="MODEL EXPLORER" Style="{StaticResource SectionTitle}" Foreground="#A9C9E8" Margin="14,8" VerticalAlignment="Center"/>
@@ -236,7 +237,7 @@
                     <TextBlock Text="GENERAL" Style="{StaticResource SectionTitle}" Margin="14,18,14,8"/>
                     <TextBlock Text="Name" Foreground="{StaticResource MutedInk}" Margin="14,3"/><TextBox x:Name="EntityNameBox" Text="Order" Margin="14,0,14,8" Padding="7,5" BorderBrush="{StaticResource Rule}" LostFocus="EntityNameBox_LostFocus"/>
                     <TextBlock Text="Physical name" Foreground="{StaticResource MutedInk}" Margin="14,3"/><TextBox x:Name="PhysicalNameBox" Text="sales_order" Margin="14,0,14,8" Padding="7,5" BorderBrush="{StaticResource Rule}"/>
-                    <TextBlock Text="Definition" Foreground="{StaticResource MutedInk}" Margin="14,3"/><TextBox Text="Customer purchase transaction." Height="62" TextWrapping="Wrap" AcceptsReturn="True" Margin="14,0,14,8" Padding="7,5" BorderBrush="{StaticResource Rule}"/>
+                    <TextBlock Text="Definition" Foreground="{StaticResource MutedInk}" Margin="14,3"/><TextBox x:Name="ObjectDefinitionBox" TextChanged="ObjectDefinition_TextChanged" Height="62" TextWrapping="Wrap" AcceptsReturn="True" Margin="14,0,14,8" Padding="7,5" BorderBrush="{StaticResource Rule}"/>
                     <TextBlock Text="COLUMNS" Style="{StaticResource SectionTitle}" Margin="14,18,14,8"/>
                     <DataGrid x:Name="ColumnsGrid" Margin="10,0" AutoGenerateColumns="False" CanUserAddRows="False" HeadersVisibility="Column" GridLinesVisibility="Horizontal" BorderThickness="0" RowHeaderWidth="0"><DataGrid.Columns><DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*"/><DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="92"/><DataGridCheckBoxColumn Header="NN" Binding="{Binding Required}" Width="36"/></DataGrid.Columns></DataGrid>
                     <Button x:Name="AddColumnButton" Content="＋  Add column" HorizontalAlignment="Left" Margin="8,6" Click="AddColumn_Click" Foreground="{StaticResource AccentDark}"/>
