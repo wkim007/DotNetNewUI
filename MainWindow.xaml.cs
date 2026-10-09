@@ -58,6 +58,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        InitializeAiFeatures();
         InitializeDrawingPalette();
         UpdateDiagramTools();
         DiagramCanvasSurface.LayoutUpdated += (_, _) => { ApplyProjectViewMode(); ApplyTheme(); UpdateDrawingConnectors(); RefreshEndpointHandles(); };
@@ -1398,5 +1399,3 @@ public sealed record AttributeSelection(string EntityKey, string AttributeName);
 public sealed record AttributeDragData(string EntityKey, string AttributeName, Border Row);
 
 public sealed record PkDividerTag(string EntityKey);
-
-

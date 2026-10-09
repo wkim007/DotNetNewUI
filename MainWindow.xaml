@@ -154,11 +154,12 @@
                             <TextBlock Text="Schema Description" Foreground="#A9C9E8" Margin="0,14,0,8"/>
                             <TextBox x:Name="AiSchemaDescription" Height="130" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Background="#0E1824" Foreground="White" CaretBrush="White" BorderBrush="#293D50" Padding="10"/>
                             <StackPanel x:Name="AiActions" IsEnabled="False">
-                                <Button Content="✧  Generate" Tag="Generate" Click="AiAction_Click" Style="{StaticResource ProjectSettingsButton}" Margin="0,12,0,0"/>
+                                <Button x:Name="AiGenerateButton" Content="✧  Generate" Tag="Generate" Click="AiAction_Click" Style="{StaticResource ProjectSettingsButton}" Margin="0,12,0,0"/>
                                 <Button Content="Generate Comments" Tag="Generate Comments" Click="AiAction_Click" Style="{StaticResource ProjectSettingsButton}" Margin="0,12,0,0"/>
                                 <Button Content="Summary" Tag="Summary" Click="AiAction_Click" Style="{StaticResource ProjectSettingsButton}" Margin="0,12,0,0"/>
                                 <Button Content="AI Tuning" Tag="AI Tuning" Click="AiAction_Click" Style="{StaticResource ProjectSettingsButton}" Margin="0,12,0,0"/>
                             </StackPanel>
+                            <StackPanel x:Name="AiProgressPanel" Visibility="Collapsed" Margin="0,14,0,0"><TextBlock x:Name="AiProgressText" Foreground="#A9C9E8" TextWrapping="Wrap" Margin="0,0,0,6"/><ProgressBar x:Name="AiProgressBar" Height="7" Minimum="0" Maximum="100" Foreground="#62E6B3" Background="#0E1824"/></StackPanel>
                             <TextBlock x:Name="AiStatus" Text="Configure and validate AI Settings to enable tools." Foreground="#A9C9E8" TextWrapping="Wrap" Margin="0,12,0,0"/>
                         </StackPanel>
                     </Border>
