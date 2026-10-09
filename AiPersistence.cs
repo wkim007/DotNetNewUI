@@ -67,7 +67,7 @@ public partial class MainWindow
         AiSchemaDescription.IsEnabled = !running;
         AiProgressPanel.Visibility = running ? Visibility.Visible : Visibility.Collapsed;
         AiProgressBar.IsIndeterminate = running;
-        AiGenerateButton.Content = running && action == "Generate" ? "Generating…" : "✧  Generate";
+        AiGenerateButton.Content = running && action == "Generate" ? "Generating…" : "Generate";
         if (running)
         {
             _aiElapsed.Restart(); AiProgressText.Text = "AI is processing… (0s)"; _aiProgressTimer.Start();

@@ -948,11 +948,23 @@ public partial class MainWindow : Window
         route[^2] = route[^1] + EndpointNormal(route[^1], targetBounds) * 24;
         if (horizontal) { route[2] = new Point(route[1].X, route[2].Y); route[3] = new Point(route[^2].X, route[3].Y); }
         else { route[2] = new Point(route[2].X, route[1].Y); route[3] = new Point(route[3].X, route[^2].Y); }
+        // A self-reference needs an exterior loop rather than a route through its own card.
+        var selfReference = ReferenceEquals(source, target);
+        if (selfReference)
+        {
+            var start = ResolveEndpoint(visible, true, sourceBounds, new Point(sourceBounds.Right, sourceBounds.Top + sourceBounds.Height * 0.35));
+            var end = ResolveEndpoint(visible, false, targetBounds, new Point(targetBounds.Right, targetBounds.Top + targetBounds.Height * 0.65));
+            var startStub = start + EndpointNormal(start, sourceBounds) * 24;
+            var endStub = end + EndpointNormal(end, targetBounds) * 24;
+            var loopX = sourceBounds.Right + Math.Max(80, 80 + offset.X);
+            route = [start, startStub, new Point(loopX, startStub.Y), new Point(loopX, endStub.Y), endStub, end];
+            handlePoint = new Point(loopX, (startStub.Y + endStub.Y) / 2);
+        }
         var figure = new PathFigure { StartPoint = route[0], IsClosed = false, IsFilled = false };
         if (_relationshipLineStyle == "curve")
         {
             // Two cubic segments share a tangent at the draggable route midpoint.
-            var tangent = horizontal ? new Vector(Math.Sign(dx == 0 ? 1 : dx) * 30, 0)
+            var tangent = selfReference ? new Vector(0, 30) : horizontal ? new Vector(Math.Sign(dx == 0 ? 1 : dx) * 30, 0)
                 : new Vector(0, Math.Sign(dy == 0 ? 1 : dy) * 30);
             // Reserve straight terminal sections for notation symbols.
             figure.Segments.Add(new LineSegment(route[1], true));

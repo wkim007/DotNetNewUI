@@ -74,6 +74,34 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <Style x:Key="AiActionButton" TargetType="Button" BasedOn="{StaticResource ProjectSettingsButton}">
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Template"><Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Card" Background="#30435F" BorderBrush="Transparent" BorderThickness="1" CornerRadius="12" Padding="13,11">
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="18"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                            <Path x:Name="Icon" Width="15" Height="15" Stretch="Uniform" Stroke="{TemplateBinding Foreground}" StrokeThickness="1.3" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" VerticalAlignment="Center" Data="M8,1 L10,6 15,8 10,10 8,15 6,10 1,8 6,6 Z"/>
+                            <TextBlock Grid.Column="1" Text="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}" FontWeight="Bold" TextWrapping="Wrap" TextAlignment="Center" VerticalAlignment="Center" Margin="7,0,0,0"/>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="Tag" Value="Generate Comments"><Setter TargetName="Icon" Property="Data" Value="M2,2 L14,2 14,11 7,11 3,15 3,11 2,11 Z M4,5 L12,5 M4,8 L10,8"/></Trigger>
+                        <Trigger Property="Tag" Value="Summary"><Setter TargetName="Icon" Property="Data" Value="M2,14 L2,3 M6,14 L6,7 M10,14 L10,1 M14,14 L14,5"/></Trigger>
+                        <Trigger Property="Tag" Value="AI Tuning"><Setter TargetName="Icon" Property="Data" Value="M5,1 L6,4 9,5 6,6 5,9 4,6 1,5 4,4 Z M12,8 L13,11 16,12 13,13 12,16 11,13 8,12 11,11 Z"/></Trigger>
+                        <MultiTrigger><MultiTrigger.Conditions><Condition Property="IsMouseOver" Value="True"/><Condition Property="IsEnabled" Value="True"/></MultiTrigger.Conditions>
+                            <Setter TargetName="Card" Property="Background" Value="#3A526F"/>
+                            <Setter TargetName="Card" Property="BorderBrush" Value="#72CDB6"/>
+                            <Setter TargetName="Icon" Property="Stroke" Value="#8FFFCB"/>
+                            <Setter TargetName="Card" Property="Effect"><Setter.Value><DropShadowEffect Color="#62E6B3" BlurRadius="18" ShadowDepth="0" Opacity="0.3"/></Setter.Value></Setter>
+                        </MultiTrigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Card" Property="BorderBrush" Value="#72CDB6"/></Trigger>
+                        <Trigger Property="IsPressed" Value="True"><Setter TargetName="Card" Property="Background" Value="#29445B"/></Trigger>
+                        <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Card" Property="Opacity" Value="0.45"/></Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value></Setter>
+        </Style>
     </Window.Resources>
 
     <Grid>
@@ -154,10 +182,10 @@
                             <TextBlock Text="Schema Description" Foreground="#A9C9E8" Margin="0,14,0,8"/>
                             <TextBox x:Name="AiSchemaDescription" Height="130" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Background="#0E1824" Foreground="White" CaretBrush="White" BorderBrush="#293D50" Padding="10"/>
                             <StackPanel x:Name="AiActions" IsEnabled="False">
-                                <Button x:Name="AiGenerateButton" Content="✧  Generate" Tag="Generate" Click="AiAction_Click" Style="{StaticResource ProjectSettingsButton}" Margin="0,12,0,0"/>
-                                <Button Content="Generate Comments" Tag="Generate Comments" Click="AiAction_Click" Style="{StaticResource ProjectSettingsButton}" Margin="0,12,0,0"/>
-                                <Button Content="Summary" Tag="Summary" Click="AiAction_Click" Style="{StaticResource ProjectSettingsButton}" Margin="0,12,0,0"/>
-                                <Button Content="AI Tuning" Tag="AI Tuning" Click="AiAction_Click" Style="{StaticResource ProjectSettingsButton}" Margin="0,12,0,0"/>
+                                <Button x:Name="AiGenerateButton" Content="Generate" Tag="Generate" Click="AiAction_Click" Style="{StaticResource AiActionButton}" Margin="0,12,0,0"/>
+                                <Button Content="Generate Comments" Tag="Generate Comments" Click="AiAction_Click" Style="{StaticResource AiActionButton}" Margin="0,12,0,0"/>
+                                <Button Content="Summary" Tag="Summary" Click="AiAction_Click" Style="{StaticResource AiActionButton}" Margin="0,12,0,0"/>
+                                <Button Content="AI Tuning" Tag="AI Tuning" Click="AiAction_Click" Style="{StaticResource AiActionButton}" Margin="0,12,0,0"/>
                             </StackPanel>
                             <StackPanel x:Name="AiProgressPanel" Visibility="Collapsed" Margin="0,14,0,0"><TextBlock x:Name="AiProgressText" Foreground="#A9C9E8" TextWrapping="Wrap" Margin="0,0,0,6"/><ProgressBar x:Name="AiProgressBar" Height="7" Minimum="0" Maximum="100" Foreground="#62E6B3" Background="#0E1824"/></StackPanel>
                             <TextBlock x:Name="AiStatus" Text="Configure and validate AI Settings to enable tools." Foreground="#A9C9E8" TextWrapping="Wrap" Margin="0,12,0,0"/>
