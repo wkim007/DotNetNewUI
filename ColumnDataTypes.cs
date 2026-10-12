@@ -32,14 +32,15 @@ public partial class MainWindow
         // Preserve parameterized and user-defined types already present in the model.
         box.ItemsSource = new[] { column.Type }.Concat(DatabaseTypes()).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
         box.SelectedItem = column.Type;
-        box.IsEnabled = !ColumnsGrid.IsReadOnly;
+        box.IsEnabled = !ColumnsGrid.IsReadOnly && !HasChildren(column);
+        box.ToolTip = HasChildren(column) ? "Datatype is locked because this attribute has child attributes." : "Select datatype";
         box.SelectionChanged += ColumnType_Changed;
     }
 
     private void ColumnType_Changed(object sender, SelectionChangedEventArgs e)
     {
         if (sender is not ComboBox { DataContext: ColumnInfo old, SelectedItem: string type } || type == old.Type ||
-            ColumnsGrid.IsReadOnly || EntityNameBox.Tag is not string key || !_columns.TryGetValue(key, out var columns)) return;
+            ColumnsGrid.IsReadOnly || HasChildren(old) || EntityNameBox.Tag is not string key || !_columns.TryGetValue(key, out var columns)) return;
         var index = columns.IndexOf(old);
         if (index < 0) return;
         var updated = old with { Type = type };
@@ -47,6 +48,7 @@ public partial class MainWindow
         if (FindCard(key) is { } card)
             foreach (var row in Descendants<Border>(card).Where(row => row.Tag is AttributeSelection selection && selection.AttributeName == old.Name))
                 row.Child = CreateAttributeLayout(updated, updated.Name);
+        RebuildNestedRows(key);
         ColumnsGrid.SelectedItem = updated;
         StatusText.Text = $"Changed {old.Name} datatype to {type}";
     }

@@ -13,6 +13,7 @@ public partial class MainWindow
         if (drag is null || target.Tag is not AttributeSelection selection || selection.EntityKey != drag.EntityKey ||
             drag.Row == target || target.Parent is not StackPanel || target.Parent != drag.Row.Parent ||
             !_columns.TryGetValue(selection.EntityKey, out var columns)) return false;
+        if (columns.Any(c => c.ParentId is not null)) return false;
         var sourceName = drag.AttributeName;
         sourceIndex = columns.ToList().FindIndex(c => c.Name == sourceName);
         targetIndex = columns.ToList().FindIndex(c => c.Name == selection.AttributeName);

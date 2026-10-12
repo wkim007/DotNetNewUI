@@ -1405,7 +1405,8 @@ public partial class MainWindow : Window
     }
 }
 
-public sealed record ColumnInfo(string Name, string Type, bool Required, bool IsPrimaryKey = false, bool IsForeignKey = false);
+public sealed record ColumnInfo(string Name, string Type, bool Required, bool IsPrimaryKey = false, bool IsForeignKey = false)
+{ public Guid Id { get; init; } = Guid.NewGuid(); public Guid? ParentId { get; init; } }
 
 public sealed record DynamicRelationship(string SourceKey, string TargetKey, Path Visible, Path Hit, bool IsIdentifying, bool IsViewRelationship = false, bool IsSubCategory = false);
 
