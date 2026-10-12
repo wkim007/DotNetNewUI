@@ -161,7 +161,7 @@
                             <TextBlock Text="View Mode"/>
                             <ComboBox x:Name="ViewModeBox" SelectedIndex="0" SelectionChanged="ProjectViewMode_Changed"><ComboBoxItem Content="Physical View"/><ComboBoxItem Content="Logical View"/></ComboBox>
                             <TextBlock Text="Database"/>
-                            <ComboBox x:Name="ProjectDatabaseBox" IsEditable="True" Text="SQL Server"><ComboBoxItem Content="SQL Server"/><ComboBoxItem Content="PostgreSQL"/><ComboBoxItem Content="AlloyDB"/><ComboBoxItem Content="Oracle"/><ComboBoxItem Content="MySQL"/><ComboBoxItem Content="SQLite"/></ComboBox>
+                            <ComboBox x:Name="ProjectDatabaseBox" IsEditable="True" Text="SQL Server"><ComboBoxItem Content="SQL Server"/><ComboBoxItem Content="PostgreSQL"/><ComboBoxItem Content="AlloyDB"/><ComboBoxItem Content="Oracle"/><ComboBoxItem Content="MySQL"/><ComboBoxItem Content="SQLite"/><ComboBoxItem Content="MongoDB"/></ComboBox>
                             <TextBlock Text="Database Version"/>
                             <TextBox x:Name="ProjectVersionBox" Text="2022"/>
                             <TextBlock Text="Subject Area"/>
@@ -287,7 +287,7 @@
                     <TextBlock Text="Physical name" Foreground="{StaticResource MutedInk}" Margin="14,3"/><TextBox x:Name="PhysicalNameBox" Text="sales_order" Margin="14,0,14,8" Padding="7,5" BorderBrush="{StaticResource Rule}"/>
                     <TextBlock Text="Definition" Foreground="{StaticResource MutedInk}" Margin="14,3"/><TextBox x:Name="ObjectDefinitionBox" TextChanged="ObjectDefinition_TextChanged" Height="62" TextWrapping="Wrap" AcceptsReturn="True" Margin="14,0,14,8" Padding="7,5" BorderBrush="{StaticResource Rule}"/>
                     <TextBlock Text="COLUMNS" Style="{StaticResource SectionTitle}" Margin="14,18,14,8"/>
-                    <DataGrid x:Name="ColumnsGrid" Margin="10,0" AutoGenerateColumns="False" CanUserAddRows="False" HeadersVisibility="Column" GridLinesVisibility="Horizontal" BorderThickness="0" RowHeaderWidth="0"><DataGrid.Columns><DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*"/><DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="92"/><DataGridCheckBoxColumn Header="NN" Binding="{Binding Required}" Width="36"/></DataGrid.Columns></DataGrid>
+                    <DataGrid x:Name="ColumnsGrid" Margin="10,0" AutoGenerateColumns="False" CanUserAddRows="False" HeadersVisibility="Column" GridLinesVisibility="Horizontal" BorderThickness="0" RowHeaderWidth="0"><DataGrid.Columns><DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*"/><DataGridTemplateColumn Header="Type" Width="150"><DataGridTemplateColumn.CellTemplate><DataTemplate><ComboBox IsEditable="False" MaxDropDownHeight="360" Loaded="ColumnType_Loaded" DropDownOpened="ColumnType_Opened" SelectionChanged="ColumnType_Changed"/></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn><DataGridCheckBoxColumn Header="NN" Binding="{Binding Required}" Width="36"/></DataGrid.Columns></DataGrid>
                     <Button x:Name="AddColumnButton" Content="＋  Add column" HorizontalAlignment="Left" Margin="8,6" Click="AddColumn_Click" Foreground="{StaticResource AccentDark}"/>
                 </StackPanel>
                 <StackPanel x:Name="RelationshipPropertiesPanel" Visibility="Collapsed">

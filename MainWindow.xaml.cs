@@ -536,7 +536,8 @@ public partial class MainWindow : Window
         };
         // Preserve datatype lengths displayed on the original sample cards.
         var nameIndex = originalText.IndexOf(column.Name, StringComparison.Ordinal);
-        var type = nameIndex >= 0 ? originalText[(nameIndex + column.Name.Length)..].Trim() : column.Type;
+        var originalType = nameIndex >= 0 ? originalText[(nameIndex + column.Name.Length)..].Trim() : "";
+        var type = string.IsNullOrWhiteSpace(originalType) ? column.Type : originalType;
         var datatype = new TextBlock
         {
             Tag = "ColumnDatatype", Text = type, Foreground = new SolidColorBrush(Color.FromRgb(166, 190, 211)),
@@ -560,6 +561,8 @@ public partial class MainWindow : Window
         row.BorderBrush = new SolidColorBrush(Color.FromRgb(72, 173, 180));
         if (FindCard(selection.EntityKey) is { } card) SelectCard(card);
         SelectEntity(selection.EntityKey);
+        ColumnsGrid.SelectedItem = _columns[selection.EntityKey].FirstOrDefault(c => c.Name == selection.AttributeName);
+        if (ColumnsGrid.SelectedItem is { } selectedColumn) ColumnsGrid.ScrollIntoView(selectedColumn);
         StatusText.Text = $"Selected attribute: {selection.EntityKey}.{selection.AttributeName}";
         e.Handled = true;
     }
