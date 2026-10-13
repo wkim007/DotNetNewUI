@@ -182,11 +182,11 @@
                             <TextBlock Text="AI Model Generator" Foreground="#A9C9E8" Margin="0,14,0,8"/>
                             <TextBox x:Name="AiSchemaDescription" Height="130" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Background="#0E1824" Foreground="White" CaretBrush="White" BorderBrush="#293D50" Padding="10"/>
                             <StackPanel x:Name="AiAttachmentControls">
-                                <Button Content="＋ Open text / image" Click="AiAttach_Click" Style="{StaticResource ProjectSettingsButton}" Margin="0,6,0,0" ToolTip="Load a .txt description or attach a diagram image"/>
+                                <Button Content="+ Open text/image/excel" Click="AiAttach_Click" Style="{StaticResource ProjectSettingsButton}" Margin="0,6,0,0" ToolTip="Load text, an Excel workbook with multiple worksheets, or a diagram image"/>
                                 <Border x:Name="AiAttachmentPanel" Visibility="Collapsed" BorderBrush="#62E6B3" BorderThickness="1" CornerRadius="8" Padding="6" Margin="0,8,0,0">
                                     <StackPanel><Image x:Name="AiAttachmentPreview" MaxHeight="110" Stretch="Uniform"/><TextBlock x:Name="AiAttachmentName" Foreground="#A9C9E8" TextTrimming="CharacterEllipsis" Margin="0,4"/><Button Content="Remove image" Click="AiRemoveAttachment_Click"/></StackPanel>
                                 </Border>
-                                <TextBlock Text="Describe a model, load text, or attach a diagram image." Foreground="#A9C9E8" FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                                <TextBlock Text="Describe a model, open text/Excel, or attach an image." Foreground="#A9C9E8" FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0"/>
                             </StackPanel>
                             <StackPanel x:Name="AiActions" IsEnabled="False">
                                 <Button x:Name="AiGenerateButton" Content="Generate" Tag="Generate" Click="AiAction_Click" Style="{StaticResource AiActionButton}" Margin="0,12,0,0"/>

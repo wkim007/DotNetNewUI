@@ -7,4 +7,7 @@
     <Nullable>enable</Nullable>
     <ApplicationIcon />
   </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="ExcelDataReader" Version="3.7.0" />
+  </ItemGroup>
 </Project>

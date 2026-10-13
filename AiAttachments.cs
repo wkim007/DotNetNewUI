@@ -11,11 +11,19 @@ public partial class MainWindow
     private void AiAttach_Click(object sender, RoutedEventArgs e)
     {
         if (_aiBusy) return;
-        var picker = new OpenFileDialog { Title = "Open schema description or diagram", Filter = "Supported files|*.txt;*.png;*.jpg;*.jpeg;*.gif;*.bmp|Text description|*.txt|Diagram image|*.png;*.jpg;*.jpeg;*.gif;*.bmp", Multiselect = false };
+        var picker = new OpenFileDialog { Title = "Open schema description or diagram", Filter = "Supported files|*.txt;*.png;*.jpg;*.jpeg;*.gif;*.bmp;*.xlsx;*.xls;*.xlsb|Excel workbook|*.xlsx;*.xls;*.xlsb|Text description|*.txt|Diagram image|*.png;*.jpg;*.jpeg;*.gif;*.bmp", Multiselect = false };
         if (picker.ShowDialog(this) != true) return;
         try
         {
             var file = new FileInfo(picker.FileName);
+            if (new[] { ".xlsx", ".xls", ".xlsb" }.Contains(file.Extension.ToLowerInvariant()))
+            {
+                var workbook = ExcelSchemaImport.Read(file.FullName);
+                ClearAiAttachment();
+                AiSchemaDescription.Text = workbook.Text;
+                AiStatus.Text = $"Loaded {workbook.Sheets} worksheets from {file.Name}. Review the extracted text, then Generate.";
+                return;
+            }
             if (file.Extension.Equals(".txt", StringComparison.OrdinalIgnoreCase))
             {
                 if (file.Length > 200_000) throw new InvalidOperationException("Choose a text file smaller than 200 KB.");
@@ -37,7 +45,7 @@ public partial class MainWindow
             AiAttachmentPanel.Visibility = Visibility.Visible;
             AiStatus.Text = "Image attached. Add optional instructions, then Generate. Requires an AI deployment that supports images.";
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or NotSupportedException or System.IO.FileFormatException or InvalidOperationException or ArgumentException)
+        catch (Exception ex) when (ex is ExcelDataReader.Exceptions.ExcelReaderException or IOException or UnauthorizedAccessException or NotSupportedException or System.IO.FileFormatException or InvalidOperationException or ArgumentException)
         { AiStatus.Text = "Could not open attachment: " + ex.Message; }
     }
 
