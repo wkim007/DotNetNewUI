@@ -194,7 +194,7 @@ public partial class MainWindow
             result.Content = new TextBox { Text = output, IsReadOnly = true, TextWrapping = TextWrapping.Wrap, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Margin = new Thickness(16), Padding = new Thickness(12) };
             SetAiProgress(false); AiStatus.Text = "Result ready for review."; result.ShowDialog();
         }
-        catch (Exception ex) { SetAiValidation(false); AiStatus.Text = SafeAiError(ex, config); }
+        catch (Exception ex) { SetAiValidation(false); AiStatus.Text = SafeAiError(ex, config); TraceAi("Failed: " + AiStatus.Text); }
         finally { SetAiProgress(false); }
     }
 }

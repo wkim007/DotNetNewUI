@@ -56,7 +56,7 @@ public partial class MainWindow
     private void InitializeAiFeatures()
     {
         LoadAiSettings();
-        _aiProgressTimer.Tick += (_, _) => AiProgressText.Text = $"AI is processing… ({(int)_aiElapsed.Elapsed.TotalSeconds}s)";
+        _aiProgressTimer.Tick += (_, _) => { AiProgressText.Text = $"AI is processing… ({(int)_aiElapsed.Elapsed.TotalSeconds}s)"; AiProcessTime.Text = AiProgressText.Text; };
         Closed += (_, _) => _aiProgressTimer.Stop();
     }
 
@@ -71,8 +71,8 @@ public partial class MainWindow
         AiGenerateButton.Content = running && action == "Generate" ? "Generating…" : "Generate";
         if (running)
         {
-            _aiElapsed.Restart(); AiProgressText.Text = "AI is processing… (0s)"; _aiProgressTimer.Start();
+            _aiElapsed.Restart(); AiProcessLog.Clear(); TraceAi(action + " started."); AiProcessTime.Text = "Processing…"; AiProgressText.Text = "AI is processing… (0s)"; _aiProgressTimer.Start();
         }
-        else { _aiProgressTimer.Stop(); _aiElapsed.Stop(); }
+        else { _aiProgressTimer.Stop(); _aiElapsed.Stop(); AiProcessTime.Text = $"Finished after {_aiElapsed.Elapsed.TotalSeconds:0.0}s"; }
     }
 }

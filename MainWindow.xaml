@@ -188,6 +188,7 @@
                                 </Border>
                                 <TextBlock Text="Describe a model, open text/Excel, or attach an image." Foreground="#A9C9E8" FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0"/>
                             </StackPanel>
+                            <CheckBox x:Name="AiShowDetails" Content="show detail process" IsChecked="False" Checked="AiDetailChanged" Unchecked="AiDetailChanged" Foreground="#A9C9E8" Margin="0,10,0,0"/>
                             <StackPanel x:Name="AiActions" IsEnabled="False">
                                 <Button x:Name="AiGenerateButton" Content="Generate" Tag="Generate" Click="AiAction_Click" Style="{StaticResource AiActionButton}" Margin="0,12,0,0"/>
                                 <Button Content="Generate Comments" Tag="Generate Comments" Click="AiAction_Click" Style="{StaticResource AiActionButton}" Margin="0,12,0,0"/>
@@ -285,8 +286,8 @@
 
             <!-- Properties -->
             <Border Grid.Column="4" Background="White" BorderBrush="{StaticResource Rule}" BorderThickness="1,0,0,0">
-                <ScrollViewer><Grid>
-                <StackPanel x:Name="EntityPropertiesPanel">
+                <ScrollViewer><Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions><Border x:Name="AiProcessSection" Visibility="Collapsed" Padding="12" Margin="8" Background="#142230" CornerRadius="8"><StackPanel><TextBlock Text="AI PROCESS" Foreground="#62E6B3" FontWeight="Bold" Margin="0,0,0,8"/><TextBlock x:Name="AiProcessTime" Foreground="#A9C9E8" Margin="0,0,0,6"/><TextBox x:Name="AiProcessLog" Text="Generation steps will appear here." IsReadOnly="True" TextWrapping="Wrap" Height="260" VerticalScrollBarVisibility="Auto" Background="#0E1824" Foreground="#DCE7F5" BorderThickness="0" Padding="8"/></StackPanel></Border>
+                <StackPanel x:Name="EntityPropertiesPanel" Grid.Row="1">
                     <TextBlock Text="PROPERTIES" Style="{StaticResource SectionTitle}" Margin="14,14,14,10"/>
                     <Border Background="#EFF7F8" Padding="14,12" BorderBrush="#CFE3E6" BorderThickness="0,1"><StackPanel><TextBlock x:Name="SelectedEntityTitle" Text="ORDER" FontSize="18" FontWeight="SemiBold" Foreground="{StaticResource AccentDark}"/><TextBlock Text="Entity" Foreground="{StaticResource MutedInk}" Margin="0,2,0,0"/></StackPanel></Border>
                     <TextBlock Text="GENERAL" Style="{StaticResource SectionTitle}" Margin="14,18,14,8"/>
@@ -298,7 +299,7 @@
                     <StackPanel Orientation="Horizontal"><Button x:Name="AddChildButton" Content="Add Child" IsEnabled="False" Click="AddChild_Click" Margin="8,6"/><Button x:Name="DeleteAttributeButton" Content="Delete Attribute" IsEnabled="False" Click="DeleteAttribute_Click" Margin="8,6"/></StackPanel>
                     <Button x:Name="AddColumnButton" Content="＋  Add column" HorizontalAlignment="Left" Margin="8,6" Click="AddColumn_Click" Foreground="{StaticResource AccentDark}"/>
                 </StackPanel>
-                <StackPanel x:Name="RelationshipPropertiesPanel" Visibility="Collapsed">
+                <StackPanel Grid.Row="1" x:Name="RelationshipPropertiesPanel" Visibility="Collapsed">
                     <TextBlock Text="RELATIONSHIP PROPERTIES" Style="{StaticResource SectionTitle}" Margin="14,14,14,10"/>
                     <Border Background="#EFF7F8" Padding="14,12" BorderBrush="#CFE3E6" BorderThickness="0,1"><StackPanel><TextBlock x:Name="SelectedRelationshipTitle" Text="RELATIONSHIP" TextWrapping="Wrap" FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource AccentDark}"/><TextBlock Text="Relationship" Foreground="{StaticResource MutedInk}" Margin="0,2,0,0"/></StackPanel></Border>
                     <TextBlock Text="Name" Foreground="{StaticResource MutedInk}" Margin="14,14,14,3"/><TextBox x:Name="RelationshipNameBox" Margin="14,0,14,8" Padding="7,5" BorderBrush="{StaticResource Rule}"/>
