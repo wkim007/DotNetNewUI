@@ -125,7 +125,7 @@ public partial class MainWindow
         return text.Length > 1600 ? text[..1600] : text;
     }
 
-    private static async Task<string> RequestAi(AiConfiguration config, string prompt, System.Threading.CancellationToken cancellation, bool validation = false, int maxTokens = 3000)
+    private static async Task<string> RequestAi(AiConfiguration config, string prompt, System.Threading.CancellationToken cancellation, bool validation = false, int maxTokens = 3000, string? imageData = null)
     {
         if (!Uri.TryCreate(config.Endpoint, UriKind.Absolute, out var endpoint) || endpoint.Scheme != "https" ||
             !string.IsNullOrEmpty(endpoint.UserInfo) || !string.IsNullOrEmpty(endpoint.Query) || !string.IsNullOrEmpty(endpoint.Fragment) || endpoint.AbsolutePath != "/")
@@ -139,7 +139,7 @@ public partial class MainWindow
         request.Headers.Add("api-key", config.Key);
         var body = new Dictionary<string, object>
         {
-            ["messages"] = new[] { new { role = "user", content = prompt } },
+            ["messages"] = new[] { new { role = "user", content = imageData is null ? (object)prompt : new object[] { new { type = "text", text = prompt }, new { type = "image_url", image_url = new { url = imageData, detail = "high" } } } } },
             ["max_completion_tokens"] = validation ? 16 : maxTokens
         };
         request.Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
@@ -175,7 +175,7 @@ public partial class MainWindow
     private async void AiAction_Click(object sender, RoutedEventArgs e)
     {
         if (!_aiValidated || _aiBusy || sender is not Button { Tag: string action }) return;
-        if (action == "Generate" && string.IsNullOrWhiteSpace(AiSchemaDescription.Text)) { AiStatus.Text = "Enter a schema description first."; return; }
+        if (action == "Generate" && string.IsNullOrWhiteSpace(AiSchemaDescription.Text) && _aiImageData is null) { AiStatus.Text = "Enter a schema description or attach a diagram image first."; return; }
         var config = _aiConfiguration;
         var schema = _columns.Select(pair => new { key = pair.Key, name = EntityDisplayName(pair.Key), definition = _objectDefinitions.GetValueOrDefault(pair.Key, ""), columns = pair.Value }).ToArray();
         var task = action switch

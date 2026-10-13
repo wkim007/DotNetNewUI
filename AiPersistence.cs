@@ -65,6 +65,7 @@ public partial class MainWindow
         _aiBusy = running;
         AiActions.IsEnabled = _aiValidated && !running;
         AiSchemaDescription.IsEnabled = !running;
+        AiAttachmentControls.IsEnabled = !running;
         AiProgressPanel.Visibility = running ? Visibility.Visible : Visibility.Collapsed;
         AiProgressBar.IsIndeterminate = running;
         AiGenerateButton.Content = running && action == "Generate" ? "Generating…" : "Generate";
