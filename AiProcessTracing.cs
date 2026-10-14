@@ -4,10 +4,20 @@ namespace ErwinStudioSample;
 
 public partial class MainWindow
 {
+    private bool _aiProcessHasRun;
+
+    private void AiProcessToggle_Click(object sender, RoutedEventArgs e)
+    {
+        var expanded = AiProcessDetails.Visibility != Visibility.Visible;
+        AiProcessDetails.Visibility = expanded ? Visibility.Visible : Visibility.Collapsed;
+        AiProcessToggle.Content = expanded ? "−" : "+";
+        AiProcessToggle.ToolTip = expanded ? "Collapse process details" : "Expand process details";
+    }
+
     private void AiDetailChanged(object sender, RoutedEventArgs e)
     {
         if (AiProcessSection is not null)
-            AiProcessSection.Visibility = _aiBusy || AiShowDetails.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+            AiProcessSection.Visibility = _aiProcessHasRun || _aiBusy || AiShowDetails.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void TraceAi(string message)

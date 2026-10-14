@@ -28,7 +28,8 @@ public partial class MainWindow
             {
                 if (file.Length > 200_000) throw new InvalidOperationException("Choose a text file smaller than 200 KB.");
                 var text = File.ReadAllText(file.FullName);
-                AiSchemaDescription.Text += (string.IsNullOrWhiteSpace(AiSchemaDescription.Text) ? "" : "\n\n") + text;
+                ClearAiAttachment();
+                AiSchemaDescription.Text = text;
                 AiStatus.Text = $"Loaded text from {file.Name}. You can edit it before generating.";
                 return;
             }
