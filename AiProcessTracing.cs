@@ -7,7 +7,7 @@ public partial class MainWindow
     private void AiDetailChanged(object sender, RoutedEventArgs e)
     {
         if (AiProcessSection is not null)
-            AiProcessSection.Visibility = AiShowDetails.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+            AiProcessSection.Visibility = _aiBusy || AiShowDetails.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void TraceAi(string message)

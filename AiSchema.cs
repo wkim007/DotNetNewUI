@@ -2,7 +2,7 @@ using System.Text.Json;
 
 namespace ErwinStudioSample;
 
-internal sealed record AiSchemaColumn(string Name, string Type, bool Required, bool PrimaryKey);
+internal sealed record AiSchemaColumn(string Name, string Type, bool Required, bool PrimaryKey, string Description = "");
 internal sealed record AiSchemaTable(string Name, string Definition, AiSchemaColumn[] Columns);
 internal sealed record AiSchemaLink(string Source, string Target, string SourceColumn, string TargetColumn);
 internal sealed record AiSchema(AiSchemaTable[] Tables, AiSchemaLink[] Relationships)

@@ -286,7 +286,8 @@
 
             <!-- Properties -->
             <Border Grid.Column="4" Background="White" BorderBrush="{StaticResource Rule}" BorderThickness="1,0,0,0">
-                <ScrollViewer><Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions><Border x:Name="AiProcessSection" Visibility="Collapsed" Padding="12" Margin="8" Background="#142230" CornerRadius="8"><StackPanel><TextBlock Text="AI PROCESS" Foreground="#62E6B3" FontWeight="Bold" Margin="0,0,0,8"/><TextBlock x:Name="AiProcessTime" Foreground="#A9C9E8" Margin="0,0,0,6"/><TextBox x:Name="AiProcessLog" Text="Generation steps will appear here." IsReadOnly="True" TextWrapping="Wrap" Height="260" VerticalScrollBarVisibility="Auto" Background="#0E1824" Foreground="#DCE7F5" BorderThickness="0" Padding="8"/></StackPanel></Border>
+                <DockPanel LastChildFill="True"><Border DockPanel.Dock="Top" x:Name="AiProcessSection" Visibility="Collapsed" Padding="12" Margin="8" Background="#142230" CornerRadius="8"><StackPanel><TextBlock Text="AI PROCESS" Foreground="#62E6B3" FontWeight="Bold" Margin="0,0,0,8"/><TextBlock x:Name="AiProcessTime" Foreground="#A9C9E8" Margin="0,0,0,6"/><TextBox x:Name="AiProcessLog" Text="Generation steps will appear here." IsReadOnly="True" TextWrapping="Wrap" Height="260" VerticalScrollBarVisibility="Auto" Background="#0E1824" Foreground="#DCE7F5" BorderThickness="0" Padding="8"/></StackPanel></Border><ScrollViewer><Grid>
+                <StackPanel x:Name="AttributePropertiesPanel" Grid.Row="1" Visibility="Collapsed" Background="#142230" Margin="12"/>
                 <StackPanel x:Name="EntityPropertiesPanel" Grid.Row="1">
                     <TextBlock Text="PROPERTIES" Style="{StaticResource SectionTitle}" Margin="14,14,14,10"/>
                     <Border Background="#EFF7F8" Padding="14,12" BorderBrush="#CFE3E6" BorderThickness="0,1"><StackPanel><TextBlock x:Name="SelectedEntityTitle" Text="ORDER" FontSize="18" FontWeight="SemiBold" Foreground="{StaticResource AccentDark}"/><TextBlock Text="Entity" Foreground="{StaticResource MutedInk}" Margin="0,2,0,0"/></StackPanel></Border>
@@ -311,7 +312,7 @@
                     <TextBlock Text="Relationship type" Foreground="{StaticResource MutedInk}" Margin="14,3"/><TextBox x:Name="RelationshipTypeBox" IsReadOnly="True" Margin="14,0,14,12" Padding="7,5" BorderBrush="{StaticResource Rule}"/>
                     <Button Content="Delete Relationship" Click="DeleteSelectedRelationship_Click" Background="#F06D82" Foreground="White" FontWeight="SemiBold" HorizontalAlignment="Left" Margin="14,4" Padding="14,8"/>
                 </StackPanel>
-                </Grid></ScrollViewer>
+                </Grid></ScrollViewer></DockPanel>
             </Border>        </Grid>
 
         <Border Grid.Row="3" Background="#E9EEF1" BorderBrush="#D0D9DF" BorderThickness="0,1,0,0">

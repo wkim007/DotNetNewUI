@@ -49,10 +49,10 @@ public partial class MainWindow : Window
 
     private readonly Dictionary<string, ObservableCollection<ColumnInfo>> _columns = new()
     {
-        ["Customer"] = [new("customer_id", "INT", true, true), new("first_name", "VARCHAR", true), new("last_name", "VARCHAR", true), new("email", "VARCHAR", true), new("created_at", "DATETIME", false)],
-        ["Order"] = [new("order_id", "INT", true, true), new("customer_id", "INT", true, IsForeignKey: true), new("order_date", "DATETIME", true), new("status", "VARCHAR", true)],
+        ["Customer"] = [new("customer_id", "INT", true, true), new("first_name", "VARCHAR(50)", true), new("last_name", "VARCHAR(50)", true), new("email", "VARCHAR(120)", true), new("created_at", "DATETIME", false)],
+        ["Order"] = [new("order_id", "INT", true, true), new("customer_id", "INT", true, IsForeignKey: true), new("order_date", "DATETIME", true), new("status", "VARCHAR(20)", true)],
         ["OrderItem"] = [new("order_item_id", "INT", true, true), new("order_id", "INT", true, IsForeignKey: true), new("product_id", "INT", true, IsForeignKey: true), new("quantity", "INT", true)],
-        ["Product"] = [new("product_id", "INT", true, true), new("category_id", "INT", true, IsForeignKey: true), new("name", "VARCHAR", true), new("unit_price", "DECIMAL", true)]
+        ["Product"] = [new("product_id", "INT", true, true), new("category_id", "INT", true, IsForeignKey: true), new("name", "VARCHAR(100)", true), new("unit_price", "DECIMAL", true)]
     };
 
     public MainWindow()
@@ -168,6 +168,8 @@ public partial class MainWindow : Window
     }
     private void SelectEntity(string key)
     {
+        AttributePropertiesPanel.Visibility = Visibility.Collapsed;
+        EntityPropertiesPanel.Visibility = Visibility.Visible;
         var display = EntityDisplayName(key);
         EntityNameBox.Tag = key;
         LoadObjectDefinition(key);
@@ -563,6 +565,7 @@ public partial class MainWindow : Window
         SelectEntity(selection.EntityKey);
         ColumnsGrid.SelectedItem = _columns[selection.EntityKey].FirstOrDefault(c => c.Name == selection.AttributeName);
         if (ColumnsGrid.SelectedItem is { } selectedColumn) ColumnsGrid.ScrollIntoView(selectedColumn);
+        if (ColumnsGrid.SelectedItem is ColumnInfo attribute) ShowAttributeProperties(selection.EntityKey, attribute);
         StatusText.Text = $"Selected attribute: {selection.EntityKey}.{selection.AttributeName}";
         e.Handled = true;
     }
@@ -781,6 +784,7 @@ public partial class MainWindow : Window
         if (info is null) return;
         var (source, target, type) = info.Value;
         EntityPropertiesPanel.Visibility = Visibility.Collapsed;
+        AttributePropertiesPanel.Visibility = Visibility.Collapsed;
         RelationshipPropertiesPanel.Visibility = Visibility.Visible;
         SelectedRelationshipTitle.Text = $"{source} → {target}".ToUpperInvariant();
         RelationshipNameBox.Text = $"{source} -> {target}";
@@ -870,13 +874,17 @@ public partial class MainWindow : Window
         RelationshipDeleteButton.Visibility = Visibility.Collapsed;
         RelationshipDeleteButton.Tag = null;
         RelationshipPropertiesPanel.Visibility = Visibility.Collapsed;
+        AttributePropertiesPanel.Visibility = Visibility.Collapsed;
+        AttributePropertiesPanel.Children.Clear();
         EntityPropertiesPanel.Visibility = Visibility.Visible;
     }
 
     private void DiagramCanvasSurface_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         if (e.Source != DiagramCanvasSurface) return;
-        ClearCardSelection(); ClearRelationshipSelection(); StatusText.Text = "Ready";
+        ClearAttributeSelection(); ClearCardSelection(); ClearRelationshipSelection();
+        EntityPropertiesPanel.Visibility = Visibility.Collapsed;
+        StatusText.Text = "Ready";
     }
 
     private void UpdateRelationshipLines()
@@ -1406,7 +1414,7 @@ public partial class MainWindow : Window
 }
 
 public sealed record ColumnInfo(string Name, string Type, bool Required, bool IsPrimaryKey = false, bool IsForeignKey = false)
-{ public Guid Id { get; init; } = Guid.NewGuid(); public Guid? ParentId { get; init; } }
+{ public Guid Id { get; init; } = Guid.NewGuid(); public Guid? ParentId { get; init; } public string Description { get; init; } = ""; public string PhysicalName { get; init; } = ""; }
 
 public sealed record DynamicRelationship(string SourceKey, string TargetKey, Path Visible, Path Hit, bool IsIdentifying, bool IsViewRelationship = false, bool IsSubCategory = false);
 
