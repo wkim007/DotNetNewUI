@@ -11,7 +11,9 @@ public partial class MainWindow
     private async Task GenerateMissingComments(AiConfiguration config)
     {
         var diagram = _activeDiagram;
-        var pending = _columns.Where(p => _entityCardKeys.Contains(p.Key))
+        var scope = AiObjectScope();
+        TraceAi($"Processing {scope.Count} selected or current-diagram objects.");
+        var pending = _columns.Where(p => scope.Contains(p.Key))
             .Select(p => new { Key = p.Key, Name = EntityDisplayName(p.Key), Definition = _objectDefinitions.GetValueOrDefault(p.Key, ""), Columns = p.Value.ToArray() })
             .Where(t => string.IsNullOrWhiteSpace(t.Definition) || t.Columns.Any(c => string.IsNullOrWhiteSpace(c.Description))).ToArray();
         if (pending.Length == 0)

@@ -59,6 +59,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         InitializeAiFeatures();
+        InitializeMultiSelection();
         InitializeDrawingPalette();
         UpdateDiagramTools();
         DiagramCanvasSurface.LayoutUpdated += (_, _) => { ApplyProjectViewMode(); ApplyTheme(); UpdateDrawingConnectors(); RefreshEndpointHandles(); };
@@ -320,6 +321,8 @@ public partial class MainWindow : Window
         var card = FindCard(key);
         if (card is null) return;
         if (_selectedCard == card) _selectedCard = null;
+        if (card is not null) _selectedCards.Remove(card);
+        UpdateAiSelectionCounts();
         if (_selectedAttributeRow is not null && _selectedAttributeRow.IsDescendantOf(card)) _selectedAttributeRow = null;
 
         // Use the same complete cleanup for sample and user-created relationships.
@@ -608,15 +611,18 @@ public partial class MainWindow : Window
             e.Handled = true;
             return;
         }
+        DiagramCanvasSurface.Focus();
         SelectEntity(key);
-        SelectCard(card);
+        if (!_selectedCards.Contains(card)) SelectCard(card);
         ClearRelationshipSelection();
+        _groupDragOrigins.Clear();
+        foreach (var item in _selectedCards) _groupDragOrigins[item] = new Point(Canvas.GetLeft(item), Canvas.GetTop(item));
         _draggedCard = card;
         _entityDragStart = e.GetPosition(DiagramCanvasSurface);
         _entityStartLeft = Canvas.GetLeft(card);
         _entityStartTop = Canvas.GetTop(card);
         card.CaptureMouse();
-        if (_entityCardKeys.Contains(key))
+        if (_entityCardKeys.Contains(key) && _selectedCards.Count <= 1)
         {
             _entityHoldCard = card;
             _entityHoldStart = _entityDragStart;
@@ -634,6 +640,14 @@ public partial class MainWindow : Window
         {
             _entityHoldTimer.Stop();
             _entityHoldCard = null;
+        }
+        if (_groupDragOrigins.Count > 1)
+        {
+            var delta = point - _entityDragStart;
+            delta.X = Math.Max(delta.X, 8 - _groupDragOrigins.Values.Min(p => p.X));
+            delta.Y = Math.Max(delta.Y, 8 - _groupDragOrigins.Values.Min(p => p.Y));
+            foreach (var item in _groupDragOrigins) { Canvas.SetLeft(item.Key, item.Value.X + delta.X); Canvas.SetTop(item.Key, item.Value.Y + delta.Y); }
+            UpdateRelationshipLines(); return;
         }
         Canvas.SetLeft(_draggedCard, Math.Max(8, _entityStartLeft + point.X - _entityDragStart.X));
         Canvas.SetTop(_draggedCard, Math.Max(8, _entityStartTop + point.Y - _entityDragStart.Y));
@@ -656,6 +670,8 @@ public partial class MainWindow : Window
         ClearDrawingSelection();
         ClearCardSelection();
         _selectedCard = card;
+        _selectedCards.Add(card);
+        UpdateAiSelectionCounts();
         card.BorderBrush = new SolidColorBrush(Color.FromRgb(241, 191, 82));
         card.BorderThickness = new Thickness(2);
         // Keep selection on the border so effects do not rasterize the card text.
@@ -665,6 +681,9 @@ public partial class MainWindow : Window
     private void ClearCardSelection()
     {
         ClearDrawingSelection();
+        foreach (var selected in _selectedCards) { selected.ClearValue(Border.BorderBrushProperty); selected.ClearValue(Border.BorderThicknessProperty); Panel.SetZIndex(selected, 1); }
+        _selectedCards.Clear();
+        UpdateAiSelectionCounts();
         if (_selectedCard is null) return;
         _selectedCard.ClearValue(Border.BorderBrushProperty);
         _selectedCard.ClearValue(Border.BorderThicknessProperty);
@@ -882,9 +901,7 @@ public partial class MainWindow : Window
     private void DiagramCanvasSurface_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         if (e.Source != DiagramCanvasSurface) return;
-        ClearAttributeSelection(); ClearCardSelection(); ClearRelationshipSelection();
-        EntityPropertiesPanel.Visibility = Visibility.Collapsed;
-        StatusText.Text = "Ready";
+        BeginMarquee(e);
     }
 
     private void UpdateRelationshipLines()

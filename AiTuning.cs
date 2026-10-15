@@ -11,7 +11,9 @@ public partial class MainWindow
     private async Task TuneAiModel(AiConfiguration config)
     {
         var diagram = _activeDiagram;
-        var schema = _columns.Where(p => _entityCardKeys.Contains(p.Key)).Select(p => new
+        var scope = AiObjectScope();
+        TraceAi($"Processing {scope.Count} selected or current-diagram objects.");
+        var schema = _columns.Where(p => scope.Contains(p.Key)).Select(p => new
         {
             EntityKey = p.Key, Name = EntityDisplayName(p.Key), Description = _objectDefinitions.GetValueOrDefault(p.Key, ""), Columns = p.Value.ToArray()
         }).ToArray();
@@ -37,7 +39,7 @@ public partial class MainWindow
         var targets = new HashSet<(string, Guid?, string)>();
         foreach (var suggestion in suggestions)
         {
-            if (suggestion is null || string.IsNullOrWhiteSpace(suggestion.After) || string.IsNullOrWhiteSpace(suggestion.Reason) ||
+            if (suggestion is null || !scope.Contains(suggestion.EntityKey) || string.IsNullOrWhiteSpace(suggestion.After) || string.IsNullOrWhiteSpace(suggestion.Reason) ||
                 !targets.Add((suggestion.EntityKey, suggestion.ColumnId, suggestion.Field)) || ReadTuningValue(suggestion) != suggestion.Before)
                 throw new InvalidOperationException("Invalid or outdated tuning recommendations. No changes applied; please retry.");
         }
@@ -51,7 +53,7 @@ public partial class MainWindow
 
     private string? ReadTuningValue(TuningSuggestion s)
     {
-        if (string.IsNullOrWhiteSpace(s.EntityKey) || !_entityCardKeys.Contains(s.EntityKey) || !_columns.TryGetValue(s.EntityKey, out var columns)) return null;
+        if (string.IsNullOrWhiteSpace(s.EntityKey) || !IsAiModelObject(s.EntityKey) || !_columns.TryGetValue(s.EntityKey, out var columns)) return null;
         if (s.ColumnId is null) return s.Field switch { "Name" => EntityDisplayName(s.EntityKey), "Description" => _objectDefinitions.GetValueOrDefault(s.EntityKey, ""), _ => null };
         var column = columns.FirstOrDefault(c => c.Id == s.ColumnId);
         if (column is null) return null;
@@ -96,7 +98,7 @@ public partial class MainWindow
         {
             var chosen = checks.Where(c => c.Box.IsChecked == true).Select(c => c.Suggestion).ToArray();
             if (chosen.Any(s => ReadTuningValue(s) != s.Before)) { error.Text = "The model changed. Close this dialog and run AI Tuning again."; return; }
-            var names = _entityCardKeys.ToDictionary(k => k, EntityDisplayName);
+            var names = _columns.Keys.Where(IsAiModelObject).ToDictionary(k => k, EntityDisplayName);
             var columns = _columns.ToDictionary(p => p.Key, p => p.Value.ToArray());
             foreach (var s in chosen)
             {
