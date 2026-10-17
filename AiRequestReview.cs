@@ -72,16 +72,49 @@ public partial class MainWindow
         review["AppliedModelSnapshot"] = JsonSerializer.SerializeToNode(CaptureAiModelSnapshot());
         _latestAiRequestJson = review.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
     }
+    private string BuildAiReviewJson()
+    {
+        // Preserve the historical request/result; current context is explicitly separate.
+        SaveActiveDiagram();
+        DiagramCanvasSurface.UpdateLayout();
+        var review = System.Text.Json.Nodes.JsonNode.Parse(_latestAiRequestJson!)!;
+        review["CurrentWorkspaceCapturedAtUtc"] = DateTimeOffset.UtcNow.ToString("O");
+        review["CurrentWorkspaceNote"] = "Captured when this viewer opened. This is current local workspace data, not the historical request sent to AI. InputModelSnapshot and AppliedModelSnapshot retain their original capture times.";
+        review["CurrentModelSnapshot"] = JsonSerializer.SerializeToNode(CaptureAiModelSnapshot());
+        review["CurrentDiagrams"] = JsonSerializer.SerializeToNode(_diagrams.Select(diagram => new
+        {
+            Name = diagram.Title,
+            IsActive = diagram == _activeDiagram,
+            Objects = diagram.Elements.OfType<Border>()
+                .Where(card => card.Tag is string key && diagram.Columns.ContainsKey(key))
+                .Select(card =>
+                {
+                    var key = (string)card.Tag;
+                    double Finite(double value) => double.IsFinite(value) ? value : 0;
+                    return new
+                    {
+                        Key = key, Name = EntityDisplayName(key),
+                        Kind = diagram.MaterializedViews.Contains(key) ? "MaterializedView" : diagram.Views.Contains(key) ? "View" : "Entity",
+                        Location = new { X = Finite(Canvas.GetLeft(card)), Y = Finite(Canvas.GetTop(card)) },
+                        Size = new { Width = Finite(card.ActualWidth), Height = Finite(card.ActualHeight) },
+                        Description = _objectDefinitions.GetValueOrDefault(key, ""),
+                        Attributes = diagram.Columns[key].ToArray()
+                    };
+                }).ToArray()
+        }).ToArray());
+        return review.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
+    }
     private void AiRequestDocument_Click(object sender, RoutedEventArgs e)
     {
         if (_latestAiRequestJson is null) return;
         var dialog = new Window { Title = "Latest AI Request and Result — JSON", Owner = this, Width = 920, Height = 720, WindowStartupLocation = WindowStartupLocation.CenterOwner, Background = ThemeBrush("#17232F") };
         var root = new DockPanel { Margin = new Thickness(16) }; dialog.Content = root;
         var footer = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 12, 0, 0) }; DockPanel.SetDock(footer, Dock.Bottom); root.Children.Add(footer);
+        var refresh = new Button { Content = "Refresh", ToolTip = "Refresh current workspace data without sending an AI request", Style = (Style)FindResource("ProjectSettingsButton"), Margin = new Thickness(0, 0, 10, 0) }; footer.Children.Add(refresh);
         var find = new Button { Content = "Find", Style = (Style)FindResource("ProjectSettingsButton"), Margin = new Thickness(0, 0, 10, 0) }; footer.Children.Add(find);
         var copy = new Button { Content = "Copy JSON", Style = (Style)FindResource("ProjectSettingsButton"), Margin = new Thickness(0, 0, 10, 0) };
         var close = new Button { Content = "Close", IsCancel = true, Style = (Style)FindResource("ProjectSettingsButton") }; footer.Children.Add(copy); footer.Children.Add(close);
-        var text = new TextBox { Text = _latestAiRequestJson, IsReadOnly = true, FontFamily = new FontFamily("Consolas"), FontSize = 12, Background = ThemeBrush("#0E1824"), Foreground = ThemeInk, Padding = new Thickness(12), HorizontalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
+        var text = new TextBox { Text = BuildAiReviewJson(), IsReadOnly = true, FontFamily = new FontFamily("Consolas"), FontSize = 12, Background = ThemeBrush("#0E1824"), Foreground = ThemeInk, Padding = new Thickness(12), HorizontalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
         text.IsInactiveSelectionHighlightEnabled = true;
         var search = new StackPanel { Orientation = Orientation.Horizontal, Visibility = Visibility.Collapsed, Margin = new Thickness(0, 0, 0, 10) };
         DockPanel.SetDock(search, Dock.Top); root.Children.Add(search);
@@ -102,7 +135,7 @@ public partial class MainWindow
             if (!bounds.IsEmpty) text.ScrollToHorizontalOffset(Math.Max(0, text.HorizontalOffset + bounds.X - 30));
             status.Text = $"{current + 1} of {matches.Count}";
         }
-        keyword.TextChanged += (_, _) =>
+        void RefreshMatches()
         {
             matches.Clear(); current = -1;
             if (keyword.Text.Length > 0)
@@ -115,7 +148,9 @@ public partial class MainWindow
             next.IsEnabled = previous.IsEnabled = matches.Count > 0;
             status.Text = keyword.Text.Length == 0 ? "Enter a keyword" : "No matches";
             if (matches.Count > 0) Navigate(1); else text.Select(text.CaretIndex, 0);
-        };
+        }
+        keyword.TextChanged += (_, _) => RefreshMatches();
+        refresh.Click += (_, _) => { text.Text = BuildAiReviewJson(); RefreshMatches(); };
         void OpenFind() { search.Visibility = Visibility.Visible; keyword.Focus(); keyword.SelectAll(); }
         find.Click += (_, _) => OpenFind();
         next.Click += (_, _) => Navigate(1); previous.Click += (_, _) => Navigate(-1);
