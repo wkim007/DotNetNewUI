@@ -63,8 +63,8 @@ public partial class MainWindow
     private void SetAiProgress(bool running, string action = "")
     {
         _aiBusy = running;
-        if (running) _aiProcessHasRun = true;
-        AiProcessSection.Visibility = _aiProcessHasRun || running || AiShowDetails.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        if (running) AiPanelTab.IsSelected = true;
+        AiProcessSection.Visibility = Visibility.Visible;
         AiActions.IsEnabled = _aiValidated && !running;
         AiSchemaDescription.IsEnabled = !running;
         AiAttachmentControls.IsEnabled = !running;

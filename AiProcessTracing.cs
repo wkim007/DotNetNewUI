@@ -5,7 +5,6 @@ namespace ErwinStudioSample;
 
 public partial class MainWindow
 {
-    private bool _aiProcessHasRun;
     private sealed class AiProcessRun(string action)
     {
         public string Action { get; } = action;
@@ -67,7 +66,7 @@ public partial class MainWindow
     private void AiDetailChanged(object sender, RoutedEventArgs e)
     {
         if (AiProcessSection is not null)
-            AiProcessSection.Visibility = _aiProcessHasRun || _aiBusy || AiShowDetails.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+            AiProcessSection.Visibility = Visibility.Visible;
     }
 
     private void TraceAi(string message)
