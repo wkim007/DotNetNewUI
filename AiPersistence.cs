@@ -62,6 +62,7 @@ public partial class MainWindow
 
     private void SetAiProgress(bool running, string action = "")
     {
+        var wasRunning = _aiBusy;
         _aiBusy = running;
         if (running) AiPanelTab.IsSelected = true;
         AiProcessSection.Visibility = Visibility.Visible;
@@ -70,11 +71,11 @@ public partial class MainWindow
         AiAttachmentControls.IsEnabled = !running;
         AiProgressPanel.Visibility = running ? Visibility.Visible : Visibility.Collapsed;
         AiProgressBar.IsIndeterminate = running;
-        AiGenerateButton.Content = running && action == "Generate" ? "Generating…" : "Generate";
+        AiGenerateButton.Content = running && action == "Generate" ? "Sending…" : "Send";
         if (running)
         {
             _aiElapsed.Restart(); BeginAiProcessRun(action); TraceAi(action + " started."); AiProgressText.Text = "AI is processing… (0s)"; _aiProgressTimer.Start();
         }
-        else { _aiProgressTimer.Stop(); _aiElapsed.Stop(); SetAiProcessStatus($"Finished after {_aiElapsed.Elapsed.TotalSeconds:0.0}s"); }
+        else { if (wasRunning && _aiProcessHistory.Count > 0) _aiProcessHistory[^1].UpdateLabel.Text = AiStatus.Text; _aiProgressTimer.Stop(); _aiElapsed.Stop(); SetAiProcessStatus($"Finished after {_aiElapsed.Elapsed.TotalSeconds:0.0}s"); }
     }
 }

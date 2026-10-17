@@ -171,34 +171,6 @@
                             <CheckBox x:Name="ObjectTooltipsToggle" Content="Tun On Tooltip" IsChecked="True" Checked="ObjectTooltipsToggle_Changed" Unchecked="ObjectTooltipsToggle_Changed" Foreground="#DCE7F5" Margin="0,14,0,2" VerticalContentAlignment="Center"/>
                         </StackPanel>
                     </Border>
-                    <Border Background="#142230" BorderBrush="#293D50" BorderThickness="1" CornerRadius="18" Margin="12,0,12,14" Padding="16">
-                        <StackPanel>
-                            <DockPanel Margin="0,0,0,12">
-                                <Button DockPanel.Dock="Right" Content="⚙" ToolTip="AI Settings" Click="AiSettings_Click" Style="{StaticResource ProjectSettingsButton}" Padding="8,6"/>
-                                <TextBlock x:Name="AiModelerTitle" Text="AI MODELER" Foreground="#8492A3" FontWeight="Bold" FontSize="15" VerticalAlignment="Center"/>
-                            </DockPanel>
-                            <TextBlock Text="Current AI Engine" Foreground="#A9C9E8" Margin="0,0,0,8"/>
-                            <TextBox Text="Azure OpenAI" IsReadOnly="True" Background="#0E1824" Foreground="White" BorderBrush="#293D50" Padding="10"/>
-                            <TextBlock Text="AI Model Generator" Foreground="#A9C9E8" Margin="0,14,0,8"/>
-                            <TextBox x:Name="AiSchemaDescription" Height="130" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Background="#0E1824" Foreground="White" CaretBrush="White" BorderBrush="#293D50" Padding="10"/>
-                            <StackPanel x:Name="AiAttachmentControls">
-                                <Button Content="+ Open text/image/excel" Click="AiAttach_Click" Style="{StaticResource ProjectSettingsButton}" Margin="0,6,0,0" ToolTip="Load text, an Excel workbook with multiple worksheets, or a diagram image"/>
-                                <Border x:Name="AiAttachmentPanel" Visibility="Collapsed" BorderBrush="#62E6B3" BorderThickness="1" CornerRadius="8" Padding="6" Margin="0,8,0,0">
-                                    <StackPanel><Image x:Name="AiAttachmentPreview" MaxHeight="110" Stretch="Uniform"/><TextBlock x:Name="AiAttachmentName" Foreground="#A9C9E8" TextTrimming="CharacterEllipsis" Margin="0,4"/><Button Content="Remove image" Click="AiRemoveAttachment_Click"/></StackPanel>
-                                </Border>
-                                <TextBlock Text="Describe a model, open text/Excel, or attach an image." Foreground="#A9C9E8" FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0"/>
-                            </StackPanel>
-                            <CheckBox x:Name="AiShowDetails" Content="show detail process" IsChecked="False" Checked="AiDetailChanged" Unchecked="AiDetailChanged" Foreground="#A9C9E8" Margin="0,10,0,0"/>
-                            <StackPanel x:Name="AiActions" IsEnabled="False">
-                                <Button x:Name="AiGenerateButton" Content="Generate" Tag="Generate" Click="AiAction_Click" Style="{StaticResource AiActionButton}" Margin="0,12,0,0"/>
-                                <Button x:Name="AiCommentsButton" Content="Generate Comments" Tag="Generate Comments" Click="AiAction_Click" Style="{StaticResource AiActionButton}" Margin="0,12,0,0"/>
-                                <Button Content="Summary" Tag="Summary" Click="AiAction_Click" Style="{StaticResource AiActionButton}" Margin="0,12,0,0"/>
-                                <Button x:Name="AiTuningButton" Content="AI Tuning" Tag="AI Tuning" Click="AiAction_Click" Style="{StaticResource AiActionButton}" Margin="0,12,0,0"/>
-                            </StackPanel>
-                            <StackPanel x:Name="AiProgressPanel" Visibility="Collapsed" Margin="0,14,0,0"><TextBlock x:Name="AiProgressText" Foreground="#A9C9E8" TextWrapping="Wrap" Margin="0,0,0,6"/><ProgressBar x:Name="AiProgressBar" Height="7" Minimum="0" Maximum="100" Foreground="#62E6B3" Background="#0E1824"/></StackPanel>
-                            <TextBlock x:Name="AiStatus" Text="Configure and validate AI Settings to enable tools." Foreground="#A9C9E8" TextWrapping="Wrap" Margin="0,12,0,0"/>
-                        </StackPanel>
-                    </Border>
                     <TextBlock Text="MODEL EXPLORER" Style="{StaticResource SectionTitle}" Foreground="#A9C9E8" Margin="14,8" VerticalAlignment="Center"/>
                     <Border Grid.Row="1" Background="#F5F7F9" CornerRadius="4" Margin="10,3" Padding="8,0">
                         <DockPanel><TextBlock Text="⌕" FontSize="17" VerticalAlignment="Center"/><TextBox x:Name="SearchBox" TextChanged="SearchBox_TextChanged" BorderThickness="0" Background="Transparent" Margin="6,0" VerticalContentAlignment="Center" ToolTip="Filter objects"/></DockPanel>
@@ -264,13 +236,13 @@
                             <Path Tag="ProductOrderItem" Stroke="Transparent" StrokeThickness="16" Data="M 720,170 L 680,170 L 680,485 L 610,485" MouseLeftButtonDown="Relationship_MouseLeftButtonDown" MouseMove="RelationshipHit_MouseMove" MouseLeftButtonUp="RelationshipHit_MouseLeftButtonUp" Cursor="SizeAll"/>
                             <Path x:Name="ProductOrderItemLine" Tag="ProductOrderItem" Stroke="#42D9D4" StrokeThickness="2.5" StrokeDashArray="2,1.5" StrokeDashCap="Round" Data="M 720,170 L 680,170 L 680,485 L 610,485" IsHitTestVisible="False"/>
 
-                            
 
-                            
 
-                            
 
-                            
+
+
+
+
                             <Border x:Name="CustomerCard" Canvas.Left="45" Canvas.Top="65" Width="220" Height="190" Style="{StaticResource EntityCard}" MouseLeftButtonDown="Entity_MouseLeftButtonDown" MouseMove="Entity_MouseMove" MouseLeftButtonUp="Entity_MouseLeftButtonUp" Tag="Customer"><Grid TextElement.Foreground="#DCE7F5"><Grid.RowDefinitions><RowDefinition Height="38"/><RowDefinition Height="*"/></Grid.RowDefinitions><Border Background="#087E8B" CornerRadius="6,6,0,0"><TextBlock Text="CUSTOMER" Foreground="White" FontWeight="SemiBold" VerticalAlignment="Center" Margin="12,0"/></Border><StackPanel Grid.Row="1" Margin="10,7"><TextBlock Text="🔑  customer_id        INT" FontWeight="SemiBold" Margin="0,3"/><Separator/><TextBlock Text="     first_name          VARCHAR(50)" Margin="0,3"/><TextBlock Text="     last_name           VARCHAR(50)" Margin="0,3"/><TextBlock Text="     email                   VARCHAR(120)" Margin="0,3"/><TextBlock Text="     created_at          DATETIME" Margin="0,3"/></StackPanel><primitives:Thumb Grid.RowSpan="2" Style="{StaticResource CardResizeThumb}" Tag="Customer" DragStarted="ResizeThumb_DragStarted" DragDelta="ResizeThumb_DragDelta" DragCompleted="ResizeThumb_DragCompleted"/></Grid></Border>
                             <Border x:Name="OrderCard" Canvas.Left="390" Canvas.Top="150" Width="220" Height="180" Style="{StaticResource EntityCard}" MouseLeftButtonDown="Entity_MouseLeftButtonDown" MouseMove="Entity_MouseMove" MouseLeftButtonUp="Entity_MouseLeftButtonUp" Tag="Order"><Grid TextElement.Foreground="#DCE7F5"><Grid.RowDefinitions><RowDefinition Height="38"/><RowDefinition Height="*"/></Grid.RowDefinitions><Border Background="#3D5260" CornerRadius="6,6,0,0"><TextBlock Text="ORDER" Foreground="White" FontWeight="SemiBold" VerticalAlignment="Center" Margin="12,0"/></Border><StackPanel Grid.Row="1" Margin="10,7"><TextBlock Text="🔑  order_id             INT" FontWeight="SemiBold" Margin="0,3"/><Separator/><TextBlock Text="🔗  customer_id       INT" Margin="0,3"/><TextBlock Text="     order_date          DATETIME" Margin="0,3"/><TextBlock Text="     status                  VARCHAR(20)" Margin="0,3"/></StackPanel><primitives:Thumb Grid.RowSpan="2" Style="{StaticResource CardResizeThumb}" Tag="Order" DragStarted="ResizeThumb_DragStarted" DragDelta="ResizeThumb_DragDelta" DragCompleted="ResizeThumb_DragCompleted"/></Grid></Border>
                             <Border x:Name="ProductCard" Canvas.Left="720" Canvas.Top="65" Width="185" Height="190" Style="{StaticResource EntityCard}" MouseLeftButtonDown="Entity_MouseLeftButtonDown" MouseMove="Entity_MouseMove" MouseLeftButtonUp="Entity_MouseLeftButtonUp" Tag="Product"><Grid TextElement.Foreground="#DCE7F5"><Grid.RowDefinitions><RowDefinition Height="38"/><RowDefinition Height="*"/></Grid.RowDefinitions><Border Background="#087E8B" CornerRadius="6,6,0,0"><TextBlock Text="PRODUCT" Foreground="White" FontWeight="SemiBold" VerticalAlignment="Center" Margin="12,0"/></Border><StackPanel Grid.Row="1" Margin="10,7"><TextBlock Text="🔑  product_id     INT" FontWeight="SemiBold" Margin="0,3"/><Separator/><TextBlock Text="🔗  category_id  INT" Margin="0,3"/><TextBlock Text="     name              VARCHAR(100)" Margin="0,3"/><TextBlock Text="     unit_price       DECIMAL" Margin="0,3"/></StackPanel><primitives:Thumb Grid.RowSpan="2" Style="{StaticResource CardResizeThumb}" Tag="Product" DragStarted="ResizeThumb_DragStarted" DragDelta="ResizeThumb_DragDelta" DragCompleted="ResizeThumb_DragCompleted"/></Grid></Border>
@@ -286,7 +258,53 @@
 
             <!-- Properties -->
             <Border Grid.Column="4" Background="White" BorderBrush="{StaticResource Rule}" BorderThickness="1,0,0,0">
-                <TabControl x:Name="RightPanelTabs" BorderThickness="0" Background="White" Padding="0"><TabItem x:Name="AiPanelTab" Header="AI" Padding="16,8"><ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><Border x:Name="AiProcessSection" VerticalAlignment="Top" Padding="12" Margin="8" Background="#142230" CornerRadius="8"><StackPanel><DockPanel><Button x:Name="AiProcessToggle" DockPanel.Dock="Right" Content="−" Width="30" Height="28" Padding="0" ToolTip="Collapse process details" Click="AiProcessToggle_Click" Style="{StaticResource ProjectSettingsButton}"/><Button x:Name="AiRequestDocument" DockPanel.Dock="Right" Width="30" Height="28" Padding="6" Margin="0,0,6,0" IsEnabled="False" ToolTip="Review latest AI request JSON" Click="AiRequestDocument_Click" Style="{StaticResource ProjectSettingsButton}"><Path Stroke="#DCE7F5" StrokeThickness="1.3" Stretch="Uniform" Data="M2,1 L10,1 14,5 14,17 2,17 Z M10,1 L10,5 14,5 M5,8 L11,8 M5,11 L11,11 M5,14 L9,14"/></Button><Button x:Name="AiProcessNext" DockPanel.Dock="Right" Content="&gt;" Width="30" Height="28" Padding="0" Margin="0,0,6,0" IsEnabled="False" ToolTip="Next AI process" Click="AiProcessNext_Click" Style="{StaticResource ProjectSettingsButton}"/><Button x:Name="AiProcessPrevious" DockPanel.Dock="Right" Content="&lt;" Width="30" Height="28" Padding="0" Margin="0,0,6,0" IsEnabled="False" ToolTip="Previous AI process" Click="AiProcessPrevious_Click" Style="{StaticResource ProjectSettingsButton}"/><TextBlock Text="AI PROCESS" Foreground="#62E6B3" FontWeight="Bold" VerticalAlignment="Center"/></DockPanel><StackPanel x:Name="AiProcessDetails" Margin="0,8,0,0"><TextBlock x:Name="AiProcessRunLabel" Foreground="#A9C9E8" Margin="0,0,0,6" TextWrapping="Wrap"/><TextBlock x:Name="AiProcessTime" Foreground="#A9C9E8" Margin="0,0,0,6"/><TextBox x:Name="AiProcessLog" Text="Generation steps will appear here." IsReadOnly="True" TextWrapping="Wrap" Height="260" VerticalScrollBarVisibility="Auto" Background="#0E1824" Foreground="#DCE7F5" BorderThickness="0" Padding="8"/></StackPanel></StackPanel></Border></ScrollViewer></TabItem><TabItem x:Name="PropertiesPanelTab" Header="Properties" Padding="16,8"><ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><Grid>
+                <TabControl x:Name="RightPanelTabs" BorderThickness="0" Background="White" Padding="0"><TabItem x:Name="AiPanelTab" Header="AI" Padding="16,8">
+ <Grid Background="#0E1824">
+  <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+  <Border x:Name="AiProcessSection" Grid.Row="0" Padding="12" Background="#142230">
+   <StackPanel>
+    <DockPanel Margin="0,0,0,8">
+     <Button DockPanel.Dock="Right" Content="⚙" ToolTip="AI Settings" Click="AiSettings_Click" Style="{StaticResource ProjectSettingsButton}" Padding="8,6"/>
+     <StackPanel><TextBlock x:Name="AiModelerTitle" Text="AI MODELER · Conversation" Foreground="#8492A3" FontWeight="Bold" FontSize="14"/>
+      <TextBlock Text="Azure OpenAI" Foreground="#A9C9E8" FontSize="11" Margin="0,3,0,0"/></StackPanel>
+    </DockPanel>
+    <DockPanel><Button x:Name="AiProcessToggle" DockPanel.Dock="Right" Content="−" Width="30" Height="28" Padding="0" ToolTip="Collapse process details" Click="AiProcessToggle_Click" Style="{StaticResource ProjectSettingsButton}"/><Button x:Name="AiRequestDocument" DockPanel.Dock="Right" Width="30" Height="28" Padding="6" Margin="0,0,6,0" IsEnabled="False" ToolTip="Review latest AI request JSON" Click="AiRequestDocument_Click" Style="{StaticResource ProjectSettingsButton}"><Path Stroke="#DCE7F5" StrokeThickness="1.3" Stretch="Uniform" Data="M2,1 L10,1 14,5 14,17 2,17 Z M10,1 L10,5 14,5 M5,8 L11,8 M5,11 L11,11 M5,14 L9,14"/></Button><TextBlock Text="AI PROCESS" Foreground="#62E6B3" FontWeight="Bold" VerticalAlignment="Center"/></DockPanel>
+    <TextBlock x:Name="AiProcessRunLabel" Foreground="#A9C9E8" Margin="0,6,0,0" TextWrapping="Wrap"/>
+    <TextBlock x:Name="AiProcessTime" Foreground="#A9C9E8" FontSize="11" Margin="0,4,0,0"/>
+   </StackPanel>
+  </Border>
+  <ScrollViewer x:Name="AiConversationScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+   <StackPanel x:Name="AiConversation" Margin="12">
+    <TextBlock x:Name="AiConversationWelcome" Text="Describe a new model or ask for changes to the current diagram. Your requests and AI process updates will appear here." TextWrapping="Wrap" Foreground="#A9C9E8" Margin="4,12"/>
+   </StackPanel>
+  </ScrollViewer>
+  <Border Grid.Row="2" Margin="8" Padding="10" CornerRadius="12" BorderBrush="#293D50" BorderThickness="1" Background="#142230">
+   <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="340" HorizontalScrollBarVisibility="Disabled">
+    <StackPanel>
+     <TextBlock Text="Describe changes" Foreground="#A9C9E8" Margin="0,0,0,6"/>
+     <TextBox x:Name="AiSchemaDescription" Height="76" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Background="#0E1824" Foreground="White" CaretBrush="White" BorderBrush="#293D50" Padding="8" ToolTip="Describe a model or changes to the current diagram"/>
+     <StackPanel x:Name="AiAttachmentControls">
+                                <Button Content="+ Open text/image/excel" Click="AiAttach_Click" Style="{StaticResource ProjectSettingsButton}" Margin="0,6,0,0" ToolTip="Load text, an Excel workbook with multiple worksheets, or a diagram image"/>
+                                <Border x:Name="AiAttachmentPanel" Visibility="Collapsed" BorderBrush="#62E6B3" BorderThickness="1" CornerRadius="8" Padding="6" Margin="0,8,0,0">
+                                    <StackPanel><Image x:Name="AiAttachmentPreview" MaxHeight="110" Stretch="Uniform"/><TextBlock x:Name="AiAttachmentName" Foreground="#A9C9E8" TextTrimming="CharacterEllipsis" Margin="0,4"/><Button Content="Remove image" Click="AiRemoveAttachment_Click"/></StackPanel>
+                                </Border>
+                                <TextBlock Text="Describe a model, open text/Excel, or attach an image." Foreground="#A9C9E8" FontSize="11" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                            </StackPanel>
+
+     <CheckBox x:Name="AiShowDetails" Content="Show process details" IsChecked="False" Checked="AiDetailChanged" Unchecked="AiDetailChanged" Foreground="#A9C9E8" Margin="0,8,0,0"/>
+     <UniformGrid x:Name="AiActions" IsEnabled="False" Columns="2">
+      <Button x:Name="AiGenerateButton" Content="Send" Tag="Generate" Click="AiAction_Click" Style="{StaticResource ProjectSettingsButton}" Margin="0,8,4,0"/>
+      <Button x:Name="AiCommentsButton" Content="Generate Comments" Tag="Generate Comments" Click="AiAction_Click" Style="{StaticResource ProjectSettingsButton}" Margin="0,8,0,0"/>
+      <Button Content="Summary" Tag="Summary" Click="AiAction_Click" Style="{StaticResource ProjectSettingsButton}" Margin="0,6,4,0"/>
+      <Button x:Name="AiTuningButton" Content="AI Tuning" Tag="AI Tuning" Click="AiAction_Click" Style="{StaticResource ProjectSettingsButton}" Margin="0,6,0,0"/>
+     </UniformGrid>
+     <StackPanel x:Name="AiProgressPanel" Visibility="Collapsed" Margin="0,8,0,0"><TextBlock x:Name="AiProgressText" Foreground="#A9C9E8" TextWrapping="Wrap" Margin="0,0,0,6"/><ProgressBar x:Name="AiProgressBar" Height="4" Foreground="#62E6B3" Background="#0E1824"/></StackPanel>
+     <TextBlock x:Name="AiStatus" Text="Configure and validate AI Settings to enable tools." Foreground="#A9C9E8" TextWrapping="Wrap" FontSize="11" Margin="0,8,0,0"/>
+    </StackPanel>
+   </ScrollViewer>
+  </Border>
+ </Grid>
+</TabItem><TabItem x:Name="PropertiesPanelTab" Header="Properties" Padding="16,8"><ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><Grid>
                 <StackPanel x:Name="AttributePropertiesPanel" Grid.Row="1" Visibility="Collapsed" Background="#142230" Margin="12"/>
                 <StackPanel x:Name="EntityPropertiesPanel" Grid.Row="1">
                     <TextBlock Text="PROPERTIES" Style="{StaticResource SectionTitle}" Margin="14,14,14,10"/>

@@ -133,6 +133,7 @@ public partial class MainWindow
         _ = Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() => { if (_activeDiagram == diagram) UpdateRelationshipLines(); }));
         CaptureAppliedAiModel();
         ClearAiAttachment();
+        AiSchemaDescription.Clear();
         TraceAi("Model generation completed successfully.");
         AiStatus.Text = StatusText.Text = $"Added {schema.Tables.Length} tables, {additions.Sum(a => a.Columns.Length)} columns to existing entities, {renames.Length} renamed columns, {deletedCount} deleted columns, and {schema.Relationships.Length} relationships in {diagram?.Title}.";
     }
