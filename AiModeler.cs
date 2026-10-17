@@ -18,11 +18,24 @@ public partial class MainWindow
     private void SetAiValidation(bool valid)
     {
         _aiValidated = valid;
-        AiModelerTitle.Foreground = ThemeBrush(valid ? "#62E6B3" : "#8492A3");
-        AiActions.IsEnabled = valid && !_aiBusy;
+        UpdateAiControlState();
         AiStatus.Text = valid ? "Azure OpenAI settings validated successfully." : "Configure and validate AI Settings to enable tools.";
     }
 
+    private void UpdateAiControlState()
+    {
+        var ready = _aiValidated && !_aiBusy;
+        AiModelerTitle.Foreground = ThemeBrush(_aiValidated ? "#62E6B3" : "#8492A3");
+        AiProcessTitle.Foreground = ThemeBrush(_aiValidated ? "#62E6B3" : "#8492A3");
+        AiActions.IsEnabled = ready;
+        AiAttachmentControls.IsEnabled = ready;
+        AiSchemaDescription.IsEnabled = ready;
+        AiShowDetails.IsEnabled = _aiValidated;
+        AiProcessToggle.IsEnabled = _aiValidated && _aiProcessHistory.Count > 0;
+        AiRequestDocument.IsEnabled = _aiValidated && _latestAiRequestJson is not null;
+        foreach (var run in _aiProcessHistory)
+            run.Expander.IsEnabled = _aiValidated;
+    }
     private void AiSettings_Click(object sender, RoutedEventArgs e)
     {
         if (_aiBusy) return;

@@ -268,7 +268,7 @@
      <StackPanel><TextBlock x:Name="AiModelerTitle" Text="AI MODELER · Conversation" Foreground="#8492A3" FontWeight="Bold" FontSize="14"/>
       <TextBlock Text="Azure OpenAI" Foreground="#A9C9E8" FontSize="11" Margin="0,3,0,0"/></StackPanel>
     </DockPanel>
-    <DockPanel><Button x:Name="AiProcessToggle" DockPanel.Dock="Right" Content="−" Width="30" Height="28" Padding="0" ToolTip="Collapse process details" Click="AiProcessToggle_Click" Style="{StaticResource ProjectSettingsButton}"/><Button x:Name="AiRequestDocument" DockPanel.Dock="Right" Width="30" Height="28" Padding="6" Margin="0,0,6,0" IsEnabled="False" ToolTip="Review latest AI request JSON" Click="AiRequestDocument_Click" Style="{StaticResource ProjectSettingsButton}"><Path Stroke="#DCE7F5" StrokeThickness="1.3" Stretch="Uniform" Data="M2,1 L10,1 14,5 14,17 2,17 Z M10,1 L10,5 14,5 M5,8 L11,8 M5,11 L11,11 M5,14 L9,14"/></Button><TextBlock Text="AI PROCESS" Foreground="#62E6B3" FontWeight="Bold" VerticalAlignment="Center"/></DockPanel>
+    <DockPanel><Button x:Name="AiProcessToggle" DockPanel.Dock="Right" Content="−" Width="30" Height="28" Padding="0" ToolTip="Collapse process details" Click="AiProcessToggle_Click" Style="{StaticResource ProjectSettingsButton}"/><Button x:Name="AiRequestDocument" DockPanel.Dock="Right" Width="30" Height="28" Padding="6" Margin="0,0,6,0" IsEnabled="False" ToolTip="Review latest AI request JSON" Click="AiRequestDocument_Click" Style="{StaticResource ProjectSettingsButton}"><Path Stroke="#DCE7F5" StrokeThickness="1.3" Stretch="Uniform" Data="M2,1 L10,1 14,5 14,17 2,17 Z M10,1 L10,5 14,5 M5,8 L11,8 M5,11 L11,11 M5,14 L9,14"/></Button><TextBlock x:Name="AiProcessTitle" Text="AI PROCESS" Foreground="#8492A3" FontWeight="Bold" VerticalAlignment="Center"/></DockPanel>
     <TextBlock x:Name="AiProcessRunLabel" Foreground="#A9C9E8" Margin="0,6,0,0" TextWrapping="Wrap"/>
     <TextBlock x:Name="AiProcessTime" Foreground="#A9C9E8" FontSize="11" Margin="0,4,0,0"/>
    </StackPanel>
@@ -283,7 +283,7 @@
     <StackPanel>
      <TextBlock Text="Describe changes" Foreground="#A9C9E8" Margin="0,0,0,6"/>
      <TextBox x:Name="AiSchemaDescription" Height="76" AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Background="#0E1824" Foreground="White" CaretBrush="White" BorderBrush="#293D50" Padding="8" ToolTip="Describe a model or changes to the current diagram"/>
-     <StackPanel x:Name="AiAttachmentControls">
+     <StackPanel x:Name="AiAttachmentControls" IsEnabled="False">
                                 <Button Content="+ Open text/image/excel" Click="AiAttach_Click" Style="{StaticResource ProjectSettingsButton}" Margin="0,6,0,0" ToolTip="Load text, an Excel workbook with multiple worksheets, or a diagram image"/>
                                 <Border x:Name="AiAttachmentPanel" Visibility="Collapsed" BorderBrush="#62E6B3" BorderThickness="1" CornerRadius="8" Padding="6" Margin="0,8,0,0">
                                     <StackPanel><Image x:Name="AiAttachmentPreview" MaxHeight="110" Stretch="Uniform"/><TextBlock x:Name="AiAttachmentName" Foreground="#A9C9E8" TextTrimming="CharacterEllipsis" Margin="0,4"/><Button Content="Remove image" Click="AiRemoveAttachment_Click"/></StackPanel>
@@ -292,12 +292,39 @@
                             </StackPanel>
 
      <CheckBox x:Name="AiShowDetails" Content="Show process details" IsChecked="False" Checked="AiDetailChanged" Unchecked="AiDetailChanged" Foreground="#A9C9E8" Margin="0,8,0,0"/>
-     <UniformGrid x:Name="AiActions" IsEnabled="False" Columns="2">
-      <Button x:Name="AiGenerateButton" Content="Send" Tag="Generate" Click="AiAction_Click" Style="{StaticResource ProjectSettingsButton}" Margin="0,8,4,0"/>
-      <Button x:Name="AiCommentsButton" Content="Generate Comments" Tag="Generate Comments" Click="AiAction_Click" Style="{StaticResource ProjectSettingsButton}" Margin="0,8,0,0"/>
-      <Button Content="Summary" Tag="Summary" Click="AiAction_Click" Style="{StaticResource ProjectSettingsButton}" Margin="0,6,4,0"/>
-      <Button x:Name="AiTuningButton" Content="AI Tuning" Tag="AI Tuning" Click="AiAction_Click" Style="{StaticResource ProjectSettingsButton}" Margin="0,6,0,0"/>
-     </UniformGrid>
+     <WrapPanel x:Name="AiActions" IsEnabled="False" Margin="0,8,0,0">
+      <WrapPanel.Resources>
+       <Style x:Key="AiToolbarButton" TargetType="Button" BasedOn="{StaticResource ProjectSettingsButton}">
+        <Setter Property="MinWidth" Value="36"/><Setter Property="Height" Value="34"/><Setter Property="Padding" Value="8,6"/><Setter Property="Margin" Value="0,0,6,0"/>
+        <Setter Property="ToolTipService.ShowOnDisabled" Value="True"/>
+        <Style.Triggers>
+         <MultiTrigger>
+          <MultiTrigger.Conditions><Condition Property="IsMouseOver" Value="True"/><Condition Property="IsEnabled" Value="True"/></MultiTrigger.Conditions>
+          <Setter Property="Foreground" Value="#A7FFD1"/>
+         </MultiTrigger>
+        </Style.Triggers>
+       </Style>
+       <Style x:Key="AiToolbarIcon" TargetType="Path">
+        <Setter Property="Width" Value="16"/><Setter Property="Height" Value="16"/><Setter Property="Stretch" Value="Uniform"/>
+        <Setter Property="Stroke" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+        <Setter Property="StrokeThickness" Value="1.6"/><Setter Property="StrokeLineJoin" Value="Round"/>
+       </Style>
+      </WrapPanel.Resources>
+      <Button x:Name="AiGenerateButton" Tag="Generate" Click="AiAction_Click" Style="{StaticResource AiToolbarButton}" ToolTip="Send" AutomationProperties.Name="Send">
+       <Path Style="{StaticResource AiToolbarIcon}" Data="M2,2 L22,12 2,22 6,12 Z M6,12 L22,12"/>
+      </Button>
+      <Button x:Name="AiCommentsButton" Tag="Generate Comments" Click="AiAction_Click" Style="{StaticResource AiToolbarButton}" ToolTip="Generate Comments" AutomationProperties.Name="Generate Comments">
+       <StackPanel Orientation="Horizontal"><Path Style="{StaticResource AiToolbarIcon}" Data="M3,3 L21,3 21,17 10,17 4,22 4,17 3,17 Z M7,7 L17,7 M7,11 L15,11"/>
+        <TextBlock x:Name="AiCommentsCount" VerticalAlignment="Center"/></StackPanel>
+      </Button>
+      <Button Tag="Summary" Click="AiAction_Click" Style="{StaticResource AiToolbarButton}" ToolTip="Summary" AutomationProperties.Name="Summary">
+       <Path Style="{StaticResource AiToolbarIcon}" Data="M3,2 L3,22 23,22 M8,18 L8,11 M14,18 L14,5 M20,18 L20,8"/>
+      </Button>
+      <Button x:Name="AiTuningButton" Tag="AI Tuning" Click="AiAction_Click" Style="{StaticResource AiToolbarButton}" ToolTip="AI Tuning" AutomationProperties.Name="AI Tuning">
+       <StackPanel Orientation="Horizontal"><Path Style="{StaticResource AiToolbarIcon}" Data="M2,5 L8,5 M12,5 L22,5 M2,12 L14,12 M18,12 L22,12 M2,19 L5,19 M9,19 L22,19 M8,2 L12,2 12,8 8,8 Z M14,9 L18,9 18,15 14,15 Z M5,16 L9,16 9,22 5,22 Z"/>
+        <TextBlock x:Name="AiTuningCount" VerticalAlignment="Center"/></StackPanel>
+      </Button>
+     </WrapPanel>
      <StackPanel x:Name="AiProgressPanel" Visibility="Collapsed" Margin="0,8,0,0"><TextBlock x:Name="AiProgressText" Foreground="#A9C9E8" TextWrapping="Wrap" Margin="0,0,0,6"/><ProgressBar x:Name="AiProgressBar" Height="4" Foreground="#62E6B3" Background="#0E1824"/></StackPanel>
      <TextBlock x:Name="AiStatus" Text="Configure and validate AI Settings to enable tools." Foreground="#A9C9E8" TextWrapping="Wrap" FontSize="11" Margin="0,8,0,0"/>
     </StackPanel>

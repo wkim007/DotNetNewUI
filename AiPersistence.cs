@@ -56,6 +56,7 @@ public partial class MainWindow
     private void InitializeAiFeatures()
     {
         LoadAiSettings();
+        UpdateAiControlState();
         _aiProgressTimer.Tick += (_, _) => { AiProgressText.Text = $"AI is processing… ({(int)_aiElapsed.Elapsed.TotalSeconds}s)"; SetAiProcessStatus(AiProgressText.Text); };
         Closed += (_, _) => _aiProgressTimer.Stop();
     }
@@ -66,12 +67,10 @@ public partial class MainWindow
         _aiBusy = running;
         if (running) AiPanelTab.IsSelected = true;
         AiProcessSection.Visibility = Visibility.Visible;
-        AiActions.IsEnabled = _aiValidated && !running;
-        AiSchemaDescription.IsEnabled = !running;
-        AiAttachmentControls.IsEnabled = !running;
+        UpdateAiControlState();
         AiProgressPanel.Visibility = running ? Visibility.Visible : Visibility.Collapsed;
         AiProgressBar.IsIndeterminate = running;
-        AiGenerateButton.Content = running && action == "Generate" ? "Sending…" : "Send";
+        AiGenerateButton.ToolTip = running && action == "Generate" ? "Sending…" : "Send";
         if (running)
         {
             _aiElapsed.Restart(); BeginAiProcessRun(action); TraceAi(action + " started."); AiProgressText.Text = "AI is processing… (0s)"; _aiProgressTimer.Start();

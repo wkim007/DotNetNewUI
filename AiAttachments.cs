@@ -10,7 +10,7 @@ public partial class MainWindow
     private string? _aiImageData;
     private void AiAttach_Click(object sender, RoutedEventArgs e)
     {
-        if (_aiBusy) return;
+        if (!_aiValidated || _aiBusy) return;
         var picker = new OpenFileDialog { Title = "Open schema description or diagram", Filter = "Supported files|*.txt;*.png;*.jpg;*.jpeg;*.gif;*.bmp;*.xlsx;*.xls;*.xlsb|Excel workbook|*.xlsx;*.xls;*.xlsb|Text description|*.txt|Diagram image|*.png;*.jpg;*.jpeg;*.gif;*.bmp", Multiselect = false };
         if (picker.ShowDialog(this) != true) return;
         try
@@ -52,7 +52,7 @@ public partial class MainWindow
 
     private void AiRemoveAttachment_Click(object sender, RoutedEventArgs e)
     {
-        if (_aiBusy) return;
+        if (!_aiValidated || _aiBusy) return;
         ClearAiAttachment();
     }
 

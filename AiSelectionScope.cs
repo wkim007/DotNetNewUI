@@ -21,7 +21,9 @@ public partial class MainWindow
         if (AiCommentsButton is null || AiTuningButton is null) return;
         var count = SelectedAiObjectKeys().Count;
         var suffix = count > 0 ? $" ({count})" : "";
-        AiCommentsButton.Content = "Generate Comments" + suffix;
-        AiTuningButton.Content = "AI Tuning" + suffix;
+        AiCommentsCount.Text = suffix;
+        AiCommentsButton.ToolTip = "Generate Comments" + suffix;
+        AiTuningCount.Text = suffix;
+        AiTuningButton.ToolTip = "AI Tuning" + suffix;
     }
 }

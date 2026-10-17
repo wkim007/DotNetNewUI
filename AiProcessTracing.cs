@@ -65,6 +65,7 @@ public partial class MainWindow
         run.Card = new Border { Child = panel, Background = ThemeBrush("#142230"), BorderBrush = ThemeBrush("#293D50"), BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(12), Padding = new Thickness(12), Margin = new Thickness(0, 0, 12, 16) };
         AiConversation.Children.Add(run.Card);
         _aiProcessHistory.Add(run);
+        UpdateAiControlState();
         _aiProcessHistoryIndex = _aiProcessHistory.Count - 1;
         ShowAiProcessRun();
         AiConversationScroll.ScrollToEnd();

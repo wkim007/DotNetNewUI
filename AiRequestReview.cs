@@ -45,7 +45,7 @@ public partial class MainWindow
             Status = "Request sent",
             InputModelSnapshot = CaptureAiModelSnapshot()
         }, new JsonSerializerOptions { WriteIndented = true });
-        AiRequestDocument.IsEnabled = true;
+        UpdateAiControlState();
     }
 
     private void CaptureAiResponse(string response)
