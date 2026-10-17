@@ -69,6 +69,7 @@ public partial class MainWindow
                 ShowAttributeProperties(selectedKey, selected);
         }
         SaveActiveDiagram();
+        CaptureAppliedAiModel();
         AiStatus.Text = $"Added {entityCount} entity and {columnCount} attribute descriptions. Existing descriptions were preserved.";
         TraceAi(AiStatus.Text);
     }

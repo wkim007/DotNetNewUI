@@ -133,6 +133,7 @@ public partial class MainWindow
             if (EntityNameBox.Tag is string selected && _columns.ContainsKey(selected)) SelectEntity(selected);
             RefreshModelExplorer(); SaveActiveDiagram();
             AiStatus.Text = $"Applied {chosen.Length} selected recommendations."; TraceAi(AiStatus.Text);
+            CaptureAppliedAiModel();
             applied = true; dialog.Close();
         };
         dialog.ShowDialog();

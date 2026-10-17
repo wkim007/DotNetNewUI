@@ -125,7 +125,7 @@ public partial class MainWindow
         return text.Length > 1600 ? text[..1600] : text;
     }
 
-    private static async Task<string> RequestAi(AiConfiguration config, string prompt, System.Threading.CancellationToken cancellation, bool validation = false, int maxTokens = 3000, string? imageData = null)
+    private async Task<string> RequestAi(AiConfiguration config, string prompt, System.Threading.CancellationToken cancellation, bool validation = false, int maxTokens = 3000, string? imageData = null)
     {
         if (!Uri.TryCreate(config.Endpoint, UriKind.Absolute, out var endpoint) || endpoint.Scheme != "https" ||
             !string.IsNullOrEmpty(endpoint.UserInfo) || !string.IsNullOrEmpty(endpoint.Query) || !string.IsNullOrEmpty(endpoint.Fragment) || endpoint.AbsolutePath != "/")
@@ -142,6 +142,7 @@ public partial class MainWindow
             ["messages"] = new[] { new { role = "user", content = imageData is null ? (object)prompt : new object[] { new { type = "text", text = prompt }, new { type = "image_url", image_url = new { url = imageData, detail = "high" } } } } },
             ["max_completion_tokens"] = validation ? 16 : maxTokens
         };
+        if (!validation) CaptureAiRequest(config, body, prompt, imageData);
         request.Content = new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json");
         using var response = await client.SendAsync(request, cancellation);
         var payload = await response.Content.ReadAsStringAsync(cancellation);
@@ -166,6 +167,7 @@ public partial class MainWindow
             var text = choices[0].GetProperty("message").GetProperty("content");
             if (validation) return text.ValueKind == JsonValueKind.String ? text.GetString() ?? "" : "";
             if (text.ValueKind != JsonValueKind.String || string.IsNullOrWhiteSpace(text.GetString())) throw new InvalidOperationException("The model returned no text. Check the deployment or try again.");
+            CaptureAiResponse(text.GetString()!);
             return text.GetString()!;
         }
         catch (Exception ex) when ((ex is JsonException or KeyNotFoundException) || (ex is InvalidOperationException && ex.Message.StartsWith("The requested", StringComparison.Ordinal)))

@@ -31,7 +31,7 @@ public partial class MainWindow
             if (card is null) return;
             DiagramCanvasSurface.Focus();
             ClearAttributeSelection(); ClearRelationshipSelection(); EntityPropertiesPanel.Visibility = Visibility.Collapsed;
-            if (_selectedCards.Remove(card)) { card.ClearValue(Border.BorderBrushProperty); card.ClearValue(Border.BorderThicknessProperty); Panel.SetZIndex(card, 1); _selectedCard = _selectedCards.LastOrDefault(); }
+            if (_selectedCards.Remove(card)) { card.ClearValue(Border.BorderBrushProperty); card.ClearValue(Border.BorderThicknessProperty); Panel.SetZIndex(card, 8); _selectedCard = _selectedCards.LastOrDefault(); }
             else HighlightCard(card);
             UpdateAiSelectionCounts();
             StatusText.Text = $"Selected {_selectedCards.Count} objects"; e.Handled = true;

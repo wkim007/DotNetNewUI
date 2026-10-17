@@ -5,9 +5,9 @@ namespace ErwinStudioSample;
 internal sealed record AiSchemaColumn(string Name, string Type, bool Required, bool PrimaryKey, string Description = "");
 internal sealed record AiSchemaTable(string Name, string Definition, AiSchemaColumn[] Columns);
 internal sealed record AiSchemaLink(string Source, string Target, string SourceColumn, string TargetColumn);
-internal sealed record AiSchema(AiSchemaTable[] Tables, AiSchemaLink[] Relationships)
+internal sealed record AiSchema(AiSchemaTable[] Tables, AiSchemaLink[] Relationships, string TargetDiagram = "new")
 {
-    public static AiSchema Parse(string text)
+    public static AiSchema Parse(string text, AiSchemaTable[]? existingTables = null)
     {
         text = text.Trim();
         if (text.StartsWith("```", StringComparison.Ordinal))
@@ -33,6 +33,10 @@ internal sealed record AiSchema(AiSchemaTable[] Tables, AiSchemaLink[] Relations
                 if (column is null || string.IsNullOrWhiteSpace(column.Name) || column.Name.Length > 128 || !names.Add(column.Name) || string.IsNullOrWhiteSpace(column.Type) || column.Type.Length > 128)
                     throw new InvalidOperationException("Generated columns must have unique names and valid data types.");
         }
+        if (schema.TargetDiagram is not ("new" or "current")) throw new InvalidOperationException("Invalid target diagram in AI response.");
+        if (schema.TargetDiagram == "current")
+            foreach (var existing in existingTables ?? [])
+                if (!tables.TryAdd(existing.Name, existing)) throw new InvalidOperationException("An added table duplicates an existing name. No changes applied.");
         foreach (var link in schema.Relationships)
         {
             if (link is null || string.IsNullOrWhiteSpace(link.Source) || string.IsNullOrWhiteSpace(link.Target) ||

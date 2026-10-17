@@ -276,6 +276,8 @@ public partial class MainWindow : Window
     }
     private void EnsureCloseButton(Border card, string key)
     {
+        // Keep every object above relationship labels, including when deselected.
+        Panel.SetZIndex(card, _selectedCards.Contains(card) ? 10 : 8);
         ConfigureObjectToolTip(card, key);
         if (card.Child is not Grid cardGrid) return;
         var header = cardGrid.Children.OfType<Border>().FirstOrDefault(item => Grid.GetRow(item) == 0);
@@ -681,14 +683,14 @@ public partial class MainWindow : Window
     private void ClearCardSelection()
     {
         ClearDrawingSelection();
-        foreach (var selected in _selectedCards) { selected.ClearValue(Border.BorderBrushProperty); selected.ClearValue(Border.BorderThicknessProperty); Panel.SetZIndex(selected, 1); }
+        foreach (var selected in _selectedCards) { selected.ClearValue(Border.BorderBrushProperty); selected.ClearValue(Border.BorderThicknessProperty); Panel.SetZIndex(selected, 8); }
         _selectedCards.Clear();
         UpdateAiSelectionCounts();
         if (_selectedCard is null) return;
         _selectedCard.ClearValue(Border.BorderBrushProperty);
         _selectedCard.ClearValue(Border.BorderThicknessProperty);
 
-        Panel.SetZIndex(_selectedCard, 1);
+        Panel.SetZIndex(_selectedCard, 8);
         _selectedCard = null;
     }
 
@@ -1315,7 +1317,7 @@ public partial class MainWindow : Window
     private void AddDynamicCardToCanvas(string key, Border card)
     {
         _dynamicCards[key] = card;
-        Panel.SetZIndex(card, 1);
+        Panel.SetZIndex(card, 8);
         DiagramCanvasSurface.Children.Add(card);
         var scale = _zoom / 100d;
         var sequence = _dynamicCards.Count;
