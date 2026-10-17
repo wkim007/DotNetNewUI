@@ -47,7 +47,7 @@ public partial class MainWindow
         TraceAi($"Review ready: {suggestions.Length} recommendations. Awaiting your selection.");
         // Stop the elapsed-time display while keeping AI actions disabled during the modal review.
         _aiProgressTimer.Stop(); _aiElapsed.Stop(); AiProgressPanel.Visibility = Visibility.Collapsed;
-        AiProcessTime.Text = "Review ready — awaiting approval";
+        SetAiProcessStatus("Review ready — awaiting approval");
         ShowTuningReview(suggestions);
     }
 
