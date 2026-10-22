@@ -167,6 +167,8 @@
                             <TextBlock Text="Subject Area"/>
                             <ComboBox x:Name="ProjectSubjectBox" DisplayMemberPath="Name" SelectionChanged="SubjectArea_Changed"/>
                             <Button Style="{StaticResource ProjectSettingsButton}" Content="＋  Add Subject Area" Click="AddSubjectArea_Click" Margin="0,8,0,0"/>
+                            <Button x:Name="RenameSubjectAreaButton" Style="{StaticResource ProjectSettingsButton}" Content="✎  Rename" Click="RenameSubjectArea_Click" IsEnabled="False" Margin="0,8,0,0"/>
+                            <Button x:Name="DeleteSubjectAreaButton" Content="Delete" Click="DeleteSubjectArea_Click" IsEnabled="False" Margin="0,8,0,0" Padding="12,8" Background="#F06D82" Foreground="White"/>
                             <Button Style="{StaticResource ProjectSettingsButton}" Content="Model Properties" Click="ModelProperties_Click" Margin="0,16,0,8"/>
                             <Button Style="{StaticResource ProjectSettingsButton}" Content="Theme Settings" Click="ThemeSettings_Click"/>
                             <CheckBox x:Name="ObjectTooltipsToggle" Content="Tun On Tooltip" IsChecked="True" Checked="ObjectTooltipsToggle_Changed" Unchecked="ObjectTooltipsToggle_Changed" Foreground="#DCE7F5" Margin="0,14,0,2" VerticalContentAlignment="Center"/>
