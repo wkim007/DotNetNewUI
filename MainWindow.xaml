@@ -165,7 +165,8 @@
                             <TextBlock Text="Database Version"/>
                             <TextBox x:Name="ProjectVersionBox" Text="2022"/>
                             <TextBlock Text="Subject Area"/>
-                            <TextBox x:Name="ProjectSubjectBox" Text="&lt;model&gt;"/>
+                            <ComboBox x:Name="ProjectSubjectBox" DisplayMemberPath="Name" SelectionChanged="SubjectArea_Changed"/>
+                            <Button Style="{StaticResource ProjectSettingsButton}" Content="＋  Add Subject Area" Click="AddSubjectArea_Click" Margin="0,8,0,0"/>
                             <Button Style="{StaticResource ProjectSettingsButton}" Content="Model Properties" Click="ModelProperties_Click" Margin="0,16,0,8"/>
                             <Button Style="{StaticResource ProjectSettingsButton}" Content="Theme Settings" Click="ThemeSettings_Click"/>
                             <CheckBox x:Name="ObjectTooltipsToggle" Content="Tun On Tooltip" IsChecked="True" Checked="ObjectTooltipsToggle_Changed" Unchecked="ObjectTooltipsToggle_Changed" Foreground="#DCE7F5" Margin="0,14,0,2" VerticalContentAlignment="Center"/>

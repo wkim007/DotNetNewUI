@@ -28,7 +28,7 @@ public partial class MainWindow
         var relationships = new[] { "CustomerOrder", "OrderProduct", "OrderOrderItem", "ProductOrderItem" }.Concat(_dynamicRelationships.Keys)
             .Where(k => !_deletedRelationships.Contains(k) && FindRelationshipLine(k) is { } line && DiagramCanvasSurface.Children.Contains(line) && GetRelationshipInfo(k).HasValue)
             .Select(k => { var info = GetRelationshipInfo(k)!.Value; return new { Key = k, Source = info.Source, Target = info.Target, Type = info.Type, Cardinality = _relationshipLabels.GetValueOrDefault(k)?.Text, RouteOffset = new { X = _relationshipOffsets.GetValueOrDefault(k).X, Y = _relationshipOffsets.GetValueOrDefault(k).Y } }; }).ToArray();
-        return new { Diagram = _activeDiagram?.Title, Database = ProjectDatabaseBox.Text, DatabaseVersion = ProjectVersionBox.Text, ViewMode = ViewModeBox.Text, LogicalNotation = _logicalNotation, PhysicalNotation = _physicalNotation, RelationshipLineStyle = _relationshipLineStyle, Objects = objects, Relationships = relationships };
+        return new { SubjectArea = _subjectAreas.First(a => a.Id == _activeSubjectAreaId).Name, Diagram = _activeDiagram?.Title, Database = ProjectDatabaseBox.Text, DatabaseVersion = ProjectVersionBox.Text, ViewMode = ViewModeBox.Text, LogicalNotation = _logicalNotation, PhysicalNotation = _physicalNotation, RelationshipLineStyle = _relationshipLineStyle, Objects = objects, Relationships = relationships };
     }
 
     private void CaptureAiRequest(AiConfiguration config, Dictionary<string, object> body, string prompt, string? imageData)
@@ -81,6 +81,7 @@ public partial class MainWindow
         review["CurrentWorkspaceCapturedAtUtc"] = DateTimeOffset.UtcNow.ToString("O");
         review["CurrentWorkspaceNote"] = "Captured when this viewer opened. This is current local workspace data, not the historical request sent to AI. InputModelSnapshot and AppliedModelSnapshot retain their original capture times.";
         review["CurrentModelSnapshot"] = JsonSerializer.SerializeToNode(CaptureAiModelSnapshot());
+        review["subjectAreas"] = JsonSerializer.SerializeToNode(CaptureSubjectAreas());
         review["CurrentDiagrams"] = JsonSerializer.SerializeToNode(_diagrams.Select(diagram => new
         {
             Name = diagram.Title,

@@ -16,6 +16,8 @@ public partial class MainWindow
 
     private sealed class DiagramState
     {
+        public string Id { get; } = Guid.NewGuid().ToString();
+        public string SubjectAreaId { get; init; } = "0";
         public required string Title { get; set; }
         public List<UIElement> Elements { get; set; } = [];
         public Dictionary<string, ObservableCollection<ColumnInfo>> Columns { get; set; } = [];
@@ -38,6 +40,7 @@ public partial class MainWindow
         if (_activeDiagram is not null) return;
         _activeDiagram = new DiagramState { Title = $"ER_Diagram_{++_diagramNumber}" };
         _diagrams.Add(_activeDiagram);
+        InitializeSubjectAreas();
         SaveActiveDiagram(); RenderDiagramTabs(); RefreshModelExplorer();
     }
 
@@ -100,22 +103,23 @@ public partial class MainWindow
 
     private void AddDiagram_Click(object sender, RoutedEventArgs e)
     {
-        var diagram = new DiagramState { Title = $"ER_Diagram_{++_diagramNumber}" };
+        var diagram = new DiagramState { SubjectAreaId = _activeSubjectAreaId, Title = $"ER_Diagram_{++_diagramNumber}" };
         _diagrams.Add(diagram); SwitchDiagram(diagram);
         StatusText.Text = $"Created {diagram.Title}";
     }
 
     private void RemoveDiagram(DiagramState diagram)
     {
-        if (_diagrams.Count <= 1)
+        if (SubjectDiagrams.Count() <= 1)
         {
             StatusText.Text = "At least one diagram must remain";
             return;
         }
-        var index = _diagrams.IndexOf(diagram);
+        var siblings = SubjectDiagrams.ToList();
+        var index = siblings.IndexOf(diagram);
         if (index < 0) return;
         if (_activeDiagram == diagram)
-            SwitchDiagram(_diagrams[index > 0 ? index - 1 : 1]);
+            SwitchDiagram(siblings[index > 0 ? index - 1 : 1]);
         _diagrams.Remove(diagram);
         RenderDiagramTabs();
         StatusText.Text = $"Removed {diagram.Title}";
@@ -148,7 +152,7 @@ public partial class MainWindow
             {
                 diagram.Title = name;
                 select.Content = name;
-                if (_diagrams.Count > 1) close.ToolTip = $"Remove {name}";
+                if (SubjectDiagrams.Count() > 1) close.ToolTip = $"Remove {name}";
                 if (_activeDiagram == diagram && ModelTree.Items.Count > 0 && ModelTree.Items[0] is TreeViewItem root)
                     root.Header = name;
                 StatusText.Text = $"Renamed diagram: {name}";
@@ -213,7 +217,7 @@ public partial class MainWindow
             </Style>
             """);
         DiagramTabs.Children.Clear();
-        foreach (var diagram in _diagrams)
+        foreach (var diagram in SubjectDiagrams)
         {
             var tab = new StackPanel { Orientation = Orientation.Horizontal };
             var select = new Button { Content = diagram.Title, Style = buttonStyle, Padding = new Thickness(12, 6, 4, 6) };
@@ -221,8 +225,8 @@ public partial class MainWindow
             var close = new Button
             {
                 Content = "×", Style = buttonStyle, Padding = new Thickness(5, 6, 10, 6),
-                IsEnabled = _diagrams.Count > 1,
-                ToolTip = _diagrams.Count > 1 ? $"Remove {diagram.Title}" : "At least one diagram must remain"
+                IsEnabled = SubjectDiagrams.Count() > 1,
+                ToolTip = SubjectDiagrams.Count() > 1 ? $"Remove {diagram.Title}" : "At least one diagram must remain"
             };
             ToolTipService.SetShowOnDisabled(close, true);
             close.Click += (_, _) => RemoveDiagram(diagram);
