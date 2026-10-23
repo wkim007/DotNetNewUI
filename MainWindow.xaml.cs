@@ -887,7 +887,7 @@ public partial class MainWindow : Window
     {
         if (_selectedRelationship is not null)
         {
-            _selectedRelationship.Stroke = new SolidColorBrush(Color.FromRgb(66, 217, 212));
+            _selectedRelationship.Stroke = _selectedRelationshipKey is { } key && _dynamicRelationships.TryGetValue(key, out var relation) && relation.IsViewRelationship ? ThemeBrush("#62E6DF") : ThemeBrush("#42D9D4");
             _selectedRelationship.StrokeThickness = 2.5;
         }
         _selectedRelationship = null; _selectedHitPath = null; _selectedRelationshipKey = null;
@@ -1182,7 +1182,8 @@ public partial class MainWindow : Window
         };
         if (relationshipType == "View relationship")
         {
-            visible.StrokeDashArray = new DoubleCollection([0.1, 2.4]);
+            visible.Stroke = ThemeBrush("#62E6DF");
+            visible.StrokeDashArray = new DoubleCollection([0.1, 1.6]);
             visible.StrokeDashCap = PenLineCap.Round;
         }
         else if (relationshipType == "Non-identifying relationship")
