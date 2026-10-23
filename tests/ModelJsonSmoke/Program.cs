@@ -153,7 +153,44 @@ internal static class Program
         Call("ImportModelJson", Parse(materialized.ToJsonString()));
         var mvOutput = (JsonObject)Call("ExportModelJson")!;
         Check(((JsonArray)mvOutput["workspace"]!["cachedViews"]!).Count == 1, "Materialized view lost.");
-        Console.WriteLine("PASS: display-level rendering, logical/physical settings, Neo4j Graph, JSON overrides, default export, sample import, metadata/index preservation, round trip, invalid references, materialized views.");
+        Call("ImportModelJson", source);
+        JsonObject CurrentModel() => (JsonObject)Call("ExportModelJson")!;
+        JsonObject AreaDiagram(JsonObject model, string areaName) =>
+            ((JsonArray)model["workspace"]!["subjectAreas"]!).OfType<JsonObject>()
+                .First(a => a["name"]!.ToString() == areaName)["diagrams"]!.AsArray()[0]!.AsObject();
+        bool HasMovieCopy(JsonObject model, string areaName) =>
+            AreaDiagram(model, areaName)["modelShapes"]!["entities"]!.AsArray().OfType<JsonObject>().Any(s => s["id"]!.ToString() == "160");
+        bool SameDefinitions(JsonObject a, JsonObject b)
+        {
+            var left = a["workspace"]!["entities"]!.AsArray().OfType<JsonObject>().ToDictionary(o => o["id"]!.ToString());
+            var right = b["workspace"]!["entities"]!.AsArray().OfType<JsonObject>().ToDictionary(o => o["id"]!.ToString());
+            return left.Count == right.Count && left.All(p => right.TryGetValue(p.Key, out var obj) && JsonNode.DeepEquals(p.Value, obj));
+        }
+        var beforeCopy = CurrentModel();
+        Check((bool)Call("TryApplySubjectAreaTransfer", "copy \"MOVIE COPY\" table in Subject Area \"Accounting\"")!, "Copy command not recognized.");
+        var copied = CurrentModel();
+        Check(HasMovieCopy(copied, "Accounting") && HasMovieCopy(copied, "<model>"), "Copy must preserve source and add destination placement.");
+        Check(SameDefinitions(beforeCopy, copied), "Copy changed existing definitions or indexes.");
+        Check(copied["workspace"]!["relationships"]!.AsArray().Count == source["workspace"]!["relationships"]!.AsArray().Count, "Copy lost relationships.");
+        Check((bool)Call("TryApplySubjectAreaTransfer", "move \"MOVIE COPY\" table to Subject Area \"Employee\"")!, "Move command not recognized.");
+        var moved = CurrentModel();
+        Check(HasMovieCopy(moved, "Employee") && !HasMovieCopy(moved, "Accounting") && HasMovieCopy(moved, "<model>"), "Move removed the wrong placement.");
+        Check(SameDefinitions(copied, moved), "Move changed model identity or properties.");
+        Call("TryApplySubjectAreaTransfer", "copy table MOVIE COPY to Subject Area Employee");
+        var repeated = CurrentModel();
+        Check(JsonNode.DeepEquals(moved["workspace"], repeated["workspace"]), "Repeated copy duplicated an object.");
+        Call("TryApplySubjectAreaTransfer", "move \"MOVIE COPY\" to Subject Area \"Missing\"");
+        Check(JsonNode.DeepEquals(repeated["workspace"], CurrentModel()["workspace"]), "Missing target changed the workspace.");
+        Call("TryApplySubjectAreaTransfer", "copy \"MOVIE COPY\" from Subject Area \"<model>\" to Subject Area \"Accounting\" in diagram \"Display1\"");
+        Check(HasMovieCopy(CurrentModel(), "Accounting"), "Qualified source and destination diagram failed.");
+        Call("TryApplySubjectAreaTransfer", "move \"MOVIE COPY\" table from \"Accounting\" subject area to \"Employee\" subject Area");
+        var naturalMove = CurrentModel();
+        Check(!HasMovieCopy(naturalMove, "Accounting") && HasMovieCopy(naturalMove, "Employee") && HasMovieCopy(naturalMove, "<model>"), "Source-name-first move failed or removed an unrelated placement.");
+        Check(SameDefinitions(copied, naturalMove), "Source-name-first move changed object properties.");
+        Call("TryApplySubjectAreaTransfer", "copy \"MOVIE COPY\" table from Subject Area \"Employee\" to \"Accounting\" subject area in diagram \"Display1\"");
+        Check(HasMovieCopy(CurrentModel(), "Accounting") && HasMovieCopy(CurrentModel(), "Employee"), "Mixed prefix/suffix copy failed.");
+        Parse(CurrentModel().ToJsonString());
+        Console.WriteLine("PASS: display levels, endpoints, JSON round trips, metadata/index preservation, materialized views, subject-area copy/move, stable IDs, duplicate prevention, and missing-target validation.");
         window.Close(); app.Shutdown();
     }
 }

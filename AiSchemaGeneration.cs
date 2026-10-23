@@ -9,6 +9,7 @@ public partial class MainWindow
 {
     private async Task GenerateAiDiagram(AiConfiguration config, string description)
     {
+        if (TryApplySubjectAreaTransfer(description)) return;
         var originalDiagram = _activeDiagram;
         var originalKeys = _columns.Keys.Where(IsAiModelObject).ToArray();
         var existing = originalKeys.Select(k => new AiSchemaTable(EntityDisplayName(k), _objectDefinitions.GetValueOrDefault(k, ""), _columns[k].Select(c => new AiSchemaColumn(c.Name, c.Type, c.Required, c.IsPrimaryKey, c.Description)).ToArray())).ToArray();
