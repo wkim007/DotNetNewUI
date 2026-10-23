@@ -177,7 +177,7 @@ public partial class MainWindow : Window
         RefreshModelExplorer();
         SelectedEntityTitle.Text = display.ToUpperInvariant();
         EntityNameBox.Text = display;
-        PhysicalNameBox.Text = key switch { "OrderItem" => "order_item", "Order" => "sales_order", _ => key.ToLowerInvariant() };
+        PhysicalNameBox.Text = _objectPhysicalNames.GetValueOrDefault(key, key switch { "OrderItem" => "order_item", "Order" => "sales_order", _ => key.ToLowerInvariant() });
         ColumnsGrid.IsReadOnly = _viewCardKeys.Contains(key);
         AddColumnButton.IsEnabled = !_viewCardKeys.Contains(key);
         ColumnsGrid.ItemsSource = _columns.GetValueOrDefault(key, []);

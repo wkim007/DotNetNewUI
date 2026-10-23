@@ -16,7 +16,7 @@ public partial class MainWindow
 
     private sealed class DiagramState
     {
-        public string Id { get; } = Guid.NewGuid().ToString();
+        public string Id { get; init; } = Guid.NewGuid().ToString();
         public string SubjectAreaId { get; init; } = "0";
         public required string Title { get; set; }
         public List<UIElement> Elements { get; set; } = [];
@@ -60,7 +60,7 @@ public partial class MainWindow
         diagram.VerticalOffset = DiagramScrollViewer.VerticalOffset;
     }
 
-    private static void RestoreMap<T>(Dictionary<string, T> target, Dictionary<string, T> source)
+    private static void RestoreMap<TKey, T>(Dictionary<TKey, T> target, Dictionary<TKey, T> source) where TKey : notnull
     {
         target.Clear(); foreach (var pair in source) target.Add(pair.Key, pair.Value);
     }
@@ -85,6 +85,7 @@ public partial class MainWindow
         _materializedViewKeys.Clear(); _materializedViewKeys.UnionWith(diagram.MaterializedViews);
         _deletedRelationships.Clear(); _deletedRelationships.UnionWith(diagram.Deleted);
         foreach (var element in diagram.Elements) DiagramCanvasSurface.Children.Add(element);
+        RefreshImportedDiagram();
         LoadObjectDefinition(null);
         SelectedEntityTitle.Text = "NO SELECTION"; EntityNameBox.Text = ""; PhysicalNameBox.Text = ""; ColumnsGrid.ItemsSource = null;
         EmptyHint.Visibility = Visibility.Collapsed;
