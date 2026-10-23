@@ -121,7 +121,7 @@ public partial class MainWindow
                         width = Finite(c.ActualWidth), height = Finite(c.ActualHeight),
                         description = _objectDefinitions.GetValueOrDefault(key, ""), attributes = d.Columns[key].ToArray()
                     }; }).ToArray();
-                return new { id = d.Id, name = d.Title, modelShapes = new {
+                return new { id = d.Id, name = d.Title, displayLevelLogical = d.DisplayLevelLogical, displayLevelPhysical = d.DisplayLevelPhysical, modelShapes = new {
                     entities = Shapes(d.Entities.Contains),
                     views = Shapes(k => d.Views.Contains(k) && !d.MaterializedViews.Contains(k)),
                     cachedViews = Shapes(d.MaterializedViews.Contains)

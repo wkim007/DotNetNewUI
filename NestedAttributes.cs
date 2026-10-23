@@ -90,7 +90,9 @@ public partial class MainWindow
         }
         AddRows(null, 0);
         if (!dividerAdded) fields.Children.Add(CreatePkDivider(key));
-        card.Height = Math.Max(card.Height, 80 + fields.Children.Count * 29);
+        var fullHeight = 80 + fields.Children.Count * 29;
+        if (_displayCards.TryGetValue(card, out var displayState) && displayState.LastLevel != 1) displayState.Height = fullHeight;
+        card.Height = Math.Max(card.Height, fullHeight);
         ColumnsGrid.Items.Refresh();
         ApplyProjectViewMode(); UpdateRelationshipLines();
     }

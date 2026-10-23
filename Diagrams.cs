@@ -30,6 +30,9 @@ public partial class MainWindow
         public Dictionary<string, Vector> Offsets { get; set; } = [];
         public HashSet<string> Deleted { get; set; } = [];
         public Dictionary<string, (Path Line, Path Marker)> Endpoints { get; set; } = [];
+        public int DisplayLevelLogical { get; set; } = 1;
+        public int DisplayLevelPhysical { get; set; } = 1;
+        public Dictionary<string, (int Logical, int Physical)> DisplayOverrides { get; } = [];
         public int Zoom { get; set; } = 100;
         public double HorizontalOffset { get; set; }
         public double VerticalOffset { get; set; }

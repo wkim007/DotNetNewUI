@@ -45,11 +45,14 @@ public partial class MainWindow
             }
             objects[id] = (key, kind, columns);
         }
+        var objectDefinitions = Kinds.SelectMany(k => Items(workspace[k])).ToDictionary(o => Text(o, "id"));
         var diagrams = new List<DiagramState>();
         foreach (var area in Items(workspace["subjectAreas"]))
         foreach (var source in Items(area["diagrams"]))
         {
             var diagram = new DiagramState { Id = Text(source, "id"), Title = Text(source, "name", "Diagram"), SubjectAreaId = Text(area, "id") };
+            diagram.DisplayLevelLogical = SupportedDisplayLevel((int)Number(source, "displayLevelLogical", 1));
+            diagram.DisplayLevelPhysical = SupportedDisplayLevel((int)Number(source, "displayLevelPhysical", 1));
             var placements = Kinds.SelectMany(k => Items(source["modelShapes"]?[k])).ToArray();
             var arrange = placements.Length > 1 && placements.All(p => Number(p, "x") == 0 && Number(p, "y") == 0);
             var across = Math.Max(1, (int)Math.Ceiling(Math.Sqrt(placements.Length)));
@@ -58,6 +61,8 @@ public partial class MainWindow
             {
                 var obj = objects[Text(placement, "id")];
                 diagram.Columns[obj.Key] = obj.Columns;
+                var objectSource = objectDefinitions[Text(placement, "id")];
+                diagram.DisplayOverrides[obj.Key] = (SupportedDisplayLevel((int)Number(placement, "displayLevelLogical", Number(objectSource, "displayLevelLogical", -1))), SupportedDisplayLevel((int)Number(placement, "displayLevelPhysical", Number(objectSource, "displayLevelPhysical", -1))));
                 if (obj.Kind == "entities") diagram.Entities.Add(obj.Key);
                 else { diagram.Views.Add(obj.Key); if (obj.Kind == "cachedViews") diagram.MaterializedViews.Add(obj.Key); }
                 var width = Math.Clamp(Number(placement, "width", 300), 200, 10000);

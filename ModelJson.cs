@@ -151,6 +151,7 @@ public partial class MainWindow
             {
                 var d = Items(originalArea?["diagrams"]).FirstOrDefault(x => Text(x, "id") == diagram.Id)?.DeepClone() as JsonObject ?? new JsonObject();
                 d["id"] = diagram.Id; d["name"] = diagram.Title;
+                d["displayLevelLogical"] = diagram.DisplayLevelLogical; d["displayLevelPhysical"] = diagram.DisplayLevelPhysical;
                 var shapes = new JsonObject();
                 foreach (var kind in Kinds)
                 {
@@ -161,11 +162,15 @@ public partial class MainWindow
                         var objectKind = diagram.MaterializedViews.Contains(key) ? "cachedViews" : diagram.Views.Contains(key) ? "views" : "entities";
                         if (objectKind != kind) continue;
                         var placement = Items(d["modelShapes"]?[kind]).FirstOrDefault(p => Text(p, "id") == ObjectJsonId(key))?.DeepClone() as JsonObject ?? new JsonObject();
+                        var overrides = diagram.DisplayOverrides.GetValueOrDefault(key, (-1, -1));
+                        placement["displayLevelLogical"] = overrides.Item1; placement["displayLevelPhysical"] = overrides.Item2;
                         placement["id"] = ObjectJsonId(key); placement["name"] = EntityDisplayName(key);
                         placement["x"] = double.IsFinite(Canvas.GetLeft(card)) ? Canvas.GetLeft(card) : 0;
                         placement["y"] = double.IsFinite(Canvas.GetTop(card)) ? Canvas.GetTop(card) : 0;
                         placement["width"] = double.IsFinite(card.Width) ? card.Width : card.ActualWidth;
                         placement["height"] = double.IsFinite(card.Height) ? card.Height : card.ActualHeight;
+                        if (_displayCards.TryGetValue(card, out var displayState) && displayState.LastLevel != 1)
+                        { placement["width"] = displayState.Width; placement["height"] = displayState.Height; }
                         placements.Add(placement);
                     }
                     shapes[kind] = placements;

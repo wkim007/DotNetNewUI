@@ -24,7 +24,9 @@ public partial class MainWindow
     private static Rect EndpointBounds(FrameworkElement element)
     {
         var path = element is Grid { Tag: "DrawingShape" } grid ? grid.Children.OfType<Path>().FirstOrDefault() : element as Path;
-        var bounds = path?.Data.Bounds ?? new Rect(0, 0, element.ActualWidth, element.ActualHeight);
+        var width = double.IsFinite(element.Width) ? element.Width : element.ActualWidth;
+        var height = double.IsFinite(element.Height) ? element.Height : element.ActualHeight;
+        var bounds = path?.Data.Bounds ?? new Rect(0, 0, Math.Max(0, width), Math.Max(0, height));
         bounds.Offset(Canvas.GetLeft(element), Canvas.GetTop(element)); return bounds;
     }
     private Point ResolveEndpoint(Path line, bool source, Rect bounds, Point fallback)

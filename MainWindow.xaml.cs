@@ -58,6 +58,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        ProjectDatabaseBox.AddHandler(System.Windows.Controls.Primitives.TextBoxBase.TextChangedEvent, new TextChangedEventHandler((_, _) => ApplyProjectViewMode()));
         InitializeAiFeatures();
         InitializeMultiSelection();
         InitializeDrawingPalette();
@@ -81,6 +82,7 @@ public partial class MainWindow : Window
         var visibility = ViewModeBox.SelectedIndex == 1 ? Visibility.Collapsed : Visibility.Visible;
         foreach (var text in Descendants<TextBlock>(DiagramCanvasSurface))
             if (Equals(text.Tag, "ColumnDatatype") && text.Visibility != visibility) text.Visibility = visibility;
+        ApplyDiagramDisplayLevels();
     }
 
     private static IEnumerable<T> Descendants<T>(DependencyObject root) where T : DependencyObject
@@ -938,8 +940,10 @@ public partial class MainWindow : Window
         hit.Visibility = Visibility.Visible;
         cardinalityLabel.Visibility = Visibility.Visible;
 
-        var sourceCenter = new Point(Canvas.GetLeft(source) + source.ActualWidth / 2, Canvas.GetTop(source) + source.ActualHeight / 2);
-        var targetCenter = new Point(Canvas.GetLeft(target) + target.ActualWidth / 2, Canvas.GetTop(target) + target.ActualHeight / 2);
+        var sourceBounds = EndpointBounds(source);
+        var targetBounds = EndpointBounds(target);
+        var sourceCenter = new Point(sourceBounds.Left + sourceBounds.Width / 2, sourceBounds.Top + sourceBounds.Height / 2);
+        var targetCenter = new Point(targetBounds.Left + targetBounds.Width / 2, targetBounds.Top + targetBounds.Height / 2);
         var dx = targetCenter.X - sourceCenter.X;
         var dy = targetCenter.Y - sourceCenter.Y;
         var horizontal = Math.Abs(dx) >= Math.Abs(dy);
@@ -950,8 +954,8 @@ public partial class MainWindow : Window
         if (horizontal)
         {
             var direction = Math.Sign(dx == 0 ? 1 : dx);
-            var start = new Point(sourceCenter.X + direction * source.ActualWidth / 2, sourceCenter.Y);
-            var end = new Point(targetCenter.X - direction * target.ActualWidth / 2, targetCenter.Y);
+            var start = new Point(sourceCenter.X + direction * sourceBounds.Width / 2, sourceCenter.Y);
+            var end = new Point(targetCenter.X - direction * targetBounds.Width / 2, targetCenter.Y);
             var startStub = new Point(start.X + direction * 24, start.Y);
             var endStub = new Point(end.X - direction * 24, end.Y);
             var trunkY = (start.Y + end.Y) / 2 + offset.Y;
@@ -961,8 +965,8 @@ public partial class MainWindow : Window
         else
         {
             var direction = Math.Sign(dy == 0 ? 1 : dy);
-            var start = new Point(sourceCenter.X, sourceCenter.Y + direction * source.ActualHeight / 2);
-            var end = new Point(targetCenter.X, targetCenter.Y - direction * target.ActualHeight / 2);
+            var start = new Point(sourceCenter.X, sourceCenter.Y + direction * sourceBounds.Height / 2);
+            var end = new Point(targetCenter.X, targetCenter.Y - direction * targetBounds.Height / 2);
             var startStub = new Point(start.X, start.Y + direction * 24);
             var endStub = new Point(end.X, end.Y - direction * 24);
             var trunkX = (start.X + end.X) / 2 + offset.X;
@@ -970,8 +974,6 @@ public partial class MainWindow : Window
             handlePoint = new Point(trunkX, (startStub.Y + endStub.Y) / 2);
         }
 
-        var sourceBounds = EndpointBounds(source);
-        var targetBounds = EndpointBounds(target);
         route[0] = ResolveEndpoint(visible, true, sourceBounds, route[0]);
         route[^1] = ResolveEndpoint(visible, false, targetBounds, route[^1]);
         route[1] = route[0] + EndpointNormal(route[0], sourceBounds) * 24;
