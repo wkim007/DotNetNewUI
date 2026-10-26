@@ -3,6 +3,16 @@ using System.Windows.Input;
 namespace ErwinStudioSample;
 public partial class MainWindow
 {
+    private bool BlockSubCategoryKeyMove(string entityKey, ColumnInfo column)
+    {
+        if (!_dynamicRelationships.Any(p => p.Value.IsSubCategory && p.Value.TargetKey == entityKey &&
+            !_deletedRelationships.Contains(p.Key))) return false;
+        StatusText.Text = column.IsPrimaryKey
+            ? "Cannot move Sub-Category child attribute to the non-PK area: the child's primary keys must remain inherited from its parent."
+            : "Cannot move Sub-Category child attribute to the PK area: the child's primary keys are defined by its parent.";
+        return true;
+    }
+
     private void UpdateDiagramTools()
     {
         if (SubCategoryToolButton is null) return;
@@ -66,6 +76,12 @@ public partial class MainWindow
             if (next == sourceKey)
             { StatusText.Text = "A Sub-Category relationship cannot create an inheritance cycle."; return false; }
             foreach (var subtype in subtypes.Where(r => r.SourceKey == next)) pending.Push(subtype.TargetKey);
+        }
+        var childKeys = childColumns.Where(c => c.IsPrimaryKey).ToArray();
+        if (childKeys.Length > 0)
+        {
+            StatusText.Text = $"Cannot create Sub-Category: primary key attribute(s) already exist in child '{EntityDisplayName(childKey)}': {string.Join(", ", childKeys.Select(c => c.Name))}. Remove the child's primary keys first.";
+            return false;
         }
         var primaryKeys = parentColumns.Where(c => c.IsPrimaryKey).ToArray();
         bool SameName(string a, string b) => a.Trim().Equals(b.Trim(), StringComparison.OrdinalIgnoreCase);

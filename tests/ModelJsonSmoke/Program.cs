@@ -210,6 +210,11 @@ internal static class Program
         foreach (var entity in new[] { parentKey, childA, childB, conflictChild }) Call("RebuildNestedRows", entity);
         Check((bool)Call("TryCreateSubCategory", parentKey, childA)!, "First Sub-Category creation failed.");
         Check((bool)Call("TryCreateSubCategory", parentKey, childB)!, "Second Sub-Category creation failed.");
+        Check((bool)Call("BlockSubCategoryKeyMove", childA, columns[childA].First(c => c.IsPrimaryKey))!, "Subtype PK demotion was allowed.");
+        Check(Field<System.Windows.Controls.TextBlock>("StatusText").Text.Contains("non-PK area"), "PK demotion warning missing.");
+        Check((bool)Call("BlockSubCategoryKeyMove", childA, columns[childA].First(c => !c.IsPrimaryKey))!, "Subtype non-PK promotion was allowed.");
+        Check(Field<System.Windows.Controls.TextBlock>("StatusText").Text.Contains("to the PK area"), "PK promotion warning missing.");
+        Check(!(bool)Call("BlockSubCategoryKeyMove", parentKey, columns[parentKey][0])!, "Ordinary parent key move was blocked.");
         foreach (var child in new[] { childA, childB })
         {
             Check(columns[child].Count == 3, "Inherited attributes missing or other attributes removed.");
@@ -226,6 +231,11 @@ internal static class Program
         Check(!(bool)Call("TryCreateSubCategory", parentKey, conflictChild)!, "Existing child primary key was accepted.");
         Check(columns[conflictChild].Count == 1 && dynamicRelations.Count == countBeforeReject, "Duplicate rejection partially changed model.");
         Check(Field<System.Windows.Controls.TextBlock>("StatusText").Text.Contains("already exist"), "Duplicate error message missing.");
+        columns[conflictChild][0] = columns[conflictChild][0] with { Name = "UnrelatedChildKey" };
+        Check(!(bool)Call("TryCreateSubCategory", parentKey, conflictChild)!, "Differently named child PK was accepted.");
+        Check(columns[conflictChild].Count == 1 && dynamicRelations.Count == countBeforeReject, "Existing PK rejection mutated the model.");
+        Check(Field<System.Windows.Controls.TextBlock>("StatusText").Text.Contains("UnrelatedChildKey") &&
+            Field<System.Windows.Controls.TextBlock>("StatusText").FontWeight == FontWeights.Bold, "Existing PK warning is missing or not bold.");
         Check(!(bool)Call("TryCreateSubCategory", parentKey, childA)!, "Duplicate Sub-Category accepted.");
         Check(!(bool)Call("TryCreateSubCategory", childA, parentKey)!, "Sub-Category cycle accepted.");
         var subtypes = dynamicRelations.Where(p => p.Value.IsSubCategory).ToArray();

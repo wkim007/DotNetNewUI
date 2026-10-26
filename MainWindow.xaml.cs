@@ -63,7 +63,7 @@ public partial class MainWindow : Window
         {
             var text = StatusText.Text;
             var duplicateWarning = text.Contains("Sub-Category", StringComparison.OrdinalIgnoreCase) &&
-                text.Contains("already exist", StringComparison.OrdinalIgnoreCase);
+                (text.Contains("already exist", StringComparison.OrdinalIgnoreCase) || text.StartsWith("Cannot move Sub-Category", StringComparison.Ordinal));
             StatusText.Foreground = duplicateWarning ? Brushes.Black : (Brush)FindResource("MutedInk");
             StatusText.FontWeight = duplicateWarning ? FontWeights.Bold : FontWeights.Normal;
         };
@@ -487,6 +487,12 @@ public partial class MainWindow : Window
         var oldIndex = columns.ToList().FindIndex(column => column.Name == drag.AttributeName);
         if (oldIndex < 0) return;
         var column = columns[oldIndex];
+        if (BlockSubCategoryKeyMove(entityKey, column))
+        {
+            e.Effects = DragDropEffects.None;
+            e.Handled = true;
+            return;
+        }
         columns.RemoveAt(oldIndex);
         var updated = column with { IsPrimaryKey = !column.IsPrimaryKey };
         var newIndex = columns.Count(item => item.IsPrimaryKey);
