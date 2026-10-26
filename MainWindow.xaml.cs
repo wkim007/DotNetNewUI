@@ -58,9 +58,21 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        var statusDescriptor = System.ComponentModel.DependencyPropertyDescriptor.FromProperty(TextBlock.TextProperty, typeof(TextBlock));
+        EventHandler updateWarningColor = (_, _) =>
+        {
+            var text = StatusText.Text;
+            var duplicateWarning = text.Contains("Sub-Category", StringComparison.OrdinalIgnoreCase) &&
+                text.Contains("already exist", StringComparison.OrdinalIgnoreCase);
+            StatusText.Foreground = duplicateWarning ? Brushes.Black : (Brush)FindResource("MutedInk");
+            StatusText.FontWeight = duplicateWarning ? FontWeights.Bold : FontWeights.Normal;
+        };
+        statusDescriptor.AddValueChanged(StatusText, updateWarningColor);
+        Closed += (_, _) => statusDescriptor.RemoveValueChanged(StatusText, updateWarningColor);
         ProjectDatabaseBox.AddHandler(System.Windows.Controls.Primitives.TextBoxBase.TextChangedEvent, new TextChangedEventHandler((_, _) => ApplyProjectViewMode()));
         InitializeAiFeatures();
         InitializeMultiSelection();
+        PreviewKeyDown += DiagramRelationship_KeyDown;
         InitializeDrawingPalette();
         UpdateDiagramTools();
         DiagramCanvasSurface.LayoutUpdated += (_, _) => { ApplyProjectViewMode(); ApplyTheme(); UpdateDrawingConnectors(); RefreshEndpointHandles(); };
@@ -390,6 +402,7 @@ public partial class MainWindow : Window
 
     private void ConfigureAttributeDrag(Border row)
     {
+        ConfigureAttributeContextMenu(row);
         row.PreviewMouseLeftButtonDown += AttributeDrag_PreviewMouseLeftButtonDown;
         row.PreviewMouseMove += AttributeDrag_PreviewMouseMove;
         ConfigureHoldRename(row, () => BeginColumnRename(row));
@@ -869,6 +882,7 @@ public partial class MainWindow : Window
         if (_selectedRelationshipKey == key) ClearRelationshipSelection();
         if (_dynamicRelationships.Remove(key, out var dynamicRelationship))
         {
+            if (dynamicRelationship.IsSubCategory) RemoveSubCategoryAttributes(dynamicRelationship);
             DiagramCanvasSurface.Children.Remove(dynamicRelationship.Visible);
             DiagramCanvasSurface.Children.Remove(dynamicRelationship.Hit);
             if (_relationshipLabels.Remove(key, out var label)) DiagramCanvasSurface.Children.Remove(label);
@@ -883,10 +897,19 @@ public partial class MainWindow : Window
         _relationshipOffsets.Remove(key);
         RefreshModelExplorer();
         SyncNotationEndpoints();
+        UpdateRelationshipLines();
         StatusText.Text = "Relationship removed";
     }
     private void ClearRelationshipSelection()
     {
+        if (_selectedSubCategoryMarker is { } marker)
+        {
+            var owner = _notationEndpoints.Values.FirstOrDefault(p => p.Marker == marker);
+            if (owner.Line is not null)
+                marker.SetBinding(Shape.StrokeProperty, new System.Windows.Data.Binding(nameof(Shape.Stroke)) { Source = owner.Line });
+            marker.StrokeThickness = 1.5;
+            _selectedSubCategoryMarker = null;
+        }
         if (_selectedRelationship is not null)
         {
             _selectedRelationship.Stroke = _selectedRelationshipKey is { } key && _dynamicRelationships.TryGetValue(key, out var relation) && relation.IsViewRelationship ? ThemeBrush("#62E6DF") : ThemeBrush("#42D9D4");
@@ -905,6 +928,7 @@ public partial class MainWindow : Window
     private void DiagramCanvasSurface_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
         if (e.Source != DiagramCanvasSurface) return;
+        CancelPendingRelationshipTool();
         BeginMarquee(e);
     }
 
@@ -939,6 +963,11 @@ public partial class MainWindow : Window
         visible.Visibility = Visibility.Visible;
         hit.Visibility = Visibility.Visible;
         cardinalityLabel.Visibility = Visibility.Visible;
+        if (_dynamicRelationships.TryGetValue(key, out var subcategory) && subcategory.IsSubCategory)
+        {
+            UpdateSubCategoryRelationship(key, source, target, visible, hit, cardinalityLabel);
+            return;
+        }
 
         var sourceBounds = EndpointBounds(source);
         var targetBounds = EndpointBounds(target);
@@ -1013,15 +1042,6 @@ public partial class MainWindow : Window
         hit.Data = geometry.Clone();
         UpdateNotationEndpoints(key, visible, route, cardinalityLabel.Text);
 
-        if (_dynamicRelationships.TryGetValue(key, out var subtype) && subtype.IsSubCategory)
-        {
-            cardinalityLabel.Visibility = ViewModeBox.SelectedIndex == 1 ? Visibility.Visible : Visibility.Collapsed;
-            cardinalityLabel.Text = "○";
-            cardinalityLabel.FontSize = 28;
-            cardinalityLabel.Padding = new Thickness(0);
-            cardinalityLabel.Foreground = visible.Stroke;
-            cardinalityLabel.Background = ThemeBrush(ActiveTheme.DiagramFill);
-        }
         cardinalityLabel.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
         Canvas.SetLeft(cardinalityLabel, handlePoint.X - cardinalityLabel.DesiredSize.Width / 2);
         Canvas.SetTop(cardinalityLabel, handlePoint.Y - (cardinalityLabel.Text == "○" ? cardinalityLabel.DesiredSize.Height / 2 : 25));
@@ -1080,6 +1100,15 @@ public partial class MainWindow : Window
     private void DiagramTool_Click(object sender, RoutedEventArgs e)
     {
         if (sender is not Button { ToolTip: string tool }) return;
+        if (_pendingRelationshipType == "Sub-Category")
+        {
+            CancelPendingRelationshipTool();
+            if (tool == "Sub-Category")
+            {
+                StatusText.Text = "Sub-Category tool canceled. Select an object.";
+                return;
+            }
+        }
         switch (tool)
         {
             case "Entity":
@@ -1198,8 +1227,8 @@ public partial class MainWindow : Window
         Panel.SetZIndex(visible, 0);
         DiagramCanvasSurface.Children.Add(hit);
         DiagramCanvasSurface.Children.Add(visible);
-        _dynamicRelationships[key] = new DynamicRelationship(sourceKey, targetKey, visible, hit, relationshipType == "Identifying relationship", relationshipType == "View relationship", relationshipType == "Sub-Category");
-        EnsureRelationshipLabel(key, "1:N");
+        _dynamicRelationships[key] = new DynamicRelationship(sourceKey, targetKey, visible, hit, relationshipType is "Identifying relationship" or "Sub-Category", relationshipType == "View relationship", relationshipType == "Sub-Category");
+        EnsureRelationshipLabel(key, relationshipType == "Sub-Category" ? "1:1" : "1:N");
         UpdateRelationship(key, source, target);
 
         ClearCardSelection();
@@ -1335,6 +1364,7 @@ public partial class MainWindow : Window
     }
     private void AddNewEntity()
     {
+        if (_pendingRelationshipType == "Sub-Category") CancelPendingRelationshipTool();
         _newEntityNumber++;
         var key = _newEntityNumber == 1 ? "NewEntity" : $"NewEntity{_newEntityNumber}";
         _columns[key] = [new("Id", "UUID", true, true)];
@@ -1438,7 +1468,10 @@ public partial class MainWindow : Window
 public sealed record ColumnInfo(string Name, string Type, bool Required, bool IsPrimaryKey = false, bool IsForeignKey = false)
 { public Guid Id { get; init; } = Guid.NewGuid(); public Guid? ParentId { get; init; } public string Description { get; init; } = ""; public string PhysicalName { get; init; } = ""; }
 
-public sealed record DynamicRelationship(string SourceKey, string TargetKey, Path Visible, Path Hit, bool IsIdentifying, bool IsViewRelationship = false, bool IsSubCategory = false);
+public sealed record DynamicRelationship(string SourceKey, string TargetKey, Path Visible, Path Hit, bool IsIdentifying, bool IsViewRelationship = false, bool IsSubCategory = false)
+{
+    public Guid[]? InheritedAttributeIds { get; init; }
+}
 
 public sealed record AttributeSelection(string EntityKey, string AttributeName);
 

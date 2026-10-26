@@ -73,7 +73,7 @@ public partial class MainWindow
             SaveType();
         };
         if (!type.IsEnabled && !readOnly) Label("Datatype is locked while this attribute has children.");
-        Field("Kind", selected.IsPrimaryKey ? "PK" : selected.IsForeignKey ? "FK" : "COL");
+        Field("Kind", selected.IsPrimaryKey && selected.IsForeignKey ? "PK/FK" : selected.IsPrimaryKey ? "PK" : selected.IsForeignKey ? "FK" : "COL");
         Field("Primary Key", selected.IsPrimaryKey ? "Yes" : "No");
         Label("Nullable");
         var nullable = new CheckBox { IsChecked = !selected.Required, Content = "Allow null", Foreground = ThemeInk, IsEnabled = !readOnly && !selected.IsPrimaryKey };

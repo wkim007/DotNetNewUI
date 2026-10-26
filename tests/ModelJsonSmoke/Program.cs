@@ -6,6 +6,12 @@ using ErwinStudioSample;
 internal static class Program
 {
     private const BindingFlags Private = BindingFlags.Instance | BindingFlags.NonPublic;
+    private sealed class TestPresentationSource : PresentationSource
+    {
+        public override System.Windows.Media.Visual RootVisual { get; set; } = null!;
+        public override bool IsDisposed => false;
+        protected override System.Windows.Media.CompositionTarget GetCompositionTargetCore() => null!;
+    }
     [STAThread]
     private static void Main(string[] args)
     {
@@ -190,7 +196,150 @@ internal static class Program
         Call("TryApplySubjectAreaTransfer", "copy \"MOVIE COPY\" table from Subject Area \"Employee\" to \"Accounting\" subject area in diagram \"Display1\"");
         Check(HasMovieCopy(CurrentModel(), "Accounting") && HasMovieCopy(CurrentModel(), "Employee"), "Mixed prefix/suffix copy failed.");
         Parse(CurrentModel().ToJsonString());
-        Console.WriteLine("PASS: display levels, endpoints, JSON round trips, metadata/index preservation, materialized views, subject-area copy/move, stable IDs, duplicate prevention, and missing-target validation.");
+        Call("ImportModelJson", source);
+        viewBox.SelectedIndex = 1;
+        var columns = Field<Dictionary<string, System.Collections.ObjectModel.ObservableCollection<ColumnInfo>>>("_columns");
+        const string parentKey = "Imported_139", childA = "Imported_141", childB = "Imported_143", conflictChild = "Imported_158";
+        columns[parentKey].Clear();
+        columns[parentKey].Add(new ColumnInfo("aa", "INT", true, true) { PhysicalName = "AA", Description = "First parent key" });
+        columns[parentKey].Add(new ColumnInfo("bb", "VARCHAR(30)", true, true) { PhysicalName = "BB", Description = "Second parent key" });
+        foreach (var child in new[] { childA, childB, conflictChild }) columns[child].Clear();
+        columns[childA].Add(new ColumnInfo("cc", "INT", false));
+        columns[childB].Add(new ColumnInfo("dd", "INT", false));
+        columns[conflictChild].Add(new ColumnInfo("AA", "INT", true, true));
+        foreach (var entity in new[] { parentKey, childA, childB, conflictChild }) Call("RebuildNestedRows", entity);
+        Check((bool)Call("TryCreateSubCategory", parentKey, childA)!, "First Sub-Category creation failed.");
+        Check((bool)Call("TryCreateSubCategory", parentKey, childB)!, "Second Sub-Category creation failed.");
+        foreach (var child in new[] { childA, childB })
+        {
+            Check(columns[child].Count == 3, "Inherited attributes missing or other attributes removed.");
+            foreach (var pk in columns[parentKey])
+            {
+                var inherited = columns[child].Single(c => c.Name == pk.Name);
+                Check(inherited.IsPrimaryKey && inherited.IsForeignKey && inherited.Required && inherited.Id != pk.Id &&
+                    inherited.Type == pk.Type && inherited.PhysicalName == pk.PhysicalName && inherited.Description == pk.Description,
+                    "Inherited key identity, flags, type, or documentation incorrect.");
+            }
+        }
+        var dynamicRelations = Field<Dictionary<string, DynamicRelationship>>("_dynamicRelationships");
+        var countBeforeReject = dynamicRelations.Count;
+        Check(!(bool)Call("TryCreateSubCategory", parentKey, conflictChild)!, "Existing child primary key was accepted.");
+        Check(columns[conflictChild].Count == 1 && dynamicRelations.Count == countBeforeReject, "Duplicate rejection partially changed model.");
+        Check(Field<System.Windows.Controls.TextBlock>("StatusText").Text.Contains("already exist"), "Duplicate error message missing.");
+        Check(!(bool)Call("TryCreateSubCategory", parentKey, childA)!, "Duplicate Sub-Category accepted.");
+        Check(!(bool)Call("TryCreateSubCategory", childA, parentKey)!, "Sub-Category cycle accepted.");
+        var subtypes = dynamicRelations.Where(p => p.Value.IsSubCategory).ToArray();
+        Check(subtypes.Length == 2 && subtypes.All(p => p.Value.IsIdentifying), "Sub-Category flags incorrect.");
+        var junctions = subtypes.Select(p => ((System.Windows.Media.PathGeometry)p.Value.Visible.Data).Figures[1].StartPoint).ToArray();
+        Check(junctions[0] == junctions[1], "Children do not share a Sub-Category junction.");
+        var markers = Field<Dictionary<string, (System.Windows.Shapes.Path Line, System.Windows.Shapes.Path Marker)>>("_notationEndpoints");
+        Check(subtypes.Count(p => !markers[p.Key].Marker.Data.IsEmpty()) == 1, "A parent must have exactly one shared junction marker.");
+        var subcategoryJson = CurrentModel();
+        Check(subcategoryJson["workspace"]!["relationships"]!.AsArray().OfType<JsonObject>().Count(r => r["isSubCategory"]?.ToString().Equals("true", StringComparison.OrdinalIgnoreCase) == true) == 2,
+            "Sub-Category type not exported.");
+        Call("ImportModelJson", Parse(subcategoryJson.ToJsonString()));
+        dynamicRelations = Field<Dictionary<string, DynamicRelationship>>("_dynamicRelationships");
+        Check(dynamicRelations.Values.Count(r => r.IsSubCategory) == 2, "Sub-Category type lost on import.");
+        columns = Field<Dictionary<string, System.Collections.ObjectModel.ObservableCollection<ColumnInfo>>>("_columns");
+        Check(columns[childA].Count(c => c.IsPrimaryKey && c.IsForeignKey) == 2, "Import duplicated or lost inherited keys.");
+        void ArmSubCategory(string parent)
+        {
+            typeof(MainWindow).GetField("_pendingRelationshipType", Private)!.SetValue(window, "Sub-Category");
+            typeof(MainWindow).GetField("_relationshipSourceKey", Private)!.SetValue(window, parent);
+        }
+        bool IsToolArmed() => typeof(MainWindow).GetField("_pendingRelationshipType", Private)!.GetValue(window) is not null ||
+            typeof(MainWindow).GetField("_relationshipSourceKey", Private)!.GetValue(window) is not null;
+        System.Windows.Input.MouseButtonEventArgs Click() =>
+            new(System.Windows.Input.Mouse.PrimaryDevice, 0, System.Windows.Input.MouseButton.Left) { RoutedEvent = System.Windows.Input.Mouse.MouseDownEvent };
+        ArmSubCategory(parentKey);
+        Check((bool)Call("HandleSubCategoryClick", childA, Click())!, "Armed Sub-Category click was not handled.");
+        Check(!IsToolArmed(), "Rejected Sub-Category keeps intercepting selection.");
+        Check((string)Field<System.Windows.Controls.Border>("_selectedCard").Tag == childA, "Rejected child cannot be selected.");
+        Check(Field<System.Windows.Controls.TextBlock>("StatusText").Text.Contains("already exist"), "Selection cleared the validation message.");
+        Check(!(bool)Call("HandleSubCategoryClick", childB, Click())!, "Subsequent ordinary click is still intercepted.");
+        ArmSubCategory(parentKey);
+        Check(!(bool)Call("HandleSubCategoryClick", parentKey, Click())! && !IsToolArmed(), "Clicking the source should cancel and allow selection.");
+        Call("SelectCard", Call("FindCard", parentKey)!);
+        var subtypeTool = Field<System.Windows.Controls.Button>("SubCategoryToolButton");
+        Call("DiagramTool_Click", subtypeTool, new RoutedEventArgs());
+        Check(IsToolArmed(), "Sub-Category tool did not activate.");
+        Call("DiagramTool_Click", subtypeTool, new RoutedEventArgs());
+        Check(!IsToolArmed(), "Clicking Sub-Category again did not cancel.");
+        ArmSubCategory(parentKey);
+        var escape = new System.Windows.Input.KeyEventArgs(System.Windows.Input.Keyboard.PrimaryDevice, new TestPresentationSource(), 0, System.Windows.Input.Key.Escape) { RoutedEvent = System.Windows.Input.Keyboard.KeyDownEvent };
+        Call("DiagramRelationship_KeyDown", window, escape);
+        Check(!IsToolArmed() && escape.Handled, "Escape did not cancel the pending relationship.");
+        var firstSubtype = dynamicRelations.First(p => p.Value.IsSubCategory).Key;
+        Call("DeleteRelationship", firstSubtype);
+        markers = Field<Dictionary<string, (System.Windows.Shapes.Path Line, System.Windows.Shapes.Path Marker)>>("_notationEndpoints");
+        Check(dynamicRelations.Where(p => p.Value.IsSubCategory).All(p => !markers[p.Key].Marker.Data.IsEmpty()), "Deleting a child removed the remaining child's junction.");
+        Check(columns[childA].All(c => !c.IsForeignKey), "Individual subtype deletion left inherited keys.");
+        Call("ImportModelJson", Parse(subcategoryJson.ToJsonString()));
+        dynamicRelations = Field<Dictionary<string, DynamicRelationship>>("_dynamicRelationships");
+        columns = Field<Dictionary<string, System.Collections.ObjectModel.ObservableCollection<ColumnInfo>>>("_columns");
+        System.Windows.Controls.Border AttributeRow(string entityKey, string attributeName)
+        {
+            var card = (System.Windows.Controls.Border)Call("FindCard", entityKey)!;
+            var fields = ((System.Windows.Controls.Grid)card.Child).Children.OfType<System.Windows.Controls.StackPanel>().First();
+            return fields.Children.OfType<System.Windows.Controls.Border>().First(r =>
+                r.Tag?.GetType().GetProperty("AttributeName")?.GetValue(r.Tag)?.ToString() == attributeName);
+        }
+        Call("SelectEntity", parentKey);
+        Field<System.Windows.Controls.DataGrid>("ColumnsGrid").SelectedItem = columns[parentKey][0];
+        var clickedAttribute = columns[childA].Single(c => c.Name == "aa");
+        var attributeRow = AttributeRow(childA, clickedAttribute.Name);
+        Check(attributeRow.ContextMenu is not null, "Attribute context menu missing.");
+        attributeRow.RaiseEvent(new System.Windows.Input.MouseButtonEventArgs(System.Windows.Input.Mouse.PrimaryDevice, 0, System.Windows.Input.MouseButton.Right)
+            { RoutedEvent = UIElement.PreviewMouseRightButtonDownEvent });
+        Check(Field<System.Windows.Controls.DataGrid>("ColumnsGrid").SelectedItem is ColumnInfo selected && selected.Id == clickedAttribute.Id,
+            "Right-click did not select the clicked attribute.");
+        var attributeIndex = columns[childA].IndexOf(clickedAttribute);
+        columns[childA][attributeIndex] = clickedAttribute with { Name = "RenamedBeforeDelete" };
+        var deleteColumnMenu = (System.Windows.Controls.MenuItem)attributeRow.ContextMenu!.Items[0];
+        deleteColumnMenu.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.MenuItem.ClickEvent));
+        Check(columns[childA].All(c => c.Id != clickedAttribute.Id) && columns[parentKey].Any(c => c.Name == "aa"),
+            "Context Delete removed the wrong attribute or failed after rename.");
+        Check(Field<System.Windows.Controls.StackPanel>("AttributePropertiesPanel").Visibility == Visibility.Collapsed &&
+            Field<System.Windows.Controls.StackPanel>("AttributePropertiesPanel").Children.Count == 0, "Deleted attribute properties remain visible.");
+        const string viewKey = "Imported_276";
+        var viewCount = columns[viewKey].Count;
+        var viewRow = AttributeRow(viewKey, columns[viewKey][0].Name);
+        viewRow.ContextMenu!.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.ContextMenu.OpenedEvent));
+        Check(!((System.Windows.Controls.MenuItem)viewRow.ContextMenu.Items[0]).IsEnabled, "Readonly view deletion menu is enabled.");
+        ((System.Windows.Controls.MenuItem)viewRow.ContextMenu.Items[0]).RaiseEvent(new RoutedEventArgs(System.Windows.Controls.MenuItem.ClickEvent));
+        Check(columns[viewKey].Count == viewCount, "Readonly view attribute deleted.");
+        var nestedParent = new ColumnInfo("Nested", "object", false);
+        var nestedChild = new ColumnInfo("NestedChild", "string", false) { ParentId = nestedParent.Id };
+        columns[childB].Add(nestedParent); columns[childB].Add(nestedChild);
+        Call("RebuildNestedRows", childB);
+        var nestedRow = AttributeRow(childB, "Nested");
+        ((System.Windows.Controls.MenuItem)nestedRow.ContextMenu!.Items[0]).RaiseEvent(new RoutedEventArgs(System.Windows.Controls.MenuItem.ClickEvent));
+        Check(columns[childB].All(c => c.Id != nestedParent.Id && c.Id != nestedChild.Id), "Nested descendants were left behind after Delete.");
+        Parse(CurrentModel().ToJsonString());
+        Call("ImportModelJson", Parse(subcategoryJson.ToJsonString()));
+        dynamicRelations = Field<Dictionary<string, DynamicRelationship>>("_dynamicRelationships");
+        markers = Field<Dictionary<string, (System.Windows.Shapes.Path Line, System.Windows.Shapes.Path Marker)>>("_notationEndpoints");
+        var group = dynamicRelations.Where(p => p.Value.IsSubCategory).ToArray();
+        var circle = group.Select(p => markers[p.Key].Marker).Single(m => !m.Data.IsEmpty());
+        Check(circle.IsHitTestVisible && circle.ContextMenu is not null, "Sub-Category circle is not interactive.");
+        circle.RaiseEvent(new System.Windows.Input.MouseButtonEventArgs(System.Windows.Input.Mouse.PrimaryDevice, 0, System.Windows.Input.MouseButton.Left)
+            { RoutedEvent = UIElement.MouseLeftButtonDownEvent });
+        Check(Field<System.Windows.Shapes.Path>("_selectedSubCategoryMarker") == circle, "Circle click did not select it.");
+        circle.RaiseEvent(new System.Windows.Input.MouseButtonEventArgs(System.Windows.Input.Mouse.PrimaryDevice, 0, System.Windows.Input.MouseButton.Right)
+            { RoutedEvent = UIElement.MouseRightButtonDownEvent });
+        var unrelatedCount = dynamicRelations.Values.Count(r => !r.IsSubCategory);
+        var inheritedIds = group.SelectMany(p => p.Value.InheritedAttributeIds!).ToHashSet();
+        var circleDelete = (System.Windows.Controls.MenuItem)circle.ContextMenu!.Items[0];
+        Check(circleDelete.Template is not null && deleteColumnMenu.Template is not null, "Text-only Delete template missing.");
+        circleDelete.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.MenuItem.ClickEvent));
+        Check(!dynamicRelations.Values.Any(r => r.IsSubCategory), "Circle Delete left Sub-Category branches behind.");
+        Check(dynamicRelations.Values.Count(r => !r.IsSubCategory) == unrelatedCount, "Circle Delete removed unrelated relationships.");
+        columns = Field<Dictionary<string, System.Collections.ObjectModel.ObservableCollection<ColumnInfo>>>("_columns");
+        Check(columns.Values.SelectMany(c => c).All(c => !inheritedIds.Contains(c.Id)), "Circle Delete left inherited columns.");
+        Check(columns[parentKey].Count(c => c.IsPrimaryKey) == 2 && columns[childA].Any(c => !c.IsPrimaryKey), "Deletion removed parent keys or child-owned columns.");
+        Check(!markers.Values.Any(p => p.Marker == circle), "Deleted circle remains on the canvas.");
+        Parse(CurrentModel().ToJsonString());
+        Console.WriteLine("PASS: display levels, endpoints, JSON round trips, metadata/index preservation, materialized views, subject-area transfers, Sub-Category composite PK inheritance, duplicates, cycles, shared junctions and persistence.");
         window.Close(); app.Shutdown();
     }
 }

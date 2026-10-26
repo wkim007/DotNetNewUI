@@ -111,9 +111,9 @@ public partial class MainWindow
             foreach (var key in new[] { "CustomerOrder", "OrderProduct", "OrderOrderItem", "ProductOrderItem" }.Concat(diagram.Relationships.Keys))
             {
                 if (diagram.Deleted.Contains(key)) continue;
-                string source, target; bool identifying = false, view = false;
+                string source, target; bool identifying = false, view = false, subCategory = false;
                 if (diagram.Relationships.TryGetValue(key, out var relation))
-                { source = relation.SourceKey; target = relation.TargetKey; identifying = relation.IsIdentifying; view = relation.IsViewRelationship; }
+                { source = relation.SourceKey; target = relation.TargetKey; identifying = relation.IsIdentifying; view = relation.IsViewRelationship; subCategory = relation.IsSubCategory; }
                 else
                 {
                     if (!diagram.Elements.OfType<Path>().Any(p => Equals(p.Tag, key))) continue;
@@ -127,6 +127,9 @@ public partial class MainWindow
                 obj["parent"] = ObjectJsonId(source); obj["child"] = ObjectJsonId(target);
                 obj["cardinality"] = diagram.Labels.GetValueOrDefault(key)?.Text ?? "1:N";
                 obj["relationshipType"] ??= identifying ? "1" : "2";
+                obj["isSubCategory"] = subCategory;
+                if (relation?.InheritedAttributeIds is { } inheritedIds)
+                    obj["inheritedAttributeIds"] = new JsonArray(inheritedIds.Select(a => (JsonNode?)JsonValue.Create(AttributeJsonId(a))).ToArray());
                 obj["isView"] = view; obj["description"] ??= "";
                 relations.Add(obj);
             }

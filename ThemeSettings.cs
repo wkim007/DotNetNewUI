@@ -183,7 +183,7 @@ public partial class MainWindow
                 foreach (var badge in Descendants<Border>(fields))
                     if (badge.Child is TextBlock label && badge.Width == 36)
                     {
-                        if (label.Text == "PK") Color(label, TextBlock.ForegroundProperty, theme.PkColor);
+                        if (label.Text is "PK" or "PK/FK") Color(label, TextBlock.ForegroundProperty, theme.PkColor);
                         else if (label.Text == "FK") Color(label, TextBlock.ForegroundProperty, theme.FkColor);
                     }
             }

@@ -91,10 +91,18 @@ public partial class MainWindow
                 hit.MouseLeftButtonDown += Relationship_MouseLeftButtonDown;
                 hit.MouseMove += RelationshipHit_MouseMove; hit.MouseLeftButtonUp += RelationshipHit_MouseLeftButtonUp;
                 var view = Flag(r, "isView") || Flag(r, "isCachedView");
-                var identifying = Text(r, "relationshipType") == "1";
+                var subCategory = Flag(r, "isSubCategory");
+                var identifying = subCategory || Text(r, "relationshipType") == "1";
                 var line = new Path { Tag = key, Stroke = ThemeBrush(view ? "#62E6DF" : "#42D9D4"), StrokeThickness = 2.5, StrokeDashCap = PenLineCap.Round, IsHitTestVisible = false, StrokeLineJoin = PenLineJoin.Round };
                 if (view || !identifying) line.StrokeDashArray = new DoubleCollection(view ? new double[] { .1, 1.6 } : new double[] { 2, 1.5 });
-                diagram.Relationships[key] = new DynamicRelationship(from, to, line, hit, identifying, view);
+                diagram.Relationships[key] = new DynamicRelationship(from, to, line, hit, identifying, view, subCategory);
+                if (r["inheritedAttributeIds"] is JsonArray inheritedIds)
+                {
+                    var externalIds = inheritedIds.Select(n => n?.ToString()).ToHashSet();
+                    diagram.Relationships[key] = diagram.Relationships[key] with {
+                        InheritedAttributeIds = objects[Text(r, "child")].Columns.Where(c => externalIds.Contains(attributeIds[c.Id])).Select(c => c.Id).ToArray()
+                    };
+                }
                 diagram.Elements.Add(hit); diagram.Elements.Add(line);
                 var label = new TextBlock { Tag = key, Text = Text(r, "cardinality", "1:N"), Foreground = ThemeBrush("#B9DCF4"), Background = ThemeBrush("#0D1520"), FontSize = 12, Padding = new Thickness(4, 1, 4, 1), IsHitTestVisible = false };
                 Panel.SetZIndex(label, 6); diagram.Labels[key] = label; diagram.Elements.Add(label);

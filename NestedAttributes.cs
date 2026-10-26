@@ -49,10 +49,7 @@ public partial class MainWindow
     private void DeleteAttribute_Click(object sender, RoutedEventArgs e)
     {
         if (EntityNameBox.Tag is not string key || _viewCardKeys.Contains(key) || ColumnsGrid.SelectedItem is not ColumnInfo column) return;
-        var columns = _columns[key];
-        var removed = columns.Where(c => c.Id == column.Id || IsDescendant(c, column, columns)).ToArray();
-        foreach (var item in removed) { columns.Remove(item); _collapsedAttributes.Remove(item.Id); }
-        RebuildNestedRows(key);
+        DeleteDiagramAttribute(key, column.Id);
     }
 
     private void RebuildNestedRows(string key)
