@@ -16,6 +16,12 @@ public partial class MainWindow
         Panel.SetZIndex(marker, 7);
         if (marker.ContextMenu is not null) return;
         marker.ContextMenu = CreateTextDeleteMenu(out var delete);
+        var rollUp = new MenuItem { Header = "RollUp", Template = delete.Template, Padding = delete.Padding };
+        var rollDown = new MenuItem { Header = "RollDown", Template = delete.Template, Padding = delete.Padding };
+        marker.ContextMenu.Items.Insert(0, rollUp);
+        marker.ContextMenu.Items.Insert(1, rollDown);
+        rollUp.Click += (_, _) => RollSubCategory(sourceKey, true);
+        rollDown.Click += (_, _) => RollSubCategory(sourceKey, false);
         void SelectMarker()
         {
             CancelPendingRelationshipTool();

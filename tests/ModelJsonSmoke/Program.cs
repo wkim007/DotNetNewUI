@@ -329,7 +329,7 @@ internal static class Program
             { RoutedEvent = UIElement.MouseRightButtonDownEvent });
         var unrelatedCount = dynamicRelations.Values.Count(r => !r.IsSubCategory);
         var inheritedIds = group.SelectMany(p => p.Value.InheritedAttributeIds!).ToHashSet();
-        var circleDelete = (System.Windows.Controls.MenuItem)circle.ContextMenu!.Items[0];
+        var circleDelete = circle.ContextMenu!.Items.OfType<System.Windows.Controls.MenuItem>().Single(m => Equals(m.Header, "Delete"));
         Check(circleDelete.Template is not null && deleteColumnMenu.Template is not null, "Text-only Delete template missing.");
         circleDelete.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.MenuItem.ClickEvent));
         Check(!dynamicRelations.Values.Any(r => r.IsSubCategory), "Circle Delete left Sub-Category branches behind.");
@@ -338,6 +338,28 @@ internal static class Program
         Check(columns.Values.SelectMany(c => c).All(c => !inheritedIds.Contains(c.Id)), "Circle Delete left inherited columns.");
         Check(columns[parentKey].Count(c => c.IsPrimaryKey) == 2 && columns[childA].Any(c => !c.IsPrimaryKey), "Deletion removed parent keys or child-owned columns.");
         Check(!markers.Values.Any(p => p.Marker == circle), "Deleted circle remains on the canvas.");
+        Parse(CurrentModel().ToJsonString());
+        var rollJson = (JsonObject)subcategoryJson.DeepClone();
+        var rollRelations = rollJson["workspace"]!["relationships"]!.AsArray();
+        foreach (var r in rollRelations.OfType<JsonObject>().Where(r => r["isSubCategory"]?.ToString().Equals("true", StringComparison.OrdinalIgnoreCase) != true).ToArray())
+            rollRelations.Remove(r);
+        Call("ImportModelJson", Parse(rollJson.ToJsonString()));
+        columns = Field<Dictionary<string, System.Collections.ObjectModel.ObservableCollection<ColumnInfo>>>("_columns");
+        var childNames = columns[childA].Concat(columns[childB]).Select(c => c.Name).Distinct().ToArray();
+        Check((bool)Call("RollSubCategory", parentKey, true)!, "RollUp failed.");
+        Check(!columns.ContainsKey(childA) && !columns.ContainsKey(childB), "RollUp kept children.");
+        Check(childNames.All(n => columns[parentKey].Any(c => c.Name == n)), "RollUp lost attributes.");
+        Parse(CurrentModel().ToJsonString());
+        Call("ImportModelJson", Parse(rollJson.ToJsonString()));
+        columns = Field<Dictionary<string, System.Collections.ObjectModel.ObservableCollection<ColumnInfo>>>("_columns");
+        columns[parentKey].Add(new ColumnInfo("ParentDetail", "VARCHAR(80)", false) { Description = "Preserved description" });
+        Check((bool)Call("RollSubCategory", parentKey, false)!, "RollDown failed.");
+        Check(!columns.ContainsKey(parentKey), "RollDown kept parent.");
+        foreach (var child in new[] { childA, childB })
+        {
+            Check(columns[child].Single(c => c.Name == "ParentDetail").Description == "Preserved description", "RollDown lost metadata.");
+            Check(columns[child].Count(c => c.IsPrimaryKey) == 2 && columns[child].Where(c => c.IsPrimaryKey).All(c => !c.IsForeignKey), "RollDown did not retain standalone keys.");
+        }
         Parse(CurrentModel().ToJsonString());
         Console.WriteLine("PASS: display levels, endpoints, JSON round trips, metadata/index preservation, materialized views, subject-area transfers, Sub-Category composite PK inheritance, duplicates, cycles, shared junctions and persistence.");
         window.Close(); app.Shutdown();
