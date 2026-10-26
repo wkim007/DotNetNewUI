@@ -222,13 +222,13 @@ public partial class MainWindow : Window
             BorderBrush = new SolidColorBrush(Color.FromRgb(72, 173, 180)),
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(8),
-            Padding = new Thickness(8, 4, 8, 4),
-            Margin = new Thickness(0, 3, 0, 2)
+            Padding = new Thickness(7, 1, 7, 1),
+            Margin = new Thickness(0, 1, 0, 1)
         };
         ClearAttributeSelection();
         _selectedAttributeRow = row;
-        var layout = new Grid();
-        layout.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(48) });
+        var layout = new Grid { Margin = new Thickness(17, 2, 0, 2) };
+        layout.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(44) });
         layout.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         layout.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         var badge = CreateColumnBadge(new ColumnInfo("New attribute", "VARCHAR(50)", false));
@@ -253,13 +253,14 @@ public partial class MainWindow : Window
             var name = string.IsNullOrWhiteSpace(editor.Text) ? "New attribute" : editor.Text.Trim();
             var columnIndex = _columns[entityKey].IndexOf(pendingColumn);
             if (columnIndex < 0) return;
-            _columns[entityKey][columnIndex] = new ColumnInfo(name, "VARCHAR(50)", false);
+            _columns[entityKey][columnIndex] = pendingColumn with { Name = name };
             row.Tag = new AttributeSelection(entityKey, name);
             row.MouseLeftButtonDown += AttributeRow_MouseLeftButtonDown;
             ConfigureAttributeDrag(row);
             editor.IsReadOnly = true;
             editor.Text = name;
             Keyboard.ClearFocus();
+            RebuildNestedRows(entityKey);
             StatusText.Text = $"Added column: {entityKey}.{name} varchar(50)";
             args.Handled = true;
         };
@@ -545,7 +546,7 @@ public partial class MainWindow : Window
 
     private static Grid CreateAttributeLayout(ColumnInfo column, string originalText)
     {
-        var layout = new Grid { Margin = new Thickness(0, 2, 0, 2) };
+        var layout = new Grid { Margin = new Thickness(17, 2, 0, 2) };
         layout.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(44) });
         layout.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         layout.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
