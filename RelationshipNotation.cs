@@ -101,7 +101,8 @@ public partial class MainWindow
             var isSubCategory = _dynamicRelationships.TryGetValue(key, out var relationship) && relationship.IsSubCategory;
             var visibility = (enabled || isSubCategory) && pair.Line.Visibility == Visibility.Visible ? Visibility.Visible : Visibility.Collapsed;
             if (pair.Marker.Visibility != visibility) pair.Marker.Visibility = visibility;
-            var color = isSubCategory ? Color.FromRgb(145, 163, 178)
+            var color = isSubCategory && relationship!.IsSupertypeSubtypeIdentified && ViewModeBox.SelectedIndex == 1 ? (Color)ColorConverter.ConvertFromString(ActiveTheme.DiagramFill)
+                : isSubCategory ? Color.FromRgb(145, 163, 178)
                 : notation == "Graph" && pair.Line.Stroke is SolidColorBrush lineBrush
                 ? lineBrush.Color
                 : notation == "Information Engineering"

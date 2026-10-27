@@ -128,6 +128,7 @@ public partial class MainWindow
                 obj["cardinality"] = diagram.Labels.GetValueOrDefault(key)?.Text ?? "1:N";
                 obj["relationshipType"] ??= identifying ? "1" : "2";
                 obj["isSubCategory"] = subCategory;
+                obj["isSupertypeSubtypeIdentified"] = relation?.IsSupertypeSubtypeIdentified ?? false;
                 if (relation?.InheritedAttributeIds is { } inheritedIds)
                     obj["inheritedAttributeIds"] = new JsonArray(inheritedIds.Select(a => (JsonNode?)JsonValue.Create(AttributeJsonId(a))).ToArray());
                 obj["isView"] = view; obj["description"] ??= "";

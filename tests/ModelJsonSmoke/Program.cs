@@ -380,6 +380,34 @@ internal static class Program
             Check(columns[child].Count(c => c.IsPrimaryKey) == 2 && columns[child].Where(c => c.IsPrimaryKey).All(c => !c.IsForeignKey), "RollDown did not retain standalone keys.");
         }
         Parse(CurrentModel().ToJsonString());
+        Call("ImportModelJson", Parse(subcategoryJson.ToJsonString()));
+        var identifyBefore = CurrentModel()["workspace"]!["entities"]!.ToJsonString();
+        Call("IdentifySubCategory", parentKey);
+        dynamicRelations = Field<Dictionary<string, DynamicRelationship>>("_dynamicRelationships");
+        markers = Field<Dictionary<string, (System.Windows.Shapes.Path Line, System.Windows.Shapes.Path Marker)>>("_notationEndpoints");
+        var identified = dynamicRelations.Where(p => p.Value.IsSubCategory).ToArray();
+        Check(identified.Length == 2 && identified.All(p => p.Value.IsSupertypeSubtypeIdentified), "Identify did not update every branch.");
+        Check(identified.All(p => ((System.Windows.Media.PathGeometry)p.Value.Visible.Data).Figures.Count == 1), "Identify retained shared routing.");
+        foreach (var p in identified)
+        {
+            var glyphs = (System.Windows.Media.GeometryGroup)markers[p.Key].Marker.Data;
+            Check(glyphs.Children.OfType<System.Windows.Media.LineGeometry>().Count() == 2 &&
+                glyphs.Children.OfType<System.Windows.Media.EllipseGeometry>().Count() == 1, "Identify endpoint shapes incorrect.");
+        }
+        Check(CurrentModel()["workspace"]!["entities"]!.ToJsonString() == identifyBefore, "Identify modified attributes.");
+        viewBox.SelectedIndex = 0;
+        Call("UpdateRelationshipLines");
+        Call("SyncNotationEndpoints");
+        foreach (var p in identified)
+        {
+            Check(markers[p.Key].Marker.Data is System.Windows.Media.EllipseGeometry { RadiusX: 4.5, RadiusY: 4.5 }, "Physical Identify must show only a small child circle.");
+            Check(((System.Windows.Media.SolidColorBrush)markers[p.Key].Marker.Fill).Color == System.Windows.Media.Color.FromRgb(145, 163, 178), "Physical child circle is not filled.");
+        }
+        viewBox.SelectedIndex = 1;
+        Call("UpdateRelationshipLines");
+        Check(identified.All(p => markers[p.Key].Marker.Data is System.Windows.Media.GeometryGroup), "Logical Identify notation not restored.");
+        Call("ImportModelJson", Parse(CurrentModel().ToJsonString()));
+        Check(Field<Dictionary<string, DynamicRelationship>>("_dynamicRelationships").Values.Where(r => r.IsSubCategory).All(r => r.IsSupertypeSubtypeIdentified), "Identify lost on JSON round trip.");
         Console.WriteLine("PASS: display levels, endpoints, JSON round trips, metadata/index preservation, materialized views, subject-area transfers, Sub-Category composite PK inheritance, duplicates, cycles, shared junctions and persistence.");
         window.Close(); app.Shutdown();
     }

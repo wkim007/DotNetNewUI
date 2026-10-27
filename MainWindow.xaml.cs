@@ -1478,6 +1478,7 @@ public sealed record ColumnInfo(string Name, string Type, bool Required, bool Is
 public sealed record DynamicRelationship(string SourceKey, string TargetKey, Path Visible, Path Hit, bool IsIdentifying, bool IsViewRelationship = false, bool IsSubCategory = false)
 {
     public Guid[]? InheritedAttributeIds { get; init; }
+    public bool IsSupertypeSubtypeIdentified { get; init; }
 }
 
 public sealed record AttributeSelection(string EntityKey, string AttributeName);

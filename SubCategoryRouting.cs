@@ -20,6 +20,9 @@ public partial class MainWindow
         var rollDown = new MenuItem { Header = "RollDown", Template = delete.Template, Padding = delete.Padding };
         marker.ContextMenu.Items.Insert(0, rollUp);
         marker.ContextMenu.Items.Insert(1, rollDown);
+        var identify = new MenuItem { Header = "Supertype-Subtype Identify", Template = delete.Template, Padding = delete.Padding };
+        marker.ContextMenu.Items.Insert(2, identify);
+        identify.Click += (_, _) => IdentifySubCategory(sourceKey);
         rollUp.Click += (_, _) => RollSubCategory(sourceKey, true);
         rollDown.Click += (_, _) => RollSubCategory(sourceKey, false);
         void SelectMarker()
@@ -65,7 +68,7 @@ public partial class MainWindow
         var destination = new Point(centers.Average(p => p.X), centers.Average(p => p.Y));
         var parentEdge = Face(parentBounds, destination);
         var direction = EndpointNormal(parentEdge, parentBounds);
-        if (ViewModeBox.SelectedIndex != 1)
+        if (ViewModeBox.SelectedIndex != 1 || relation.IsSupertypeSubtypeIdentified)
         {
             // Physical tables have independent identifying connections, with
             // separate parent anchors instead of the logical shared junction.
@@ -95,6 +98,26 @@ public partial class MainWindow
             if (_selectedSubCategoryMarker == physicalMarker) ClearRelationshipSelection();
             physicalMarker.Data = Geometry.Empty;
             physicalMarker.IsHitTestVisible = false;
+            if (relation.IsSupertypeSubtypeIdentified)
+            {
+                var parentNormal = EndpointNormal(physicalStart, parentBounds);
+                var childNormal = EndpointNormal(physicalEnd, childBounds);
+                LineGeometry Bar(Point endpoint, Vector normal)
+                {
+                    var center = endpoint + normal * 8;
+                    var tangent = new Vector(-normal.Y, normal.X) * 6;
+                    return new LineGeometry(center - tangent, center + tangent);
+                }
+                physicalMarker.Data = ViewModeBox.SelectedIndex != 1
+                    ? new EllipseGeometry(physicalEnd + childNormal * 5, 4.5, 4.5)
+                    : new GeometryGroup { Children = {
+                    Bar(physicalStart, parentNormal), Bar(physicalEnd, childNormal),
+                    new EllipseGeometry(physicalEnd + childNormal * 17, 5, 5)
+                }};
+                physicalMarker.SetBinding(Shape.StrokeProperty, new Binding(nameof(Shape.Stroke)) { Source = line });
+                physicalMarker.StrokeThickness = 1.5;
+                physicalMarker.Fill = ViewModeBox.SelectedIndex == 1 ? ThemeBrush(ActiveTheme.DiagramFill) : ThemeBrush("#91A3B2");
+            }
             if (_selectedRelationshipKey == key)
             {
                 Canvas.SetLeft(RelationshipMoveHandle, points[2].X - 9); Canvas.SetTop(RelationshipMoveHandle, points[2].Y - 9);
@@ -158,5 +181,18 @@ public partial class MainWindow
             RelationshipDeleteButton.Tag = key;
             Canvas.SetLeft(RelationshipDeleteButton, middle.X - 13); Canvas.SetTop(RelationshipDeleteButton, middle.Y - 47);
         }
+    }
+
+    private void IdentifySubCategory(string sourceKey)
+    {
+        var group = _dynamicRelationships.Where(p => p.Value.IsSubCategory && p.Value.SourceKey == sourceKey &&
+            DiagramCanvasSurface.Children.Contains(p.Value.Visible)).ToArray();
+        if (group.Length == 0) return;
+        ClearRelationshipSelection();
+        foreach (var pair in group)
+            _dynamicRelationships[pair.Key] = pair.Value with { IsSupertypeSubtypeIdentified = true };
+        UpdateRelationshipLines();
+        SaveActiveDiagram();
+        StatusText.Text = "Supertype-Subtype Identify completed: individual parent and child connections created.";
     }
 }

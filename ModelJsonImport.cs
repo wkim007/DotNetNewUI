@@ -95,7 +95,9 @@ public partial class MainWindow
                 var identifying = subCategory || Text(r, "relationshipType") == "1";
                 var line = new Path { Tag = key, Stroke = ThemeBrush(view ? "#62E6DF" : "#42D9D4"), StrokeThickness = 2.5, StrokeDashCap = PenLineCap.Round, IsHitTestVisible = false, StrokeLineJoin = PenLineJoin.Round };
                 if (view || !identifying) line.StrokeDashArray = new DoubleCollection(view ? new double[] { .1, 1.6 } : new double[] { 2, 1.5 });
-                diagram.Relationships[key] = new DynamicRelationship(from, to, line, hit, identifying, view, subCategory);
+                diagram.Relationships[key] = new DynamicRelationship(from, to, line, hit, identifying, view, subCategory) {
+                    IsSupertypeSubtypeIdentified = subCategory && Flag(r, "isSupertypeSubtypeIdentified")
+                };
                 if (r["inheritedAttributeIds"] is JsonArray inheritedIds)
                 {
                     var externalIds = inheritedIds.Select(n => n?.ToString()).ToHashSet();
