@@ -244,6 +244,15 @@ internal static class Program
         Check(junctions[0] == junctions[1], "Children do not share a Sub-Category junction.");
         var markers = Field<Dictionary<string, (System.Windows.Shapes.Path Line, System.Windows.Shapes.Path Marker)>>("_notationEndpoints");
         Check(subtypes.Count(p => !markers[p.Key].Marker.Data.IsEmpty()) == 1, "A parent must have exactly one shared junction marker.");
+        viewBox.SelectedIndex = 0;
+        Call("UpdateRelationshipLines"); // The smoke window is intentionally never loaded/shown.
+        Check(subtypes.All(p => ((System.Windows.Media.PathGeometry)p.Value.Visible.Data).Figures.Count == 1), "Physical subtype still has a shared junction route.");
+        Check(subtypes.All(p => markers[p.Key].Marker.Data.IsEmpty() && !markers[p.Key].Marker.IsHitTestVisible), "Physical subtype symbol remains visible or clickable.");
+        Check(subtypes.Select(p => ((System.Windows.Media.PathGeometry)p.Value.Visible.Data).Figures[0].StartPoint).Distinct().Count() == 2, "Physical subtype parent anchors overlap.");
+        viewBox.SelectedIndex = 1;
+        Call("UpdateRelationshipLines");
+        Check(subtypes.All(p => ((System.Windows.Media.PathGeometry)p.Value.Visible.Data).Figures.Count == 2) &&
+            subtypes.Count(p => !markers[p.Key].Marker.Data.IsEmpty()) == 1, "Logical subtype junction did not return.");
         var subcategoryJson = CurrentModel();
         Check(subcategoryJson["workspace"]!["relationships"]!.AsArray().OfType<JsonObject>().Count(r => r["isSubCategory"]?.ToString().Equals("true", StringComparison.OrdinalIgnoreCase) == true) == 2,
             "Sub-Category type not exported.");

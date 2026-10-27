@@ -65,6 +65,43 @@ public partial class MainWindow
         var destination = new Point(centers.Average(p => p.X), centers.Average(p => p.Y));
         var parentEdge = Face(parentBounds, destination);
         var direction = EndpointNormal(parentEdge, parentBounds);
+        if (ViewModeBox.SelectedIndex != 1)
+        {
+            // Physical tables have independent identifying connections, with
+            // separate parent anchors instead of the logical shared junction.
+            var index = Array.FindIndex(siblings, p => p.Key == key);
+            var fraction = (index + 1d) / (siblings.Length + 1d);
+            var physicalStart = direction.Y != 0
+                ? new Point(parentBounds.Left + parentBounds.Width * fraction, parentEdge.Y)
+                : new Point(parentEdge.X, parentBounds.Top + parentBounds.Height * fraction);
+            physicalStart = ResolveEndpoint(line, true, parentBounds, physicalStart);
+            var physicalEnd = ResolveEndpoint(line, false, childBounds, Face(childBounds, physicalStart));
+            var fromStub = physicalStart + EndpointNormal(physicalStart, parentBounds) * 24;
+            var toStub = physicalEnd + EndpointNormal(physicalEnd, childBounds) * 24;
+            _relationshipOffsets.TryGetValue(key, out var physicalOffset);
+            var bend = direction.Y != 0 ? (fromStub.Y + toStub.Y) / 2 + physicalOffset.Y
+                : (fromStub.X + toStub.X) / 2 + physicalOffset.X;
+            var points = direction.Y != 0
+                ? new[] { physicalStart, fromStub, new Point(fromStub.X, bend), new Point(toStub.X, bend), toStub, physicalEnd }
+                : new[] { physicalStart, fromStub, new Point(bend, fromStub.Y), new Point(bend, toStub.Y), toStub, physicalEnd };
+            var physicalFigure = new PathFigure { StartPoint = points[0], IsFilled = false };
+            foreach (var point in points.Skip(1)) physicalFigure.Segments.Add(new LineSegment(point, true));
+            line.StrokeDashArray = null;
+            line.Data = new PathGeometry([physicalFigure]);
+            hit.Data = line.Data.Clone();
+            label.Visibility = Visibility.Collapsed;
+            UpdateNotationEndpoints(key, line, points.ToList(), "1:1");
+            var physicalMarker = _notationEndpoints[key].Marker;
+            if (_selectedSubCategoryMarker == physicalMarker) ClearRelationshipSelection();
+            physicalMarker.Data = Geometry.Empty;
+            physicalMarker.IsHitTestVisible = false;
+            if (_selectedRelationshipKey == key)
+            {
+                Canvas.SetLeft(RelationshipMoveHandle, points[2].X - 9); Canvas.SetTop(RelationshipMoveHandle, points[2].Y - 9);
+                Canvas.SetLeft(RelationshipDeleteButton, points[2].X - 13); Canvas.SetTop(RelationshipDeleteButton, points[2].Y - 47);
+            }
+            return;
+        }
         var junction = parentEdge + direction * 60;
         var apex = junction - direction * 14;
         var start = ResolveEndpoint(line, true, parentBounds, parentEdge);
