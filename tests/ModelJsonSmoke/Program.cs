@@ -408,6 +408,25 @@ internal static class Program
         Check(identified.All(p => markers[p.Key].Marker.Data is System.Windows.Media.GeometryGroup), "Logical Identify notation not restored.");
         Call("ImportModelJson", Parse(CurrentModel().ToJsonString()));
         Check(Field<Dictionary<string, DynamicRelationship>>("_dynamicRelationships").Values.Where(r => r.IsSubCategory).All(r => r.IsSupertypeSubtypeIdentified), "Identify lost on JSON round trip.");
+        foreach (var rollUpBranch in new[] { true, false })
+        {
+            Call("ImportModelJson", Parse(rollJson.ToJsonString()));
+            Call("IdentifySubCategory", parentKey);
+            dynamicRelations = Field<Dictionary<string, DynamicRelationship>>("_dynamicRelationships");
+            columns = Field<Dictionary<string, System.Collections.ObjectModel.ObservableCollection<ColumnInfo>>>("_columns");
+            var branch = dynamicRelations.Single(p => p.Value.IsSubCategory && p.Value.TargetKey == childA);
+            Check(branch.Value.Hit.ContextMenu!.Items.Count == 2, "Logical identified line menu missing.");
+            viewBox.SelectedIndex = 0; Call("UpdateRelationshipLines");
+            Check(branch.Value.Hit.ContextMenu is null && !(bool)Call("RollIdentifiedBranch", branch.Key, rollUpBranch)!, "Physical branch roll is available.");
+            viewBox.SelectedIndex = 1; Call("UpdateRelationshipLines");
+            Check((bool)Call("RollIdentifiedBranch", branch.Key, rollUpBranch)!, "Selected branch roll failed.");
+            Check(columns.ContainsKey(childB), "Branch roll removed sibling.");
+            var remaining = dynamicRelations.Single(p => p.Value.IsSubCategory).Value;
+            Check(remaining.TargetKey == childB && remaining.SourceKey == (rollUpBranch ? parentKey : childA), "Sibling connection was not preserved or redirected.");
+            Check(rollUpBranch ? !columns.ContainsKey(childA) && columns[parentKey].Any(c => c.Name == "cc")
+                : !columns.ContainsKey(parentKey) && columns[childA].Count(c => c.IsPrimaryKey) == 2, "Branch roll attributes incorrect.");
+            Parse(CurrentModel().ToJsonString());
+        }
         Console.WriteLine("PASS: display levels, endpoints, JSON round trips, metadata/index preservation, materialized views, subject-area transfers, Sub-Category composite PK inheritance, duplicates, cycles, shared junctions and persistence.");
         window.Close(); app.Shutdown();
     }

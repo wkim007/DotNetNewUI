@@ -15,6 +15,7 @@ public partial class MainWindow
         if (!_notationEndpoints.TryGetValue(key, out var pair))
         {
             var marker = new Path { IsHitTestVisible = false, StrokeLineJoin = PenLineJoin.Round };
+            marker.PreviewMouseRightButtonDown += (_, e) => OpenIdentifiedBranchMenu(key, marker, e);
             marker.SetBinding(Shape.StrokeProperty, new Binding(nameof(Shape.Stroke)) { Source = line });
             marker.SetBinding(Shape.StrokeThicknessProperty, new Binding(nameof(Shape.StrokeThickness)) { Source = line });
             Panel.SetZIndex(marker, 2);

@@ -50,6 +50,7 @@ public partial class MainWindow
     private void UpdateSubCategoryRelationship(string key, Border parent, Border child, Path line, Path hit, TextBlock label)
     {
         var relation = _dynamicRelationships[key];
+        ConfigureIdentifiedBranchMenu(key, hit, relation);
         var siblings = _dynamicRelationships.Where(p => p.Value.IsSubCategory &&
             p.Value.SourceKey == relation.SourceKey && !_deletedRelationships.Contains(p.Key) &&
             FindCard(p.Value.TargetKey) is { } card && DiagramCanvasSurface.Children.Contains(card)).ToArray();
@@ -117,6 +118,7 @@ public partial class MainWindow
                 physicalMarker.SetBinding(Shape.StrokeProperty, new Binding(nameof(Shape.Stroke)) { Source = line });
                 physicalMarker.StrokeThickness = 1.5;
                 physicalMarker.Fill = ViewModeBox.SelectedIndex == 1 ? ThemeBrush(ActiveTheme.DiagramFill) : ThemeBrush("#91A3B2");
+                physicalMarker.IsHitTestVisible = ViewModeBox.SelectedIndex == 1;
             }
             if (_selectedRelationshipKey == key)
             {
@@ -194,5 +196,39 @@ public partial class MainWindow
         UpdateRelationshipLines();
         SaveActiveDiagram();
         StatusText.Text = "Supertype-Subtype Identify completed: individual parent and child connections created.";
+    }
+
+    private void ConfigureIdentifiedBranchMenu(string key, Path hit, DynamicRelationship relation)
+    {
+        if (ViewModeBox.SelectedIndex != 1 || !relation.IsSupertypeSubtypeIdentified)
+        { hit.ContextMenu = null; return; }
+        if (hit.ContextMenu is not null) return;
+        var menu = CreateTextDeleteMenu(out var up);
+        up.Header = "RollUp";
+        var down = new MenuItem { Header = "RollDown", Template = up.Template, Padding = up.Padding };
+        menu.Items.Add(down);
+        up.Click += (_, _) => RollIdentifiedBranch(key, true);
+        down.Click += (_, _) => RollIdentifiedBranch(key, false);
+        menu.Opened += (_, _) =>
+        {
+            if (ViewModeBox.SelectedIndex != 1) { menu.IsOpen = false; return; }
+            ClearAttributeSelection(); ClearCardSelection(); ClearRelationshipSelection();
+            _selectedHitPath = hit; _selectedRelationshipKey = key;
+            _selectedRelationship = FindRelationshipLine(key);
+            if (_selectedRelationship is { } line) { line.Stroke = ThemeBrush("#F1DF77"); line.StrokeThickness = 4; }
+            ShowRelationshipProperties(key);
+        };
+        hit.ContextMenu = menu;
+    }
+
+    private void OpenIdentifiedBranchMenu(string? key, FrameworkElement target, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (ViewModeBox.SelectedIndex != 1 || key is null ||
+            !_dynamicRelationships.TryGetValue(key, out var relation) || !relation.IsSupertypeSubtypeIdentified ||
+            relation.Hit.ContextMenu is not { } menu) return;
+        menu.PlacementTarget = target;
+        menu.Placement = System.Windows.Controls.Primitives.PlacementMode.MousePoint;
+        menu.IsOpen = true;
+        e.Handled = true;
     }
 }

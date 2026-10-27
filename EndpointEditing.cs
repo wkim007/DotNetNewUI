@@ -67,6 +67,7 @@ public partial class MainWindow
     private Thumb CreateEndpointHandle(bool source)
     {
         var handle = new Thumb { Width = 12, Height = 12, Cursor = Cursors.Cross, ToolTip = source ? "Drag source endpoint" : "Drag target endpoint" };
+        handle.PreviewMouseRightButtonDown += (_, e) => OpenIdentifiedBranchMenu(_endpointHandleLine?.Tag as string, handle, e);
         handle.Template = (ControlTemplate)System.Windows.Markup.XamlReader.Parse("<ControlTemplate xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' TargetType='Thumb'><Ellipse Fill='#F1BF52' Stroke='#FFF1A8' StrokeThickness='1.5'/></ControlTemplate>");
         Panel.SetZIndex(handle, 40); DiagramCanvasSurface.Children.Add(handle);
         handle.DragDelta += (_, args) =>

@@ -3,15 +3,28 @@ namespace ErwinStudioSample;
 public partial class MainWindow
 {
     private bool RollSubCategory(string sourceKey, bool up)
+        => RollSubCategoryCore(sourceKey, up, null);
+
+    private bool RollIdentifiedBranch(string key, bool up)
+    {
+        if (ViewModeBox.SelectedIndex != 1 || !_dynamicRelationships.TryGetValue(key, out var relation) ||
+            !relation.IsSubCategory || !relation.IsSupertypeSubtypeIdentified) return false;
+        return RollSubCategoryCore(relation.SourceKey, up, key);
+    }
+
+    private bool RollSubCategoryCore(string sourceKey, bool up, string? branchKey)
     {
         var group = _dynamicRelationships.Where(p => p.Value.IsSubCategory && p.Value.SourceKey == sourceKey &&
-            DiagramCanvasSurface.Children.Contains(p.Value.Visible)).ToArray();
+            (branchKey is null || p.Key == branchKey) && DiagramCanvasSurface.Children.Contains(p.Value.Visible)).ToArray();
         if (group.Length == 0 || !_columns.ContainsKey(sourceKey)) return false;
         var children = group.Select(p => p.Value.TargetKey).Distinct().ToArray();
         var removed = (up ? children : new[] { sourceKey }).ToHashSet();
         var groupKeys = group.Select(p => p.Key).ToHashSet();
+        var redirected = _dynamicRelationships.Where(p => branchKey is not null && !up &&
+            p.Value.IsSubCategory && p.Value.SourceKey == sourceKey && !groupKeys.Contains(p.Key)).ToArray();
+        var redirectedKeys = redirected.Select(p => p.Key).ToHashSet();
         var otherEdges = new[] { "CustomerOrder", "OrderProduct", "OrderOrderItem", "ProductOrderItem" }.Concat(_dynamicRelationships.Keys);
-        if (otherEdges.Any(k => !groupKeys.Contains(k) && !_deletedRelationships.Contains(k) &&
+        if (otherEdges.Any(k => !groupKeys.Contains(k) && !redirectedKeys.Contains(k) && !_deletedRelationships.Contains(k) &&
             FindRelationshipLine(k) is { } line && DiagramCanvasSurface.Children.Contains(line) &&
             GetRelationshipInfo(k) is { } info && (removed.Contains(info.Source) || removed.Contains(info.Target))))
         {
@@ -61,6 +74,8 @@ public partial class MainWindow
             _dynamicRelationships[pair.Key] = pair.Value with { InheritedAttributeIds = [] };
             DeleteRelationship(pair.Key);
         }
+        foreach (var pair in redirected)
+            _dynamicRelationships[pair.Key] = pair.Value with { SourceKey = children[0] };
         foreach (var key in removed) DeleteObject(key);
         foreach (var (key, attributes) in staged)
         {

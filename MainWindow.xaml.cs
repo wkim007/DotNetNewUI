@@ -58,6 +58,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        RelationshipMoveHandle.PreviewMouseRightButtonDown += (_, e) => OpenIdentifiedBranchMenu(_selectedRelationshipKey, RelationshipMoveHandle, e);
         var statusDescriptor = System.ComponentModel.DependencyPropertyDescriptor.FromProperty(TextBlock.TextProperty, typeof(TextBlock));
         EventHandler updateWarningColor = (_, _) =>
         {
