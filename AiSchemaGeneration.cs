@@ -9,6 +9,7 @@ public partial class MainWindow
 {
     private async Task GenerateAiDiagram(AiConfiguration config, string description)
     {
+        if (TryApplyAiSubCategoryRoll(description)) return;
         if (TryApplySubjectAreaTransfer(description)) return;
         var originalDiagram = _activeDiagram;
         var originalKeys = _columns.Keys.Where(IsAiModelObject).ToArray();

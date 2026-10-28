@@ -427,6 +427,19 @@ internal static class Program
                 : !columns.ContainsKey(parentKey) && columns[childA].Count(c => c.IsPrimaryKey) == 2, "Branch roll attributes incorrect.");
             Parse(CurrentModel().ToJsonString());
         }
+        foreach (var operation in new[] { "rollup", "rolldown" })
+        {
+            Call("ImportModelJson", Parse(rollJson.ToJsonString()));
+            columns = Field<Dictionary<string, System.Collections.ObjectModel.ObservableCollection<ColumnInfo>>>("_columns");
+            var command = "do " + operation + " operation in current diagram for " +
+                string.Join(", ", new[] { parentKey, childA, childB }.Select(k => Call("EntityDisplayName", k)));
+            viewBox.SelectedIndex = 0;
+            Check((bool)Call("TryApplyAiSubCategoryRoll", command)! && columns.ContainsKey(parentKey) && columns.ContainsKey(childA), "AI roll changed physical model.");
+            viewBox.SelectedIndex = 1;
+            Check((bool)Call("TryApplyAiSubCategoryRoll", command)!, "AI roll command not handled.");
+            Check(operation == "rollup" ? columns.ContainsKey(parentKey) && !columns.ContainsKey(childA) && !columns.ContainsKey(childB)
+                : !columns.ContainsKey(parentKey) && columns.ContainsKey(childA) && columns.ContainsKey(childB), "AI roll did not apply expected operation.");
+        }
         Console.WriteLine("PASS: display levels, endpoints, JSON round trips, metadata/index preservation, materialized views, subject-area transfers, Sub-Category composite PK inheritance, duplicates, cycles, shared junctions and persistence.");
         window.Close(); app.Shutdown();
     }
