@@ -10,6 +10,49 @@ public partial class MainWindow
     private int _rolledViewIndex;
     private bool _switchingRolledView;
 
+    private void SyncNewObjectsToAlternateView(JsonObject current)
+    {
+        if (_alternateViewModel?["workspace"] is not JsonObject alternate ||
+            _modelJsonSource?["workspace"] is not JsonObject baseline) return;
+        // Ordinary shared objects remain synchronized after every view switch.
+        // Subtype participants retain their independent rolled representations.
+        var known = Kinds.SelectMany(k => Items(baseline[k])).Select(o => Text(o, "id")).ToHashSet();
+        var shared = Kinds.SelectMany(k => Items(alternate[k])).Select(o => Text(o, "id")).ToHashSet();
+        var rolledObjects = Items(current["workspace"]?["relationships"]).Concat(Items(alternate["relationships"]))
+            .Where(r => Flag(r, "isSubCategory")).SelectMany(r => new[] { Text(r, "parent"), Text(r, "child") }).ToHashSet();
+        var added = new HashSet<string>();
+        foreach (var kind in Kinds)
+        foreach (var obj in Items(current["workspace"]?[kind]).Where(o =>
+            !known.Contains(Text(o, "id")) || shared.Contains(Text(o, "id")) && !rolledObjects.Contains(Text(o, "id"))))
+        {
+            var id = Text(obj, "id"); added.Add(id);
+            var objects = alternate[kind] as JsonArray ?? new JsonArray();
+            if (alternate[kind] is null) alternate[kind] = objects;
+            var old = Items(objects).FirstOrDefault(o => Text(o, "id") == id);
+            if (old is not null) objects[objects.IndexOf(old)] = obj.DeepClone();
+            else objects.Add(obj.DeepClone());
+        }
+        if (added.Count == 0) return;
+        foreach (var area in Items(current["workspace"]?["subjectAreas"]))
+        {
+            var targetArea = Items(alternate["subjectAreas"]).FirstOrDefault(a => Text(a, "id") == Text(area, "id"));
+            if (targetArea is null) continue;
+            foreach (var diagram in Items(area["diagrams"]))
+            {
+                var targetDiagram = Items(targetArea["diagrams"]).FirstOrDefault(d => Text(d, "id") == Text(diagram, "id"));
+                if (targetDiagram is null) continue;
+                foreach (var kind in Kinds)
+                foreach (var shape in Items(diagram["modelShapes"]?[kind]).Where(s => added.Contains(Text(s, "id"))))
+                {
+                    var shapes = targetDiagram["modelShapes"]![kind]!.AsArray();
+                    var old = Items(shapes).FirstOrDefault(s => Text(s, "id") == Text(shape, "id"));
+                    if (old is not null) shapes[shapes.IndexOf(old)] = shape.DeepClone();
+                    else shapes.Add(shape.DeepClone());
+                }
+            }
+        }
+    }
+
     private void SwitchRolledView()
     {
         if (_switchingRolledView || _alternateViewModel is null || ViewModeBox.SelectedIndex == _rolledViewIndex) return;

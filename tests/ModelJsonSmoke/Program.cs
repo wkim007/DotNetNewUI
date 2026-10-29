@@ -495,6 +495,44 @@ internal static class Program
             viewBox.SelectedIndex = 1;
             Check(CurrentModel()["workspace"]!["entities"]!.ToJsonString() == logicalResult["workspace"]!["entities"]!.ToJsonString(), "Reopen restored stale physical result.");
         }
+        foreach (var physicalUp in new[] { false, true })
+        {
+            Call("ImportModelJson", Parse(rollJson.ToJsonString()));
+            viewBox.SelectedIndex = 1;
+            Call("RollPhysicalSubCategory", parentKey, physicalUp, null!);
+            var keysBefore = Field<Dictionary<string, System.Collections.ObjectModel.ObservableCollection<ColumnInfo>>>("_columns").Keys.ToHashSet();
+            Call("AddNewEntity");
+            columns = Field<Dictionary<string, System.Collections.ObjectModel.ObservableCollection<ColumnInfo>>>("_columns");
+            var newKey = columns.Keys.Single(k => !keysBefore.Contains(k));
+            columns[newKey].Add(new ColumnInfo("NewDetail", "VARCHAR(80)", false) { Description = "Shared new entity" });
+            Call("RebuildNestedRows", newKey);
+            var addedId = (string)Call("ObjectJsonId", newKey)!;
+            var newCard = (System.Windows.Controls.Border)Call("FindCard", newKey)!;
+            System.Windows.Controls.Canvas.SetLeft(newCard, 850);
+            System.Windows.Controls.Canvas.SetTop(newCard, 325);
+            viewBox.SelectedIndex = 0;
+            columns = Field<Dictionary<string, System.Collections.ObjectModel.ObservableCollection<ColumnInfo>>>("_columns");
+            var importedKey = "Imported_" + addedId;
+            Check(columns.ContainsKey(importedKey) && columns[importedKey].Any(c => c.Description == "Shared new entity"), "New entity/attributes missing from physical view.");
+            Check(physicalUp ? !columns.ContainsKey(childA) : !columns.ContainsKey(parentKey), "Sync restored rolled-away objects.");
+            Check(System.Windows.Controls.Canvas.GetLeft((System.Windows.Controls.Border)Call("FindCard", importedKey)!) == 850, "New entity position lost.");
+            Call("ImportModelJson", Parse(CurrentModel().ToJsonString()));
+            viewBox.SelectedIndex = 1;
+            Check(Field<Dictionary<string, System.Collections.ObjectModel.ObservableCollection<ColumnInfo>>>("_columns").ContainsKey(importedKey), "New entity lost after reopen.");
+            columns = Field<Dictionary<string, System.Collections.ObjectModel.ObservableCollection<ColumnInfo>>>("_columns");
+            var detailIndex = columns[importedKey].ToList().FindIndex(c => c.Name == "NewDetail");
+            columns[importedKey][detailIndex] = columns[importedKey][detailIndex] with { Name = "RenamedDetail", Type = "VARCHAR(125)", Description = "Edited after switching" };
+            columns[importedKey].Add(new ColumnInfo("LaterAttribute", "INT", false));
+            Call("RebuildNestedRows", importedKey);
+            viewBox.SelectedIndex = 0;
+            columns = Field<Dictionary<string, System.Collections.ObjectModel.ObservableCollection<ColumnInfo>>>("_columns");
+            Check(columns[importedKey].Any(c => c.Name == "RenamedDetail" && c.Type == "VARCHAR(125)" && c.Description == "Edited after switching") &&
+                columns[importedKey].Any(c => c.Name == "LaterAttribute"), "Later edits were not synced to physical view.");
+            columns[importedKey].Remove(columns[importedKey].Single(c => c.Name == "LaterAttribute"));
+            viewBox.SelectedIndex = 1;
+            columns = Field<Dictionary<string, System.Collections.ObjectModel.ObservableCollection<ColumnInfo>>>("_columns");
+            Check(columns[importedKey].All(c => c.Name != "LaterAttribute"), "Physical attribute deletion was not synced back.");
+        }
         Console.WriteLine("PASS: display levels, endpoints, JSON round trips, metadata/index preservation, materialized views, subject-area transfers, Sub-Category composite PK inheritance, duplicates, cycles, shared junctions and persistence.");
         window.Close(); app.Shutdown();
     }

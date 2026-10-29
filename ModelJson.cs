@@ -185,6 +185,7 @@ public partial class MainWindow
         }
         workspace["subjectAreas"] = areas;
         workspace["schemas"] ??= new JsonArray();
+        SyncNewObjectsToAlternateView(root);
         root.Remove("alternateViewModel");
         if (_alternateViewModel is not null && !_switchingRolledView)
             root["alternateViewModel"] = _alternateViewModel.DeepClone();
