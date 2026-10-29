@@ -185,6 +185,9 @@ public partial class MainWindow
         }
         workspace["subjectAreas"] = areas;
         workspace["schemas"] ??= new JsonArray();
+        root.Remove("alternateViewModel");
+        if (_alternateViewModel is not null && !_switchingRolledView)
+            root["alternateViewModel"] = _alternateViewModel.DeepClone();
         return root;
     }
 

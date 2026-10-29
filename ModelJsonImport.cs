@@ -121,6 +121,8 @@ public partial class MainWindow
         var oldObjectIds = new Dictionary<string, string>(_modelObjectIds); var oldAttributeIds = new Dictionary<Guid, string>(_modelAttributeIds); var oldRelationIds = new Dictionary<string, string>(_modelRelationshipIds);
         var target = diagrams.FirstOrDefault(d => d.Id == Text(root["meta"], "activeDiagramId") && d.SubjectAreaId == Text(root["meta"], "activeSubjectAreaId"))
             ?? diagrams.FirstOrDefault(d => d.SubjectAreaId == Text(root["meta"], "activeSubjectAreaId")) ?? diagrams.First();
+        var wasSwitchingView = _switchingRolledView;
+        _switchingRolledView = true;
         try
         {
             _modelJsonSource = root.DeepClone() as JsonObject;
@@ -137,6 +139,11 @@ public partial class MainWindow
             ViewModeBox.SelectedIndex = Text(root["meta"], "viewMode") == "logical" ? 1 : 0;
             SaveActiveDiagram();
             StatusText.Text = $"Imported {objects.Count} objects, {diagrams.Count} diagrams and {areas.Count} subject areas.";
+            if (!wasSwitchingView)
+            {
+                _alternateViewModel = root["alternateViewModel"]?.DeepClone() as JsonObject;
+                _rolledViewIndex = ViewModeBox.SelectedIndex;
+            }
         }
         catch
         {
@@ -149,6 +156,7 @@ public partial class MainWindow
             if (oldActive is not null) SwitchDiagram(oldActive);
             throw;
         }
+        finally { _switchingRolledView = wasSwitchingView; }
     }
 
     private void RefreshImportedDiagram()

@@ -415,7 +415,7 @@ internal static class Program
             dynamicRelations = Field<Dictionary<string, DynamicRelationship>>("_dynamicRelationships");
             columns = Field<Dictionary<string, System.Collections.ObjectModel.ObservableCollection<ColumnInfo>>>("_columns");
             var branch = dynamicRelations.Single(p => p.Value.IsSubCategory && p.Value.TargetKey == childA);
-            Check(branch.Value.Hit.ContextMenu!.Items.Count == 2, "Logical identified line menu missing.");
+            Check(branch.Value.Hit.ContextMenu!.Items.Count == 4, "Logical identified line menu missing.");
             viewBox.SelectedIndex = 0; Call("UpdateRelationshipLines");
             Check(branch.Value.Hit.ContextMenu is null && !(bool)Call("RollIdentifiedBranch", branch.Key, rollUpBranch)!, "Physical branch roll is available.");
             viewBox.SelectedIndex = 1; Call("UpdateRelationshipLines");
@@ -439,6 +439,61 @@ internal static class Program
             Check((bool)Call("TryApplyAiSubCategoryRoll", command)!, "AI roll command not handled.");
             Check(operation == "rollup" ? columns.ContainsKey(parentKey) && !columns.ContainsKey(childA) && !columns.ContainsKey(childB)
                 : !columns.ContainsKey(parentKey) && columns.ContainsKey(childA) && columns.ContainsKey(childB), "AI roll did not apply expected operation.");
+        }
+        foreach (var physicalUp in new[] { true, false })
+        {
+            Call("ImportModelJson", Parse(rollJson.ToJsonString()));
+            viewBox.SelectedIndex = 1;
+            var logicalBefore = CurrentModel()["workspace"]!["entities"]!.ToJsonString();
+            Call("RollPhysicalSubCategory", parentKey, physicalUp, null!);
+            Check(viewBox.SelectedIndex == 1, "Physical roll changed current logical view.");
+            Check(CurrentModel()["workspace"]!["entities"]!.ToJsonString() == logicalBefore, "Physical roll modified logical attributes.");
+            viewBox.SelectedIndex = 0;
+            columns = Field<Dictionary<string, System.Collections.ObjectModel.ObservableCollection<ColumnInfo>>>("_columns");
+            Check(physicalUp ? columns.ContainsKey(parentKey) && !columns.ContainsKey(childA)
+                : !columns.ContainsKey(parentKey) && columns.ContainsKey(childA), "Physical result missing.");
+            var dualModel = CurrentModel();
+            Call("ImportModelJson", Parse(dualModel.ToJsonString()));
+            viewBox.SelectedIndex = 1;
+            columns = Field<Dictionary<string, System.Collections.ObjectModel.ObservableCollection<ColumnInfo>>>("_columns");
+            Check(columns.ContainsKey(parentKey) && columns.ContainsKey(childA) && columns.ContainsKey(childB), "Logical objects not restored after reopen.");
+            Check(Field<Dictionary<string, DynamicRelationship>>("_dynamicRelationships").Values.Count(r => r.IsSubCategory) == 2, "Logical subtype relationships lost.");
+        }
+        Call("ImportModelJson", Parse(rollJson.ToJsonString()));
+        viewBox.SelectedIndex = 1;
+        var repeatedLogical = CurrentModel()["workspace"]!["entities"]!.ToJsonString();
+        foreach (var physicalUp in new[] { false, true, false, true, true })
+        {
+            Call("RollPhysicalSubCategory", parentKey, physicalUp, null!);
+            Check(CurrentModel()["workspace"]!["entities"]!.ToJsonString() == repeatedLogical, "Repeated physical roll changed logical model.");
+            viewBox.SelectedIndex = 0;
+            columns = Field<Dictionary<string, System.Collections.ObjectModel.ObservableCollection<ColumnInfo>>>("_columns");
+            Check(physicalUp ? columns.ContainsKey(parentKey) && !columns.ContainsKey(childA) && !columns.ContainsKey(childB)
+                : !columns.ContainsKey(parentKey) && columns.ContainsKey(childA) && columns.ContainsKey(childB), "Repeated physical roll reused previous result.");
+            Call("ImportModelJson", Parse(CurrentModel().ToJsonString()));
+            viewBox.SelectedIndex = 1;
+        }
+        foreach (var physicalUp in new[] { false, true })
+        foreach (var regularUp in new[] { false, true })
+        foreach (var identifiedBranch in new[] { false, true })
+        {
+            Call("ImportModelJson", Parse(rollJson.ToJsonString()));
+            viewBox.SelectedIndex = 1;
+            Call("RollPhysicalSubCategory", parentKey, physicalUp, null!);
+            if (identifiedBranch)
+            {
+                Call("IdentifySubCategory", parentKey);
+                var branchKey = Field<Dictionary<string, DynamicRelationship>>("_dynamicRelationships").Single(p => p.Value.IsSubCategory && p.Value.TargetKey == childA).Key;
+                Check((bool)Call("RollIdentifiedBranch", branchKey, regularUp)!, "Regular branch roll after physical roll failed.");
+            }
+            else Check((bool)Call("RollSubCategory", parentKey, regularUp)!, "Regular roll after physical roll failed.");
+            var logicalResult = CurrentModel();
+            Check(logicalResult["alternateViewModel"] is null, "Regular roll retained stale physical projection.");
+            viewBox.SelectedIndex = 0;
+            Check(CurrentModel()["workspace"]!["entities"]!.ToJsonString() == logicalResult["workspace"]!["entities"]!.ToJsonString(), "Views differ after regular roll.");
+            Call("ImportModelJson", Parse(CurrentModel().ToJsonString()));
+            viewBox.SelectedIndex = 1;
+            Check(CurrentModel()["workspace"]!["entities"]!.ToJsonString() == logicalResult["workspace"]!["entities"]!.ToJsonString(), "Reopen restored stale physical result.");
         }
         Console.WriteLine("PASS: display levels, endpoints, JSON round trips, metadata/index preservation, materialized views, subject-area transfers, Sub-Category composite PK inheritance, duplicates, cycles, shared junctions and persistence.");
         window.Close(); app.Shutdown();

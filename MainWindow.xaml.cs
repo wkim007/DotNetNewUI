@@ -87,7 +87,7 @@ public partial class MainWindow : Window
     private string _physicalNotation = "IDEF1x";
     private string _relationshipLineStyle = "line";
 
-    private void ProjectViewMode_Changed(object sender, SelectionChangedEventArgs e) { ApplyProjectViewMode(); UpdateDiagramTools(); if (IsLoaded) { UpdateRelationshipLines(); RefreshModelExplorer(); } }
+    private void ProjectViewMode_Changed(object sender, SelectionChangedEventArgs e) { SwitchRolledView(); ApplyProjectViewMode(); UpdateDiagramTools(); if (IsLoaded) { UpdateRelationshipLines(); RefreshModelExplorer(); } }
 
     private void ApplyProjectViewMode()
     {

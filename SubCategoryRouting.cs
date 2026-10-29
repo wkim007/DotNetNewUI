@@ -22,6 +22,7 @@ public partial class MainWindow
         marker.ContextMenu.Items.Insert(1, rollDown);
         var identify = new MenuItem { Header = "Supertype-Subtype Identify", Template = delete.Template, Padding = delete.Padding };
         marker.ContextMenu.Items.Insert(2, identify);
+        AddPhysicalRollMenus(marker.ContextMenu, delete, sourceKey);
         identify.Click += (_, _) => IdentifySubCategory(sourceKey);
         rollUp.Click += (_, _) => RollSubCategory(sourceKey, true);
         rollDown.Click += (_, _) => RollSubCategory(sourceKey, false);
@@ -207,6 +208,7 @@ public partial class MainWindow
         up.Header = "RollUp";
         var down = new MenuItem { Header = "RollDown", Template = up.Template, Padding = up.Padding };
         menu.Items.Add(down);
+        AddPhysicalRollMenus(menu, up, relation.SourceKey, key);
         up.Click += (_, _) => RollIdentifiedBranch(key, true);
         down.Click += (_, _) => RollIdentifiedBranch(key, false);
         menu.Opened += (_, _) =>

@@ -3,13 +3,23 @@ namespace ErwinStudioSample;
 public partial class MainWindow
 {
     private bool RollSubCategory(string sourceKey, bool up)
-        => RollSubCategoryCore(sourceKey, up, null);
+        => RollSubCategoryBothViews(sourceKey, up, null);
+
+    private bool RollSubCategoryBothViews(string sourceKey, bool up, string? branchKey)
+    {
+        if (!RollSubCategoryCore(sourceKey, up, branchKey)) return false;
+        // Regular rolls replace the physical-only projection. Both views now
+        // render this transformed model; rejected operations keep the projection.
+        _alternateViewModel = null;
+        _rolledViewIndex = ViewModeBox.SelectedIndex;
+        return true;
+    }
 
     private bool RollIdentifiedBranch(string key, bool up)
     {
         if (ViewModeBox.SelectedIndex != 1 || !_dynamicRelationships.TryGetValue(key, out var relation) ||
             !relation.IsSubCategory || !relation.IsSupertypeSubtypeIdentified) return false;
-        return RollSubCategoryCore(relation.SourceKey, up, key);
+        return RollSubCategoryBothViews(relation.SourceKey, up, key);
     }
 
     private bool RollSubCategoryCore(string sourceKey, bool up, string? branchKey)
