@@ -17,7 +17,10 @@ public partial class MainWindow
         panel.Children.Add(new TextBlock { Text = "Migrated Column Options", Foreground = ThemeInk, FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 18) });
         var enabled = new CheckBox { Content = "Display Diagram Highlights", Foreground = ThemeInk, IsChecked = _migratedHighlights, Margin = new Thickness(0, 0, 0, 16) };
         var bold = new CheckBox { Content = "Bold", Foreground = ThemeInk, IsChecked = _migratedHighlightBold, Margin = new Thickness(0, 16, 0, 0) };
-        var color = new Button { Content = "Color", Background = ThemeBrush(_migratedHighlightColor), Foreground = Brushes.White, Padding = new Thickness(12, 8, 12, 8), ToolTip = _migratedHighlightColor };
+        var swatch = new Border { Width = 175, Height = 24, Background = ThemeBrush(_migratedHighlightColor), BorderBrush = ThemeMuted, BorderThickness = new Thickness(1) };
+        var color = new Button { Content = swatch, Width = 253, Height = 46, HorizontalAlignment = HorizontalAlignment.Left,
+            Background = ThemeBrush("#344D6A"), Padding = new Thickness(12, 8, 12, 8), ToolTip = _migratedHighlightColor };
+        System.Windows.Automation.AutomationProperties.SetName(color, "Migrated Column Color");
         void Apply()
         {
             if (_alternateViewModel?["meta"] is { } meta)
@@ -33,9 +36,11 @@ public partial class MainWindow
         color.Click += (_, _) => {
             var chosen = ChooseThemeColor(dialog, "Migrated Column Color", _migratedHighlightColor);
             if (chosen is null) return;
-            _migratedHighlightColor = chosen; color.Background = ThemeBrush(chosen); color.ToolTip = chosen; Apply();
+            _migratedHighlightColor = chosen; swatch.Background = ThemeBrush(chosen); color.ToolTip = chosen; Apply();
         };
-        panel.Children.Add(enabled); panel.Children.Add(color); panel.Children.Add(bold);
+        panel.Children.Add(enabled);
+        panel.Children.Add(new TextBlock { Text = "Color", Foreground = ThemeInk, Margin = new Thickness(0, 0, 0, 8) });
+        panel.Children.Add(color); panel.Children.Add(bold);
         return panel;
     }
 
