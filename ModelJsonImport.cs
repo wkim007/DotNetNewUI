@@ -126,6 +126,9 @@ public partial class MainWindow
         try
         {
             _modelJsonSource = root.DeepClone() as JsonObject;
+            _migratedHighlights = Flag(root["meta"], "migratedColumnHighlights");
+            _migratedHighlightBold = Flag(root["meta"], "migratedColumnBold", true);
+            _migratedHighlightColor = Text(root["meta"], "migratedColumnColor", "#C00000");
             RestoreMap(_entityDisplayNames, names); RestoreMap(_objectDefinitions, definitions); RestoreMap(_objectPhysicalNames, physicalNames);
             RestoreMap(_modelObjectIds, objectIds); RestoreMap(_modelAttributeIds, attributeIds); RestoreMap(_modelRelationshipIds, relationIds);
             _diagrams.Clear(); _diagrams.AddRange(diagrams);

@@ -137,15 +137,26 @@ public partial class MainWindow : Window
         close.Click += (_, _) => dialog.Close();
         DockPanel.SetDock(close, Dock.Right);
         header.Children.Add(close);
+        var reset = new Button
+        {
+            Content = "Reset", Background = close.Background, Foreground = ink,
+            Padding = close.Padding, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 8, 0)
+        };
+        DockPanel.SetDock(reset, Dock.Right);
+        header.Children.Add(reset);
         header.Children.Add(new TextBlock { Text = "Model Properties", Foreground = ink, FontSize = 26, FontWeight = FontWeights.Bold, VerticalAlignment = VerticalAlignment.Center });
         panel.Children.Add(header);
         var settings = new StackPanel();
-        panel.Children.Add(new Border
+        var tabs = new TabControl { SelectedIndex = 0, Background = ThemeBrush("#13212E"), Padding = new Thickness(8) };
+        panel.Children.Add(tabs);
+        var general = new TabItem { Header = "General" };
+        tabs.Items.Add(general);
+        general.Content = new Border
         {
             Background = new SolidColorBrush(Color.FromRgb(19, 33, 46)),
             BorderBrush = new SolidColorBrush(Color.FromRgb(39, 60, 79)), BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(18), Padding = new Thickness(16), Child = settings
-        });
+        };
         settings.Children.Add(new TextBlock { Text = "NOTATION", Foreground = muted, FontWeight = FontWeights.Bold, FontSize = 14, Margin = new Thickness(0, 0, 0, 14) });
         void AddOption(string label, string[] options, string current, Action<string> apply)
         {
@@ -180,6 +191,31 @@ public partial class MainWindow : Window
             UpdateRelationshipLines();
             StatusText.Text = $"Relationship line style: {value}";
         });
+        var defaults = new TabItem { Header = "Default", Content = CreateMigratedColumnOptions(dialog) };
+        tabs.Items.Add(defaults);
+        reset.Click += (_, _) =>
+        {
+            _logicalNotation = "IDEF1x";
+            _physicalNotation = "IDEF1x";
+            _relationshipLineStyle = "line";
+            _migratedHighlights = false;
+            _migratedHighlightColor = "#C00000";
+            _migratedHighlightBold = true;
+            var options = settings.Children.OfType<ComboBox>().ToArray();
+            options[0].SelectedItem = _logicalNotation;
+            options[1].SelectedItem = _physicalNotation;
+            options[2].SelectedItem = _relationshipLineStyle;
+            defaults.Content = CreateMigratedColumnOptions(dialog);
+            if (_alternateViewModel?["meta"] is { } meta)
+            {
+                meta["migratedColumnHighlights"] = _migratedHighlights;
+                meta["migratedColumnColor"] = _migratedHighlightColor;
+                meta["migratedColumnBold"] = _migratedHighlightBold;
+            }
+            UpdateRelationshipLines();
+            ApplyMigratedColumnHighlights();
+            StatusText.Text = "Model Properties reset to defaults.";
+        };
         dialog.ShowDialog();
     }
     private void SelectEntity(string key)
@@ -763,6 +799,7 @@ public partial class MainWindow : Window
         if (_selectedRelationship is null) return;
         _selectedRelationship.Stroke = new SolidColorBrush(Color.FromRgb(241, 223, 119));
         _selectedRelationship.StrokeThickness = 4;
+        ApplyMigratedColumnHighlights();
         var point = e.GetPosition(DiagramCanvasSurface);
         RelationshipMoveHandle.Visibility = Visibility.Visible;
         Canvas.SetLeft(RelationshipMoveHandle, point.X - 9);
@@ -924,6 +961,7 @@ public partial class MainWindow : Window
             _selectedRelationship.StrokeThickness = 2.5;
         }
         _selectedRelationship = null; _selectedHitPath = null; _selectedRelationshipKey = null;
+        ApplyMigratedColumnHighlights();
         RelationshipMoveHandle.Visibility = Visibility.Collapsed;
         RelationshipDeleteButton.Visibility = Visibility.Collapsed;
         RelationshipDeleteButton.Tag = null;

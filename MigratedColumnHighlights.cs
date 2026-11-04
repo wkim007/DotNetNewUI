@@ -1,0 +1,96 @@
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
+
+namespace ErwinStudioSample;
+
+public partial class MainWindow
+{
+    private bool _migratedHighlights;
+    private bool _migratedHighlightBold = true;
+    private string _migratedHighlightColor = "#C00000";
+    private readonly System.Runtime.CompilerServices.ConditionalWeakTable<FrameworkElement, object> _highlightHoverTargets = new();
+
+    private FrameworkElement CreateMigratedColumnOptions(Window dialog)
+    {
+        var panel = new StackPanel { Margin = new Thickness(16) };
+        panel.Children.Add(new TextBlock { Text = "Migrated Column Options", Foreground = ThemeInk, FontWeight = FontWeights.Bold, Margin = new Thickness(0, 0, 0, 18) });
+        var enabled = new CheckBox { Content = "Display Diagram Highlights", Foreground = ThemeInk, IsChecked = _migratedHighlights, Margin = new Thickness(0, 0, 0, 16) };
+        var bold = new CheckBox { Content = "Bold", Foreground = ThemeInk, IsChecked = _migratedHighlightBold, Margin = new Thickness(0, 16, 0, 0) };
+        var color = new Button { Content = "Color", Background = ThemeBrush(_migratedHighlightColor), Foreground = Brushes.White, Padding = new Thickness(12, 8, 12, 8), ToolTip = _migratedHighlightColor };
+        void Apply()
+        {
+            if (_alternateViewModel?["meta"] is { } meta)
+            {
+                meta["migratedColumnHighlights"] = _migratedHighlights;
+                meta["migratedColumnBold"] = _migratedHighlightBold;
+                meta["migratedColumnColor"] = _migratedHighlightColor;
+            }
+            ApplyMigratedColumnHighlights();
+        }
+        enabled.Click += (_, _) => { _migratedHighlights = enabled.IsChecked == true; Apply(); };
+        bold.Click += (_, _) => { _migratedHighlightBold = bold.IsChecked == true; Apply(); };
+        color.Click += (_, _) => {
+            var chosen = ChooseThemeColor(dialog, "Migrated Column Color", _migratedHighlightColor);
+            if (chosen is null) return;
+            _migratedHighlightColor = chosen; color.Background = ThemeBrush(chosen); color.ToolTip = chosen; Apply();
+        };
+        panel.Children.Add(enabled); panel.Children.Add(color); panel.Children.Add(bold);
+        return panel;
+    }
+
+    private void ApplyMigratedColumnHighlights()
+    {
+        string? hovered = null;
+        foreach (var path in DiagramCanvasSurface.Children.OfType<System.Windows.Shapes.Path>())
+        {
+            var key = path.Tag as string ?? _notationEndpoints.FirstOrDefault(p => p.Value.Marker == path).Key;
+            if (key is null || GetRelationshipInfo(key) is null) continue;
+            if (!_highlightHoverTargets.TryGetValue(path, out _))
+            {
+                _highlightHoverTargets.Add(path, new object());
+                path.MouseEnter += (_, _) => ApplyMigratedColumnHighlights();
+                path.MouseLeave += (_, _) => ApplyMigratedColumnHighlights();
+            }
+            if (path.IsMouseOver) hovered = key;
+        }
+        var activeKey = hovered ?? _selectedRelationshipKey;
+        if (activeKey is null && _selectedSubCategoryMarker is { } marker)
+            activeKey = _notationEndpoints.FirstOrDefault(p => p.Value.Marker == marker).Key;
+        var highlighted = new HashSet<Guid>();
+        if (_migratedHighlights && activeKey is not null)
+        foreach (var key in new[] { activeKey })
+        {
+            if (_deletedRelationships.Contains(key) || GetRelationshipInfo(key) is not { } info ||
+                !_columns.TryGetValue(info.Source, out var parent) || !_columns.TryGetValue(info.Target, out var child) ||
+                FindRelationshipLine(key) is not { Visibility: Visibility.Visible }) continue;
+            var primary = parent.Where(c => c.IsPrimaryKey).ToArray();
+            _dynamicRelationships.TryGetValue(key, out var relation);
+            for (var i = 0; i < primary.Length; i++)
+            {
+                var pk = primary[i];
+                var migrated = relation?.InheritedAttributeIds is { } ids && i < ids.Length
+                    ? child.FirstOrDefault(c => c.Id == ids[i])
+                    : child.FirstOrDefault(c => c.IsForeignKey && (c.Name.Equals(pk.Name, StringComparison.OrdinalIgnoreCase) ||
+                        !string.IsNullOrWhiteSpace(pk.PhysicalName) && pk.PhysicalName.Equals(c.PhysicalName, StringComparison.OrdinalIgnoreCase)));
+                if (migrated is null) continue;
+                highlighted.Add(pk.Id); highlighted.Add(migrated.Id);
+            }
+        }
+        var highlightBrush = ThemeBrush(_migratedHighlightColor);
+        foreach (var row in Descendants<Border>(DiagramCanvasSurface))
+        {
+            if (row.Tag is not AttributeSelection selection || row.Child is not Grid grid ||
+                !_columns.TryGetValue(selection.EntityKey, out var columns)) continue;
+            var column = columns.FirstOrDefault(c => c.Name == selection.AttributeName);
+            var active = column is not null && highlighted.Contains(column.Id);
+            foreach (var name in grid.Children.OfType<TextBlock>().Where(t => Grid.GetColumn(t) == 1))
+            {
+                var brush = (SolidColorBrush)(active ? highlightBrush : ThemeBrush("#DCE7F5"));
+                var weight = active ? (_migratedHighlightBold ? FontWeights.Bold : FontWeights.Normal) : FontWeights.SemiBold;
+                if (name.Foreground is not SolidColorBrush old || old.Color != brush.Color) name.Foreground = brush;
+                if (name.FontWeight != weight) name.FontWeight = weight;
+            }
+        }
+    }
+}

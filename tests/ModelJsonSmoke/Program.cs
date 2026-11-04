@@ -533,6 +533,33 @@ internal static class Program
             columns = Field<Dictionary<string, System.Collections.ObjectModel.ObservableCollection<ColumnInfo>>>("_columns");
             Check(columns[importedKey].All(c => c.Name != "LaterAttribute"), "Physical attribute deletion was not synced back.");
         }
+        Call("ImportModelJson", Parse(subcategoryJson.ToJsonString()));
+        typeof(MainWindow).GetField("_migratedHighlights", Private)!.SetValue(window, true);
+        typeof(MainWindow).GetField("_migratedHighlightBold", Private)!.SetValue(window, true);
+        typeof(MainWindow).GetField("_migratedHighlightColor", Private)!.SetValue(window, "#FF3300");
+        Call("ApplyTheme");
+        System.Windows.Controls.TextBlock AttributeNameText(string k, string n) =>
+            ((System.Windows.Controls.Grid)AttributeRow(k, n).Child).Children.OfType<System.Windows.Controls.TextBlock>()
+                .Single(t => System.Windows.Controls.Grid.GetColumn(t) == 1);
+        Check(AttributeNameText(parentKey, "aa").FontWeight == FontWeights.SemiBold, "Unselected relationships highlighted columns.");
+        var highlightKey = Field<Dictionary<string, DynamicRelationship>>("_dynamicRelationships").Single(p => p.Value.IsSubCategory && p.Value.TargetKey == childA).Key;
+        typeof(MainWindow).GetField("_selectedRelationshipKey", Private)!.SetValue(window, highlightKey);
+        Call("ApplyMigratedColumnHighlights");
+        Check(AttributeNameText(childB, "aa").FontWeight == FontWeights.SemiBold, "Unselected sibling relationship was highlighted.");
+        foreach (var k in new[] { parentKey, childA })
+        {
+            var name = AttributeNameText(k, "aa");
+            Check(name.FontWeight == FontWeights.Bold && ((System.Windows.Media.SolidColorBrush)name.Foreground).Color == System.Windows.Media.Color.FromRgb(255, 51, 0), "Migrated key highlight missing.");
+        }
+        Check(AttributeNameText(childA, "cc").FontWeight == FontWeights.SemiBold, "Unrelated column highlighted.");
+        Call("ClearRelationshipSelection");
+        Check(AttributeNameText(childA, "aa").FontWeight == FontWeights.SemiBold, "Clearing relationship selection left highlighting.");
+        var highlightedModel = CurrentModel();
+        Call("ImportModelJson", Parse(highlightedModel.ToJsonString()));
+        Check(Field<bool>("_migratedHighlights") && Field<string>("_migratedHighlightColor") == "#FF3300", "Highlight settings lost on reopen.");
+        typeof(MainWindow).GetField("_migratedHighlights", Private)!.SetValue(window, false);
+        Call("ApplyMigratedColumnHighlights");
+        Check(AttributeNameText(childA, "aa").FontWeight == FontWeights.SemiBold, "Disabled highlighting not restored.");
         Console.WriteLine("PASS: display levels, endpoints, JSON round trips, metadata/index preservation, materialized views, subject-area transfers, Sub-Category composite PK inheritance, duplicates, cycles, shared junctions and persistence.");
         window.Close(); app.Shutdown();
     }

@@ -189,6 +189,7 @@ public partial class MainWindow
             }
         }
         foreach (var label in _relationshipLabels.Values) TextFont(label, theme.RelationshipFont);
+        ApplyMigratedColumnHighlights();
         foreach (var key in new[] { "CustomerOrder", "OrderProduct", "OrderOrderItem", "ProductOrderItem" }.Concat(_dynamicRelationships.Keys))
         {
             if (FindRelationshipLine(key) is not { } line) continue;

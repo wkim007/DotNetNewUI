@@ -49,6 +49,9 @@ public partial class MainWindow
         meta["databaseName"] = ProjectDatabaseBox.Text;
         meta["databaseVersion"] = ProjectVersionBox.Text;
         meta["viewMode"] = ViewModeBox.SelectedIndex == 1 ? "logical" : "physical";
+        meta["migratedColumnHighlights"] = _migratedHighlights;
+        meta["migratedColumnColor"] = _migratedHighlightColor;
+        meta["migratedColumnBold"] = _migratedHighlightBold;
         meta["activeSubjectAreaId"] = _activeSubjectAreaId;
         meta["activeDiagramId"] = _activeDiagram?.Id;
         meta["nextDiagramSeq"] = _diagramNumber + 1;
