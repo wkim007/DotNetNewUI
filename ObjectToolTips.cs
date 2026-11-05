@@ -34,18 +34,26 @@ public partial class MainWindow
             _objectDefinitions[key] = editor.Text;
     }
 
+    private static ToolTip CreateDiagramToolTip(StackPanel body) => new()
+    {
+        Content = body, Background = Brushes.White, Foreground = Brushes.Black, BorderBrush = Brushes.Gray,
+        BorderThickness = new Thickness(1), Padding = new Thickness(10, 8, 10, 8), HasDropShadow = true
+    };
+
+    private static TextBlock CreateDiagramToolTipTitle() => new()
+    {
+        Foreground = Brushes.DarkBlue, FontSize = 14, FontWeight = FontWeights.SemiBold,
+        TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 4)
+    };
+
     private void ConfigureObjectToolTip(Border card, string key)
     {
         var panel = new StackPanel { MaxWidth = 320 };
-        var title = new TextBlock { FontWeight = FontWeights.SemiBold, FontSize = 14, Foreground = Brushes.White, TextWrapping = TextWrapping.Wrap };
-        var kind = new TextBlock { Foreground = ThemeBrush("#A9C9E8"), Margin = new Thickness(0, 3, 0, 10) };
-        var definition = new TextBlock { Foreground = ThemeBrush("#DCE7F5"), TextWrapping = TextWrapping.Wrap };
+        var title = CreateDiagramToolTipTitle();
+        var kind = new TextBlock { Foreground = Brushes.Black };
+        var definition = new TextBlock { Foreground = Brushes.Black, TextWrapping = TextWrapping.Wrap };
         panel.Children.Add(title); panel.Children.Add(kind); panel.Children.Add(definition);
-        var tooltip = new ToolTip
-        {
-            Content = panel, Background = ThemeBrush("#17232F"), BorderBrush = ThemeBrush("#405D7B"),
-            BorderThickness = new Thickness(1), Padding = new Thickness(12)
-        };
+        var tooltip = CreateDiagramToolTip(panel);
         tooltip.Opened += (_, _) =>
         {
             title.Text = EntityDisplayName(key);

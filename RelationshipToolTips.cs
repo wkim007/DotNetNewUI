@@ -27,8 +27,7 @@ public partial class MainWindow
     {
         hit.Resources[typeof(RelationshipText)] = data;
         var body = new StackPanel { MaxWidth = 320 };
-        var title = new TextBlock { Foreground = Brushes.DarkBlue, FontSize = 14, FontWeight = FontWeights.SemiBold,
-            TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 4) };
+        var title = CreateDiagramToolTipTitle();
         body.Children.Add(title);
         TextBlock Detail()
         {
@@ -39,8 +38,7 @@ public partial class MainWindow
         var parent = Detail();
         var child = Detail();
         var comment = Detail();
-        var tip = new ToolTip { Content = body, Background = Brushes.White, BorderBrush = Brushes.Gray,
-            BorderThickness = new Thickness(1), Padding = new Thickness(10, 8, 10, 8), HasDropShadow = true };
+        var tip = CreateDiagramToolTip(body);
         tip.Opened += (_, _) =>
         {
             if (GetRelationshipInfo(key) is not { } info) return;
