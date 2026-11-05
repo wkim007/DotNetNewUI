@@ -25,6 +25,7 @@ public partial class MainWindow
 
     private void ConfigureRelationshipToolTip(Path hit, string key, RelationshipText data)
     {
+        ConfigureRelationshipMenu(key, hit);
         hit.Resources[typeof(RelationshipText)] = data;
         var body = new StackPanel { MaxWidth = 320 };
         var title = CreateDiagramToolTipTitle();

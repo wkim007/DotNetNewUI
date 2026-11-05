@@ -51,7 +51,7 @@ public partial class MainWindow
     private void UpdateSubCategoryRelationship(string key, Border parent, Border child, Path line, Path hit, TextBlock label)
     {
         var relation = _dynamicRelationships[key];
-        ConfigureIdentifiedBranchMenu(key, hit, relation);
+        ConfigureRelationshipMenu(key, hit, relation);
         var siblings = _dynamicRelationships.Where(p => p.Value.IsSubCategory &&
             p.Value.SourceKey == relation.SourceKey && !_deletedRelationships.Contains(p.Key) &&
             FindCard(p.Value.TargetKey) is { } card && DiagramCanvasSurface.Children.Contains(card)).ToArray();
@@ -199,21 +199,31 @@ public partial class MainWindow
         StatusText.Text = "Supertype-Subtype Identify completed: individual parent and child connections created.";
     }
 
-    private void ConfigureIdentifiedBranchMenu(string key, Path hit, DynamicRelationship relation)
+    private void ConfigureRelationshipMenu(string key, Path hit, DynamicRelationship? relation = null)
     {
-        if (ViewModeBox.SelectedIndex != 1 || !relation.IsSupertypeSubtypeIdentified)
-        { hit.ContextMenu = null; return; }
-        if (hit.ContextMenu is not null) return;
-        var menu = CreateTextDeleteMenu(out var up);
-        up.Header = "RollUp";
-        var down = new MenuItem { Header = "RollDown", Template = up.Template, Padding = up.Padding };
-        menu.Items.Add(down);
-        AddPhysicalRollMenus(menu, up, relation.SourceKey, key);
-        up.Click += (_, _) => RollIdentifiedBranch(key, true);
-        down.Click += (_, _) => RollIdentifiedBranch(key, false);
+        var includeRoll = ViewModeBox.SelectedIndex == 1 && relation?.IsSupertypeSubtypeIdentified == true;
+        if (Equals(hit.ContextMenu?.Tag, includeRoll)) return;
+        var menu = CreateTextDeleteMenu(out var first);
+        menu.Tag = includeRoll;
+        MenuItem Item(string header) => new() { Header = header, Template = first.Template, Padding = first.Padding };
+        if (includeRoll)
+        {
+            first.Header = "RollUp";
+            var down = Item("RollDown");
+            menu.Items.Add(down);
+            AddPhysicalRollMenus(menu, first, relation!.SourceKey, key);
+            first.Click += (_, _) => RollIdentifiedBranch(key, true);
+            down.Click += (_, _) => RollIdentifiedBranch(key, false);
+        }
+        var parent = includeRoll ? Item("Go to Parent") : first;
+        parent.Header = "Go to Parent";
+        if (includeRoll) menu.Items.Add(parent);
+        var child = Item("Go to Child");
+        menu.Items.Add(child);
+        parent.Click += (_, _) => NavigateRelationshipEndpoint(key, true);
+        child.Click += (_, _) => NavigateRelationshipEndpoint(key, false);
         menu.Opened += (_, _) =>
         {
-            if (ViewModeBox.SelectedIndex != 1) { menu.IsOpen = false; return; }
             ClearAttributeSelection(); ClearCardSelection(); ClearRelationshipSelection();
             _selectedHitPath = hit; _selectedRelationshipKey = key;
             _selectedRelationship = FindRelationshipLine(key);
@@ -223,11 +233,28 @@ public partial class MainWindow
         hit.ContextMenu = menu;
     }
 
-    private void OpenIdentifiedBranchMenu(string? key, FrameworkElement target, System.Windows.Input.MouseButtonEventArgs e)
+    private void NavigateRelationshipEndpoint(string key, bool parent)
     {
-        if (ViewModeBox.SelectedIndex != 1 || key is null ||
-            !_dynamicRelationships.TryGetValue(key, out var relation) || !relation.IsSupertypeSubtypeIdentified ||
-            relation.Hit.ContextMenu is not { } menu) return;
+        if (GetRelationshipInfo(key) is not { } info) return;
+        var destination = parent ? info.Source : info.Target;
+        if (FindCard(destination) is not { } card || !DiagramCanvasSurface.Children.Contains(card)) return;
+        CancelPendingRelationshipTool();
+        ClearAttributeSelection();
+        ClearRelationshipSelection();
+        SelectEntity(destination);
+        SelectCard(card);
+        card.BringIntoView();
+    }
+
+    private void OpenRelationshipLineMenu(string? key, FrameworkElement target, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (key is null) return;
+        // The logical subtype junction has its own group menu.
+        if (_dynamicRelationships.TryGetValue(key, out var relation) && relation.IsSubCategory &&
+            !relation.IsSupertypeSubtypeIdentified && _notationEndpoints.TryGetValue(key, out var endpoints) &&
+            endpoints.Marker == target) return;
+        var hit = relation?.Hit ?? _selectedHitPath;
+        if (hit?.ContextMenu is not { } menu || !Equals(hit.Tag, key)) return;
         menu.PlacementTarget = target;
         menu.Placement = System.Windows.Controls.Primitives.PlacementMode.MousePoint;
         menu.IsOpen = true;

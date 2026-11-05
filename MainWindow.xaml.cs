@@ -62,7 +62,7 @@ public partial class MainWindow : Window
             ConfigureRelationshipToolTip(hit, (string)hit.Tag, new RelationshipText());
         RelationshipNameBox.TextChanged += (_, _) => { if (RelationshipNameBox.Tag is RelationshipText data) data.Name = RelationshipNameBox.Text; };
         RelationshipDescriptionBox.TextChanged += (_, _) => { if (RelationshipDescriptionBox.Tag is RelationshipText data) data.Comment = RelationshipDescriptionBox.Text; };
-        RelationshipMoveHandle.PreviewMouseRightButtonDown += (_, e) => OpenIdentifiedBranchMenu(_selectedRelationshipKey, RelationshipMoveHandle, e);
+        RelationshipMoveHandle.PreviewMouseRightButtonDown += (_, e) => OpenRelationshipLineMenu(_selectedRelationshipKey, RelationshipMoveHandle, e);
         var statusDescriptor = System.ComponentModel.DependencyPropertyDescriptor.FromProperty(TextBlock.TextProperty, typeof(TextBlock));
         EventHandler updateWarningColor = (_, _) =>
         {

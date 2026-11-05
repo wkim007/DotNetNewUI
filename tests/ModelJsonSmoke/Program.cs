@@ -415,9 +415,9 @@ internal static class Program
             dynamicRelations = Field<Dictionary<string, DynamicRelationship>>("_dynamicRelationships");
             columns = Field<Dictionary<string, System.Collections.ObjectModel.ObservableCollection<ColumnInfo>>>("_columns");
             var branch = dynamicRelations.Single(p => p.Value.IsSubCategory && p.Value.TargetKey == childA);
-            Check(branch.Value.Hit.ContextMenu!.Items.Count == 4, "Logical identified line menu missing.");
+            Check(branch.Value.Hit.ContextMenu!.Items.Count == 6, "Logical identified line menu missing.");
             viewBox.SelectedIndex = 0; Call("UpdateRelationshipLines");
-            Check(branch.Value.Hit.ContextMenu is null && !(bool)Call("RollIdentifiedBranch", branch.Key, rollUpBranch)!, "Physical branch roll is available.");
+            Check(branch.Value.Hit.ContextMenu!.Items.Count == 2 && !(bool)Call("RollIdentifiedBranch", branch.Key, rollUpBranch)!, "Physical branch roll is available.");
             viewBox.SelectedIndex = 1; Call("UpdateRelationshipLines");
             Check((bool)Call("RollIdentifiedBranch", branch.Key, rollUpBranch)!, "Selected branch roll failed.");
             Check(columns.ContainsKey(childB), "Branch roll removed sibling.");
@@ -574,6 +574,12 @@ internal static class Program
         descriptionEditor.Clear();
         relationTip.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.ToolTip.OpenedEvent));
         Check(tipRows[3].Visibility == Visibility.Collapsed, "Empty relationship comment should be hidden.");
+        foreach (var (label, destination) in new[] { ("Go to Parent", tipRelation.Value.SourceKey), ("Go to Child", tipRelation.Value.TargetKey) })
+        {
+            var command = tipRelation.Value.Hit.ContextMenu!.Items.OfType<System.Windows.Controls.MenuItem>().Single(item => Equals(item.Header, label));
+            command.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.MenuItem.ClickEvent));
+            Check(Equals(Field<System.Windows.Controls.Border>("_selectedCard").Tag, destination), "Navigation selected wrong endpoint.");
+        }
         window.Close(); app.Shutdown();
     }
 }
