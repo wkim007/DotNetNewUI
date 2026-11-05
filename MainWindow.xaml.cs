@@ -58,6 +58,10 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        foreach (var hit in DiagramCanvasSurface.Children.OfType<Path>().Where(p => p.IsHitTestVisible && p.Tag is string))
+            ConfigureRelationshipToolTip(hit, (string)hit.Tag, new RelationshipText());
+        RelationshipNameBox.TextChanged += (_, _) => { if (RelationshipNameBox.Tag is RelationshipText data) data.Name = RelationshipNameBox.Text; };
+        RelationshipDescriptionBox.TextChanged += (_, _) => { if (RelationshipDescriptionBox.Tag is RelationshipText data) data.Comment = RelationshipDescriptionBox.Text; };
         RelationshipMoveHandle.PreviewMouseRightButtonDown += (_, e) => OpenIdentifiedBranchMenu(_selectedRelationshipKey, RelationshipMoveHandle, e);
         var statusDescriptor = System.ComponentModel.DependencyPropertyDescriptor.FromProperty(TextBlock.TextProperty, typeof(TextBlock));
         EventHandler updateWarningColor = (_, _) =>
@@ -868,9 +872,15 @@ public partial class MainWindow : Window
         AttributePropertiesPanel.Visibility = Visibility.Collapsed;
         RelationshipPropertiesPanel.Visibility = Visibility.Visible;
         SelectedRelationshipTitle.Text = $"{source} → {target}".ToUpperInvariant();
-        RelationshipNameBox.Text = $"{source} -> {target}";
+        var hit = DiagramCanvasSurface.Children.OfType<Path>().FirstOrDefault(p => Equals(p.Tag, key) && p.Resources.Contains(typeof(RelationshipText)));
+        var data = hit?.Resources[typeof(RelationshipText)] as RelationshipText;
+        source = EntityDisplayName(source);
+        target = EntityDisplayName(target);
+        RelationshipNameBox.Tag = RelationshipDescriptionBox.Tag = null;
+        RelationshipNameBox.Text = string.IsNullOrWhiteSpace(data?.Name) ? $"{source} → {target}" : data.Name;
         RelationshipPhysicalNameBox.Text = $"{source.ToLowerInvariant()}-{target.ToLowerInvariant()}";
-        RelationshipDescriptionBox.Text = "contains";
+        RelationshipDescriptionBox.Text = data?.Comment ?? "";
+        RelationshipNameBox.Tag = RelationshipDescriptionBox.Tag = data;
         RelationshipParentBox.Text = source;
         RelationshipChildBox.Text = target;
         RelationshipTypeBox.Text = type;
@@ -1246,6 +1256,7 @@ public partial class MainWindow : Window
             Cursor = Cursors.SizeAll
         };
         hit.MouseLeftButtonDown += Relationship_MouseLeftButtonDown;
+        ConfigureRelationshipToolTip(hit, key, new RelationshipText());
         hit.MouseMove += RelationshipHit_MouseMove;
         hit.MouseLeftButtonUp += RelationshipHit_MouseLeftButtonUp;
 

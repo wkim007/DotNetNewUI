@@ -135,6 +135,15 @@ public partial class MainWindow
                 if (relation?.InheritedAttributeIds is { } inheritedIds)
                     obj["inheritedAttributeIds"] = new JsonArray(inheritedIds.Select(a => (JsonNode?)JsonValue.Create(AttributeJsonId(a))).ToArray());
                 obj["isView"] = view; obj["description"] ??= "";
+                var hit = relation?.Hit ?? diagram.Elements.OfType<Path>().FirstOrDefault(p => Equals(p.Tag, key) && p.Resources.Contains(typeof(RelationshipText)));
+                if (hit?.Resources[typeof(RelationshipText)] is RelationshipText data)
+                {
+                    obj["name"] = string.IsNullOrWhiteSpace(data.Name) ? EntityDisplayName(source) + " → " + EntityDisplayName(target) : data.Name;
+                    obj["description"] = data.Comment;
+                    if (string.IsNullOrWhiteSpace(data.Comment))
+                        foreach (var alias in new[] { "definition", "comment" })
+                            if (obj.ContainsKey(alias)) obj[alias] = "";
+                }
                 relations.Add(obj);
             }
         }

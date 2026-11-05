@@ -561,6 +561,19 @@ internal static class Program
         Call("ApplyMigratedColumnHighlights");
         Check(AttributeNameText(childA, "aa").FontWeight == FontWeights.SemiBold, "Disabled highlighting not restored.");
         Console.WriteLine("PASS: display levels, endpoints, JSON round trips, metadata/index preservation, materialized views, subject-area transfers, Sub-Category composite PK inheritance, duplicates, cycles, shared junctions and persistence.");
+        var tipRelation = Field<Dictionary<string, DynamicRelationship>>("_dynamicRelationships").First();
+        Call("ShowRelationshipProperties", tipRelation.Key);
+        Field<System.Windows.Controls.TextBox>("RelationshipNameBox").Text = "receives";
+        var descriptionEditor = Field<System.Windows.Controls.TextBox>("RelationshipDescriptionBox");
+        descriptionEditor.Text = "Payment received";
+        var relationTip = (System.Windows.Controls.ToolTip)tipRelation.Value.Hit.ToolTip;
+        relationTip.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.ToolTip.OpenedEvent));
+        var tipRows = ((System.Windows.Controls.StackPanel)relationTip.Content).Children.OfType<System.Windows.Controls.TextBlock>().ToArray();
+        Check(tipRows[0].Text.StartsWith("receives") && tipRows[1].Text == "Parent: " + Call("EntityDisplayName", tipRelation.Value.SourceKey)
+            && tipRows[2].Text == "Child: " + Call("EntityDisplayName", tipRelation.Value.TargetKey) && tipRows[3].Text.Contains("Payment received"), "Relationship tooltip details incorrect.");
+        descriptionEditor.Clear();
+        relationTip.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.ToolTip.OpenedEvent));
+        Check(tipRows[3].Visibility == Visibility.Collapsed, "Empty relationship comment should be hidden.");
         window.Close(); app.Shutdown();
     }
 }

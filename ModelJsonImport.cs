@@ -47,6 +47,7 @@ public partial class MainWindow
         }
         var objectDefinitions = Kinds.SelectMany(k => Items(workspace[k])).ToDictionary(o => Text(o, "id"));
         var diagrams = new List<DiagramState>();
+        var relationshipText = Items(workspace["relationships"]).ToDictionary(r => Text(r, "id"), RelationshipText.Read);
         foreach (var area in Items(workspace["subjectAreas"]))
         foreach (var source in Items(area["diagrams"]))
         {
@@ -88,6 +89,7 @@ public partial class MainWindow
                 if (!diagram.Columns.ContainsKey(from) || !diagram.Columns.ContainsKey(to)) continue;
                 var key = "ImportedRelationship_" + Text(r, "id"); relationIds[key] = Text(r, "id");
                 var hit = new Path { Tag = key, Stroke = Brushes.Transparent, StrokeThickness = 16, Cursor = Cursors.SizeAll };
+                ConfigureRelationshipToolTip(hit, key, relationshipText[Text(r, "id")]);
                 hit.MouseLeftButtonDown += Relationship_MouseLeftButtonDown;
                 hit.MouseMove += RelationshipHit_MouseMove; hit.MouseLeftButtonUp += RelationshipHit_MouseLeftButtonUp;
                 var view = Flag(r, "isView") || Flag(r, "isCachedView");
