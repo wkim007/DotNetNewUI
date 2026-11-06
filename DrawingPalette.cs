@@ -41,7 +41,7 @@ public partial class MainWindow
             Dispatcher.BeginInvoke(new Action(() => DrawingPalette.BringIntoView()));
     }
 
-    private void AddDrawingShape(string name)
+    private Grid AddDrawingShape(string name)
     {
         const double width = 140, height = 100;
         Geometry Polygon(params Point[] points)
@@ -155,5 +155,6 @@ public partial class MainWindow
         delete.Click += (_, _) => RemoveDrawing(); menu.Items.Add(delete); shape.ContextMenu = menu;
         editor.Focus(); editor.SelectAll();
         StatusText.Text = $"Added {name} — type text, or drag the outer shape to move";
+        return shape;
     }
 }

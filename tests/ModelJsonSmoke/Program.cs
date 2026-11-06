@@ -580,6 +580,14 @@ internal static class Program
             command.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.MenuItem.ClickEvent));
             Check(Equals(Field<System.Windows.Controls.Border>("_selectedCard").Tag, destination), "Navigation selected wrong endpoint.");
         }
+        var sourceCard = Field<System.Windows.Controls.Border>("_selectedCard");
+        var sourceKey = (string)sourceCard.Tag;
+        Check((bool)Call("CopyDiagramObject", sourceCard)!, "Could not copy entity.");
+        Call("PasteDiagramObject", new Point(200, 300));
+        var pasted = Field<System.Windows.Controls.Border>("_selectedCard");
+        var copiedFields = Field<Dictionary<string, System.Collections.ObjectModel.ObservableCollection<ColumnInfo>>>("_columns");
+        Check(!Equals(pasted.Tag, sourceKey) && copiedFields[(string)pasted.Tag].Select(c => c.Name).SequenceEqual(copiedFields[sourceKey].Select(c => c.Name))
+            && !copiedFields[(string)pasted.Tag].Select(c => c.Id).Intersect(copiedFields[sourceKey].Select(c => c.Id)).Any(), "Paste did not create independent attributes.");
         window.Close(); app.Shutdown();
     }
 }

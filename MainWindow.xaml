@@ -7,6 +7,36 @@
         Background="{StaticResource Canvas}" FontFamily="Segoe UI" FontSize="13" UseLayoutRounding="True" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display">
     <Window.Resources>
         <DrawingBrush x:Key="DiagramGridBrush" TileMode="Tile" Viewport="0,0,20,20" ViewportUnits="Absolute"><DrawingBrush.Drawing><GeometryDrawing Brush="#0D1520"><GeometryDrawing.Pen><Pen Brush="#182535" Thickness="1"/></GeometryDrawing.Pen><GeometryDrawing.Geometry><RectangleGeometry Rect="0,0,20,20"/></GeometryDrawing.Geometry></GeometryDrawing></DrawingBrush.Drawing></DrawingBrush>
+        <Style x:Key="ClipboardToolbarButton" TargetType="Button">
+            <Setter Property="Margin" Value="3,0"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="#10656D"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border CornerRadius="4" Background="{TemplateBinding Background}" Padding="9,3">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Path Data="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" Stroke="{TemplateBinding Foreground}"
+                                      StrokeThickness="1.5" Width="15" Height="16" VerticalAlignment="Center"/>
+                                <TextBlock Text="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}" Margin="5,0,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsKeyboardFocused" Value="True"><Setter Property="Background" Value="#167142"/></Trigger>
+                <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#167142"/></Trigger>
+                <Trigger Property="IsPressed" Value="True"><Setter Property="Background" Value="#104E30"/></Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Background" Value="#E4E7EA"/>
+                    <Setter Property="Foreground" Value="#535D66"/>
+                    <Setter Property="Cursor" Value="Arrow"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
         <Style x:Key="SectionTitle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="11"/><Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Foreground" Value="{StaticResource MutedInk}"/><Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
@@ -139,6 +169,8 @@
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
                     <Border Background="#F2F5F7" CornerRadius="4" Padding="8,4" Margin="4,0"><TextBlock Text="Logical / Physical" Foreground="{StaticResource MutedInk}"/></Border>
                     <Button Content="−" Click="ZoomOut_Click"/><TextBlock x:Name="ZoomLabel" Text="100%" Width="45" TextAlignment="Center" VerticalAlignment="Center"/><Button Content="＋" Click="ZoomIn_Click"/>
+                    <Button x:Name="DiagramCopyButton" Style="{StaticResource ClipboardToolbarButton}" Content="Copy" Tag="M9,4 L9,1 L1,1 L1,12 L4,12 M5,5 H13 V15 H5 Z" ToolTip="Copy (Ctrl+C)" AutomationProperties.Name="Copy diagram object"/>
+                    <Button x:Name="DiagramPasteButton" Style="{StaticResource ClipboardToolbarButton}" Content="Paste" Tag="M4,3 H2 V15 H13 V3 H10 M5,1 H10 V5 H5 Z M4,8 H11 M4,11 H10" ToolTip="Paste (Ctrl+V)" AutomationProperties.Name="Paste diagram object"/>
                 </StackPanel>
             </DockPanel>
         </Border>

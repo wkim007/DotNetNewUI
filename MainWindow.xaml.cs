@@ -79,6 +79,7 @@ public partial class MainWindow : Window
         InitializeMultiSelection();
         PreviewKeyDown += DiagramRelationship_KeyDown;
         InitializeDrawingPalette();
+        InitializeDiagramClipboard();
         UpdateDiagramTools();
         DiagramCanvasSurface.LayoutUpdated += (_, _) => { ApplyProjectViewMode(); ApplyTheme(); UpdateDrawingConnectors(); RefreshEndpointHandles(); };
         _entityHoldTimer.Tick += EntityHoldTimer_Tick;
