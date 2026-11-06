@@ -391,6 +391,14 @@
                     <TextBlock Text="Description" Foreground="{StaticResource MutedInk}" Margin="14,3"/><TextBox x:Name="RelationshipDescriptionBox" Text="contains" Margin="14,0,14,8" Padding="7,5" BorderBrush="{StaticResource Rule}"/>
                     <TextBlock Text="Parent object" Foreground="{StaticResource MutedInk}" Margin="14,3"/><TextBox x:Name="RelationshipParentBox" IsReadOnly="True" Margin="14,0,14,8" Padding="7,5" BorderBrush="{StaticResource Rule}"/>
                     <TextBlock Text="Child object" Foreground="{StaticResource MutedInk}" Margin="14,3"/><TextBox x:Name="RelationshipChildBox" IsReadOnly="True" Margin="14,0,14,8" Padding="7,5" BorderBrush="{StaticResource Rule}"/>
+                    <TextBlock Text="RELATIONSHIP MAPPING" Style="{StaticResource SectionTitle}" Margin="14,10,14,5"/>
+                    <DataGrid x:Name="RelationshipMappings" Margin="14,0,14,8" IsReadOnly="True" CanUserAddRows="False" AutoGenerateColumns="False" HeadersVisibility="Column">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Parent column" Binding="{Binding Parent}" Width="*"/>
+                            <DataGridTextColumn Header="Child column" Binding="{Binding Child}" Width="*"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <TextBlock x:Name="EmptyRelationshipMapping" Text="No column mapping recorded." Margin="14,0,14,8"/>
                     <TextBlock Text="Cardinality" Foreground="{StaticResource MutedInk}" Margin="14,3"/><ComboBox x:Name="CardinalityComboBox" Margin="14,0,14,8" Padding="7,5" SelectedValuePath="Content" SelectionChanged="CardinalityComboBox_SelectionChanged"><ComboBoxItem Content="1:1"/><ComboBoxItem Content="1:N"/><ComboBoxItem Content="N:1"/><ComboBoxItem Content="N:N"/></ComboBox>
                     <TextBlock Text="Relationship type" Foreground="{StaticResource MutedInk}" Margin="14,3"/><TextBox x:Name="RelationshipTypeBox" IsReadOnly="True" Margin="14,0,14,12" Padding="7,5" BorderBrush="{StaticResource Rule}"/>
                     <Button Content="Delete Relationship" Click="DeleteSelectedRelationship_Click" Background="#F06D82" Foreground="White" FontWeight="SemiBold" HorizontalAlignment="Left" Margin="14,4" Padding="14,8"/>

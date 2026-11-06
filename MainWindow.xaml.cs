@@ -58,6 +58,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        InitializeSampleColumnMappings();
         foreach (var hit in DiagramCanvasSurface.Children.OfType<Path>().Where(p => p.IsHitTestVisible && p.Tag is string))
             ConfigureRelationshipToolTip(hit, (string)hit.Tag, new RelationshipText());
         RelationshipNameBox.TextChanged += (_, _) => { if (RelationshipNameBox.Tag is RelationshipText data) data.Name = RelationshipNameBox.Text; };
@@ -797,6 +798,7 @@ public partial class MainWindow : Window
     {
         if (sender is not Path { Tag: string key } hitPath) return;
         ClearCardSelection(); ClearRelationshipSelection();
+        PropertiesPanelTab.IsSelected = true;
         _selectedHitPath = hitPath;
                 _selectedRelationshipKey = key;
         ShowRelationshipProperties(key);
@@ -875,6 +877,10 @@ public partial class MainWindow : Window
         SelectedRelationshipTitle.Text = $"{source} → {target}".ToUpperInvariant();
         var hit = DiagramCanvasSurface.Children.OfType<Path>().FirstOrDefault(p => Equals(p.Tag, key) && p.Resources.Contains(typeof(RelationshipText)));
         var data = hit?.Resources[typeof(RelationshipText)] as RelationshipText;
+        var rows = RelationshipMappingRows(key, source, target).ToArray();
+        RelationshipMappings.ItemsSource = rows;
+        RelationshipMappings.Visibility = rows.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
+        EmptyRelationshipMapping.Visibility = rows.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
         source = EntityDisplayName(source);
         target = EntityDisplayName(target);
         RelationshipNameBox.Tag = RelationshipDescriptionBox.Tag = null;
@@ -1243,7 +1249,7 @@ public partial class MainWindow : Window
         _relationshipSourceKey = null;
         return true;
     }
-    private void CreateDynamicRelationship(string sourceKey, string targetKey, string relationshipType)
+    private void CreateDynamicRelationship(string sourceKey, string targetKey, string relationshipType, ColumnMapping[]? mappings = null)
     {
         var source = FindCard(sourceKey);
         var target = FindCard(targetKey);
@@ -1285,7 +1291,7 @@ public partial class MainWindow : Window
         Panel.SetZIndex(visible, 0);
         DiagramCanvasSurface.Children.Add(hit);
         DiagramCanvasSurface.Children.Add(visible);
-        _dynamicRelationships[key] = new DynamicRelationship(sourceKey, targetKey, visible, hit, relationshipType is "Identifying relationship" or "Sub-Category", relationshipType == "View relationship", relationshipType == "Sub-Category");
+        _dynamicRelationships[key] = new DynamicRelationship(sourceKey, targetKey, visible, hit, relationshipType is "Identifying relationship" or "Sub-Category", relationshipType == "View relationship", relationshipType == "Sub-Category") { ColumnMappings = mappings };
         EnsureRelationshipLabel(key, relationshipType == "Sub-Category" ? "1:1" : "1:N");
         UpdateRelationship(key, source, target);
 
@@ -1528,9 +1534,12 @@ public sealed record ColumnInfo(string Name, string Type, bool Required, bool Is
 
 public sealed record DynamicRelationship(string SourceKey, string TargetKey, Path Visible, Path Hit, bool IsIdentifying, bool IsViewRelationship = false, bool IsSubCategory = false)
 {
+    public ColumnMapping[]? ColumnMappings { get; init; }
     public Guid[]? InheritedAttributeIds { get; init; }
     public bool IsSupertypeSubtypeIdentified { get; init; }
 }
+
+public sealed record ColumnMapping(Guid Parent, Guid Child);
 
 public sealed record AttributeSelection(string EntityKey, string AttributeName);
 

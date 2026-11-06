@@ -98,6 +98,10 @@ public partial class MainWindow
                 var line = new Path { Tag = key, Stroke = ThemeBrush(view ? "#62E6DF" : "#42D9D4"), StrokeThickness = 2.5, StrokeDashCap = PenLineCap.Round, IsHitTestVisible = false, StrokeLineJoin = PenLineJoin.Round };
                 if (view || !identifying) line.StrokeDashArray = new DoubleCollection(view ? new double[] { .1, 1.6 } : new double[] { 2, 1.5 });
                 diagram.Relationships[key] = new DynamicRelationship(from, to, line, hit, identifying, view, subCategory) {
+                    ColumnMappings = r["columnMappings"] is JsonArray ? (from m in Items(r["columnMappings"])
+                        from p in objects[Text(r, "parent")].Columns where attributeIds[p.Id] == Text(m, "parentAttributeId")
+                        from c in objects[Text(r, "child")].Columns where attributeIds[c.Id] == Text(m, "childAttributeId")
+                        select new ColumnMapping(p.Id, c.Id)).ToArray() : null,
                     IsSupertypeSubtypeIdentified = subCategory && Flag(r, "isSupertypeSubtypeIdentified")
                 };
                 if (r["inheritedAttributeIds"] is JsonArray inheritedIds)

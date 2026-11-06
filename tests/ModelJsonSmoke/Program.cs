@@ -543,6 +543,16 @@ internal static class Program
                 .Single(t => System.Windows.Controls.Grid.GetColumn(t) == 1);
         Check(AttributeNameText(parentKey, "aa").FontWeight == FontWeights.SemiBold, "Unselected relationships highlighted columns.");
         var highlightKey = Field<Dictionary<string, DynamicRelationship>>("_dynamicRelationships").Single(p => p.Value.IsSubCategory && p.Value.TargetKey == childA).Key;
+        var inspected = Field<Dictionary<string, DynamicRelationship>>("_dynamicRelationships")[highlightKey];
+        Check(inspected.ColumnMappings?.Length == 2, "Composite mapping lost during JSON round trip.");
+        var mappedChild = Field<Dictionary<string, System.Collections.ObjectModel.ObservableCollection<ColumnInfo>>>("_columns")[childA];
+        var originalColumn = mappedChild.Single(c => c.Id == inspected.ColumnMappings![0].Child);
+        var mappedIndex = mappedChild.IndexOf(originalColumn);
+        mappedChild[mappedIndex] = originalColumn with { Name = "Renamed FK" };
+        Call("ShowRelationshipProperties", highlightKey);
+        var gridRows = Field<System.Windows.Controls.DataGrid>("RelationshipMappings").Items.Cast<object>().ToArray();
+        Check(gridRows.Length == 2 && gridRows[0].GetType().GetProperty("Child")!.GetValue(gridRows[0]) as string == "Renamed FK", "Renamed composite FK not resolved by ID.");
+        mappedChild[mappedIndex] = originalColumn;
         typeof(MainWindow).GetField("_selectedRelationshipKey", Private)!.SetValue(window, highlightKey);
         Call("ApplyMigratedColumnHighlights");
         Check(AttributeNameText(childB, "aa").FontWeight == FontWeights.SemiBold, "Unselected sibling relationship was highlighted.");

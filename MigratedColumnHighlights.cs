@@ -69,17 +69,11 @@ public partial class MainWindow
             if (_deletedRelationships.Contains(key) || GetRelationshipInfo(key) is not { } info ||
                 !_columns.TryGetValue(info.Source, out var parent) || !_columns.TryGetValue(info.Target, out var child) ||
                 FindRelationshipLine(key) is not { Visibility: Visibility.Visible }) continue;
-            var primary = parent.Where(c => c.IsPrimaryKey).ToArray();
-            _dynamicRelationships.TryGetValue(key, out var relation);
-            for (var i = 0; i < primary.Length; i++)
+            foreach (var row in RelationshipMappingRows(key, info.Source, info.Target))
             {
-                var pk = primary[i];
-                var migrated = relation?.InheritedAttributeIds is { } ids && i < ids.Length
-                    ? child.FirstOrDefault(c => c.Id == ids[i])
-                    : child.FirstOrDefault(c => c.IsForeignKey && (c.Name.Equals(pk.Name, StringComparison.OrdinalIgnoreCase) ||
-                        !string.IsNullOrWhiteSpace(pk.PhysicalName) && pk.PhysicalName.Equals(c.PhysicalName, StringComparison.OrdinalIgnoreCase)));
-                if (migrated is null) continue;
-                highlighted.Add(pk.Id); highlighted.Add(migrated.Id);
+                if (row.ParentColumn == null || row.ChildColumn == null) continue;
+                highlighted.Add(row.ParentColumn.Id);
+                highlighted.Add(row.ChildColumn.Id);
             }
         }
         var highlightBrush = ThemeBrush(_migratedHighlightColor);

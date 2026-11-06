@@ -96,7 +96,7 @@ public partial class MainWindow
         var inherited = primaryKeys.Select(pk => pk with { Id = Guid.NewGuid(), ParentId = null, Required = true, IsPrimaryKey = true, IsForeignKey = true }).ToArray();
         for (var i = 0; i < inherited.Length; i++) childColumns.Insert(i, inherited[i]);
         RebuildNestedRows(childKey);
-        CreateDynamicRelationship(sourceKey, childKey, "Sub-Category");
+        CreateDynamicRelationship(sourceKey, childKey, "Sub-Category", primaryKeys.Zip(inherited, (p, c) => new ColumnMapping(p.Id, c.Id)).ToArray());
         var created = _dynamicRelationships.Single(p => p.Value.IsSubCategory && p.Value.SourceKey == sourceKey && p.Value.TargetKey == childKey);
         _dynamicRelationships[created.Key] = created.Value with { InheritedAttributeIds = inherited.Select(c => c.Id).ToArray() };
         ClearCardSelection(); ClearRelationshipSelection();

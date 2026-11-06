@@ -126,7 +126,9 @@ public partial class MainWindow
         foreach (var link in schema.Relationships)
         {
             var childColumn = schema.Tables.First(t => string.Equals(t.Name, link.Target, StringComparison.OrdinalIgnoreCase)).Columns.First(c => string.Equals(c.Name, link.TargetColumn, StringComparison.OrdinalIgnoreCase));
-            CreateDynamicRelationship(keys[link.Source], keys[link.Target], childColumn.PrimaryKey ? "Identifying relationship" : "Non-identifying relationship");
+            var parentId = _columns[keys[link.Source]].First(c => c.Name.Equals(link.SourceColumn, StringComparison.OrdinalIgnoreCase)).Id;
+            var childId = _columns[keys[link.Target]].First(c => c.Name.Equals(link.TargetColumn, StringComparison.OrdinalIgnoreCase)).Id;
+            CreateDynamicRelationship(keys[link.Source], keys[link.Target], childColumn.PrimaryKey ? "Identifying relationship" : "Non-identifying relationship", [new(parentId, childId)]);
         }
         ClearCardSelection(); ClearRelationshipSelection();
         DiagramCanvasSurface.MinWidth = Math.Max(append ? DiagramCanvasSurface.MinWidth : 930, 100 + across * 410);

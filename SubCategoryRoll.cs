@@ -42,6 +42,7 @@ public partial class MainWindow
             return false;
         }
         // Stage every destination first so a conflict never leaves a partial roll.
+        var redirectedParentIds = new Dictionary<Guid, Guid>();
         var staged = new Dictionary<string, List<ColumnInfo>>();
         try
         {
@@ -65,6 +66,8 @@ public partial class MainWindow
                         }
                         else mapping[column.Id] = Guid.NewGuid();
                     }
+                    if (redirected.Length > 0 && origin == sourceKey && destination == children[0])
+                        foreach (var entry in mapping) redirectedParentIds[entry.Key] = entry.Value;
                     foreach (var column in _columns[origin])
                     {
                         if (result.Any(c => c.Id == mapping[column.Id])) continue;
@@ -85,7 +88,7 @@ public partial class MainWindow
             DeleteRelationship(pair.Key);
         }
         foreach (var pair in redirected)
-            _dynamicRelationships[pair.Key] = pair.Value with { SourceKey = children[0] };
+            _dynamicRelationships[pair.Key] = pair.Value with { SourceKey = children[0], ColumnMappings = pair.Value.ColumnMappings?.Select(m => m with { Parent = redirectedParentIds.GetValueOrDefault(m.Parent, m.Parent) }).ToArray() };
         foreach (var key in removed) DeleteObject(key);
         foreach (var (key, attributes) in staged)
         {

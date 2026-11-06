@@ -134,6 +134,10 @@ public partial class MainWindow
                 obj["isSupertypeSubtypeIdentified"] = relation?.IsSupertypeSubtypeIdentified ?? false;
                 if (relation?.InheritedAttributeIds is { } inheritedIds)
                     obj["inheritedAttributeIds"] = new JsonArray(inheritedIds.Select(a => (JsonNode?)JsonValue.Create(AttributeJsonId(a))).ToArray());
+                if ((relation?.ColumnMappings ?? _sampleColumnMappings.GetValueOrDefault(key)) is { } mappings)
+                    obj["columnMappings"] = new JsonArray(mappings.Select(m => (JsonNode)new JsonObject {
+                        ["parentAttributeId"] = AttributeJsonId(m.Parent), ["childAttributeId"] = AttributeJsonId(m.Child)
+                    }).ToArray());
                 obj["isView"] = view; obj["description"] ??= "";
                 var hit = relation?.Hit ?? diagram.Elements.OfType<Path>().FirstOrDefault(p => Equals(p.Tag, key) && p.Resources.Contains(typeof(RelationshipText)));
                 if (hit?.Resources[typeof(RelationshipText)] is RelationshipText data)
