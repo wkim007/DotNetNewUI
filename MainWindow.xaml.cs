@@ -82,7 +82,7 @@ public partial class MainWindow : Window
         InitializeDrawingPalette();
         InitializeDiagramClipboard();
         UpdateDiagramTools();
-        DiagramCanvasSurface.LayoutUpdated += (_, _) => { ApplyProjectViewMode(); ApplyTheme(); UpdateDrawingConnectors(); RefreshEndpointHandles(); };
+        DiagramCanvasSurface.LayoutUpdated += (_, _) => { ResizeDiagramSurfaceToViewport(); ApplyProjectViewMode(); ApplyTheme(); UpdateDrawingConnectors(); RefreshEndpointHandles(); };
         _entityHoldTimer.Tick += EntityHoldTimer_Tick;
         SelectEntity("Order");
         SelectCard(OrderCard);
@@ -1129,8 +1129,24 @@ public partial class MainWindow : Window
     {
         if (DiagramScrollViewer is null || DiagramCanvasSurface is null) return;
         var scale = _zoom / 100d;
-        DiagramCanvasSurface.Width = Math.Max(930, DiagramScrollViewer.ViewportWidth / scale);
-        DiagramCanvasSurface.Height = Math.Max(650, DiagramScrollViewer.ViewportHeight / scale);
+        var width = Math.Max(930, DiagramScrollViewer.ViewportWidth / scale);
+        var height = Math.Max(650, DiagramScrollViewer.ViewportHeight / scale);
+        // Canvas does not include positioned children in its desired size.
+        // Leave room beyond the outermost object to start a selection drag.
+        const double margin = 32;
+        foreach (var item in DiagramCanvasSurface.Children.OfType<FrameworkElement>())
+        {
+            if (item.Visibility != Visibility.Visible ||
+                !(item is Border { Tag: string } || item is Grid { Tag: "DrawingShape" })) continue;
+            var left = Canvas.GetLeft(item);
+            var top = Canvas.GetTop(item);
+            var objectWidth = double.IsNaN(item.Width) ? item.ActualWidth : item.Width;
+            var objectHeight = double.IsNaN(item.Height) ? item.ActualHeight : item.Height;
+            if (double.IsFinite(left)) width = Math.Max(width, left + objectWidth + margin);
+            if (double.IsFinite(top)) height = Math.Max(height, top + objectHeight + margin);
+        }
+        if (DiagramCanvasSurface.Width != width) DiagramCanvasSurface.Width = width;
+        if (DiagramCanvasSurface.Height != height) DiagramCanvasSurface.Height = height;
     }
     private void ModelTree_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
     {

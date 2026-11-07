@@ -626,6 +626,21 @@ internal static class Program
             newLink.ColumnMappings?.Length == originalLink.ColumnMappings!.Length &&
             newLink.ColumnMappings!.All(m => copiedFields[newLink.SourceKey].Any(c => c.Id == m.Parent) &&
                 copiedFields[newLink.TargetKey].Any(c => c.Id == m.Child)), "Pasted relationship must reference the copied endpoints and columns.");
+        var surface = Field<System.Windows.Controls.Canvas>("DiagramCanvasSurface");
+        var farCard = pastedGroup.First();
+        System.Windows.Controls.Canvas.SetLeft(farCard, 1900);
+        System.Windows.Controls.Canvas.SetTop(farCard, 1100);
+        foreach (var zoom in new[] { 75, 100, 150 })
+        {
+            Call("SetZoom", zoom);
+            Call("ResizeDiagramSurfaceToViewport");
+            surface.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            surface.Arrange(new Rect(surface.DesiredSize));
+            var blank = new Point(1900 + farCard.Width + 10, 1100 + farCard.Height + 10);
+            Check(ReferenceEquals(System.Windows.Media.VisualTreeHelper.HitTest(surface, blank)?.VisualHit, surface), $"Blank space {blank} past the far card cannot start marquee selection (canvas {surface.RenderSize}, width {surface.Width}, hit {System.Windows.Media.VisualTreeHelper.HitTest(surface, blank)?.VisualHit}).");
+            var inside = System.Windows.Media.VisualTreeHelper.HitTest(surface, new Point(1910, 1110))?.VisualHit;
+            Check(inside != null && (inside == farCard || farCard.IsAncestorOf(inside)), "Far card cannot receive selection.");
+        }
         window.Close(); app.Shutdown();
     }
 }
