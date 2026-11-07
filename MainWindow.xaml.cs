@@ -1249,12 +1249,12 @@ public partial class MainWindow : Window
         _relationshipSourceKey = null;
         return true;
     }
-    private void CreateDynamicRelationship(string sourceKey, string targetKey, string relationshipType, ColumnMapping[]? mappings = null)
+    private string? CreateDynamicRelationship(string sourceKey, string targetKey, string relationshipType, ColumnMapping[]? mappings = null)
     {
         var source = FindCard(sourceKey);
         var target = FindCard(targetKey);
-        if (source is null || target is null) return;
-        if (relationshipType == "View relationship" && !CanConnectView(sourceKey, targetKey)) return;
+        if (source is null || target is null) return null;
+        
 
         var key = $"DynamicRelationship{++_newRelationshipNumber}";
         var hit = new Path
@@ -1309,6 +1309,7 @@ public partial class MainWindow : Window
         Canvas.SetTop(RelationshipMoveHandle, bounds.Top + bounds.Height / 2 - 9);
         RefreshModelExplorer();
         StatusText.Text = $"Created {relationshipType}: {sourceKey} → {targetKey}";
+        return key;
     }
     private void AddNewAnnotation()
     {

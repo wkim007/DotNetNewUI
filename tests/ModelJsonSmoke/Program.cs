@@ -598,6 +598,34 @@ internal static class Program
         var copiedFields = Field<Dictionary<string, System.Collections.ObjectModel.ObservableCollection<ColumnInfo>>>("_columns");
         Check(!Equals(pasted.Tag, sourceKey) && copiedFields[(string)pasted.Tag].Select(c => c.Name).SequenceEqual(copiedFields[sourceKey].Select(c => c.Name))
             && !copiedFields[(string)pasted.Tag].Select(c => c.Id).Intersect(copiedFields[sourceKey].Select(c => c.Id)).Any(), "Paste did not create independent attributes.");
+        Call("HighlightCard", sourceCard);
+        var beforeGroupPaste = copiedFields.Count;
+        Call("CopyDiagramObject", sourceCard);
+        Call("PasteDiagramObject", new Point(410, 320));
+        var pastedGroup = Field<HashSet<System.Windows.Controls.Border>>("_selectedCards");
+        Check(copiedFields.Count == beforeGroupPaste + 2 && pastedGroup.Count == 2 &&
+            !pastedGroup.Contains(sourceCard) && !pastedGroup.Contains(pasted), "Group paste did not duplicate and select both entities.");
+        var originalSpacing = Math.Abs(System.Windows.Controls.Canvas.GetLeft(sourceCard) - System.Windows.Controls.Canvas.GetLeft(pasted));
+        var positions = pastedGroup.Select(System.Windows.Controls.Canvas.GetLeft).Order().ToArray();
+        Check(positions[0] == 410 && Math.Abs(positions[1] - positions[0] - originalSpacing) < .001, "Group paste lost relative placement.");
+        Call("ClearCardSelection");
+        var relationMap = Field<Dictionary<string, DynamicRelationship>>("_dynamicRelationships");
+        var originalLink = relationMap.Values.First(r => r.ColumnMappings?.Length > 0);
+        var parentCard = (System.Windows.Controls.Border)Call("FindCard", originalLink.SourceKey)!;
+        Call("HighlightCard", parentCard);
+        Call("HighlightCard", Call("FindCard", originalLink.TargetKey)!);
+        var selectedKeys = pastedGroup.Select(c => (string)c.Tag).ToHashSet();
+        var expectedLinks = relationMap.Values.Count(r => selectedKeys.Contains(r.SourceKey) && selectedKeys.Contains(r.TargetKey));
+        var oldLinks = relationMap.Keys.ToHashSet();
+        Call("CopyDiagramObject", parentCard);
+        Call("PasteDiagramObject", new Point(400, 280));
+        var addedLinks = relationMap.Where(p => !oldLinks.Contains(p.Key)).Select(p => p.Value).ToArray();
+        Check(addedLinks.Length == expectedLinks, $"Expected {expectedLinks} pasted relationships, got {addedLinks.Length}.");
+        var newLink = addedLinks.First(r => r.ColumnMappings?.Length > 0);
+        Check(pastedGroup.Any(c => Equals(c.Tag, newLink.SourceKey)) && pastedGroup.Any(c => Equals(c.Tag, newLink.TargetKey)) &&
+            newLink.ColumnMappings?.Length == originalLink.ColumnMappings!.Length &&
+            newLink.ColumnMappings!.All(m => copiedFields[newLink.SourceKey].Any(c => c.Id == m.Parent) &&
+                copiedFields[newLink.TargetKey].Any(c => c.Id == m.Child)), "Pasted relationship must reference the copied endpoints and columns.");
         window.Close(); app.Shutdown();
     }
 }
