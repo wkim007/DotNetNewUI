@@ -142,7 +142,7 @@ public partial class MainWindow
         {
             var name = EntityDisplayName(key);
             var description = _objectDefinitions.GetValueOrDefault(key, "");
-            var physical = _objectPhysicalNames.GetValueOrDefault(key, key.ToLowerInvariant());
+            var physical = ObjectPhysicalName(key);
             var columns = fields.ToArray();
             var view = _viewCardKeys.Contains(key);
             var materialized = _materializedViewKeys.Contains(key);

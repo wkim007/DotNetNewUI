@@ -52,9 +52,11 @@ public partial class MainWindow
     {
         if (title.Parent is not Grid grid) return;
         SelectCard(card); SelectEntity(key);
-        ShowInlineNameEditor(grid, title, EntityDisplayName(key), name =>
+        var physical = ViewModeBox.SelectedIndex == 0;
+        ShowInlineNameEditor(grid, title, CanvasName(EntityDisplayName(key), ObjectPhysicalName(key)), name =>
         {
-            _entityDisplayNames[key] = name;
+            if (physical) _objectPhysicalNames[key] = name;
+            else _entityDisplayNames[key] = name;
             title.Text = name;
             SelectEntity(key);
             RefreshModelExplorer();
@@ -70,14 +72,15 @@ public partial class MainWindow
         var original = columns[index];
         var label = grid.Children.OfType<FrameworkElement>().FirstOrDefault(child => Grid.GetColumn(child) == 1);
         if (label is null) return;
-        ShowInlineNameEditor(grid, label, original.Name, name =>
+        var physical = ViewModeBox.SelectedIndex == 0;
+        ShowInlineNameEditor(grid, label, CanvasName(original.Name, original.PhysicalName), name =>
         {
             var currentIndex = columns.IndexOf(original);
             if (currentIndex < 0) return false;
-            if (columns.Where((_, i) => i != currentIndex).Any(c => c.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
+            if (columns.Where((_, i) => i != currentIndex).Any(c => CanvasName(c.Name, c.PhysicalName).Equals(name, StringComparison.OrdinalIgnoreCase)))
             { StatusText.Text = "A column with that name already exists"; return false; }
-            columns[currentIndex] = original with { Name = name };
-            row.Tag = new AttributeSelection(selection.EntityKey, name);
+            columns[currentIndex] = physical ? original with { PhysicalName = name } : original with { Name = name };
+            row.Tag = new AttributeSelection(selection.EntityKey, columns[currentIndex].Name);
             if (label is TextBlock text) { text.Text = name; text.ToolTip = name; }
             else if (label is TextBox textbox) textbox.Text = name;
             ColumnsGrid.Items.Refresh();

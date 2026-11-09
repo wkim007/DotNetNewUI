@@ -161,6 +161,14 @@ public partial class MainWindow
             var link = (DrawingConnection)line.Tag;
             if (!DiagramCanvasSurface.Children.Contains(link.Source) || !DiagramCanvasSurface.Children.Contains(link.Target))
             { if (_selectedDrawingConnector == line) _selectedDrawingConnector = null; DiagramCanvasSurface.Children.Remove(line); continue; }
+            var visibility = link.Source.Visibility == Visibility.Visible && link.Target.Visibility == Visibility.Visible
+                ? Visibility.Visible : Visibility.Collapsed;
+            if (line.Visibility != visibility) line.Visibility = visibility;
+            if (visibility == Visibility.Collapsed)
+            {
+                if (line == _selectedDrawingConnector) ClearDrawingConnectorSelection();
+                continue;
+            }
             Rect Bounds(FrameworkElement item)
             {
                 var drawingPath = item is Grid { Tag: "DrawingShape" } drawing ? drawing.Children.OfType<Path>().FirstOrDefault() : item as Path;

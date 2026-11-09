@@ -72,7 +72,7 @@ public partial class MainWindow
                 if (!seen.Add(id)) continue;
                 var obj = original.GetValueOrDefault(id)?.DeepClone() as JsonObject ?? new JsonObject();
                 obj["id"] = id; obj["name"] = EntityDisplayName(key);
-                obj["physicalName"] = _objectPhysicalNames.GetValueOrDefault(key, Text(obj, "physicalName", key.ToLowerInvariant()));
+                obj["physicalName"] = ObjectPhysicalName(key);
                 obj["definition"] = obj["comment"] = null;
                 obj["definition"] = _objectDefinitions.GetValueOrDefault(key, "");
                 obj["comment"] = _objectDefinitions.GetValueOrDefault(key, "");
@@ -211,7 +211,10 @@ public partial class MainWindow
     private void ObjectPhysicalName_LostFocus(object sender, RoutedEventArgs e)
     {
         if (EntityNameBox.Tag is string key && _columns.ContainsKey(key))
+        {
             _objectPhysicalNames[key] = PhysicalNameBox.Text;
+            ApplyProjectViewMode();
+        }
     }
 
     private void ViewModelJson_Click(object sender, RoutedEventArgs e)

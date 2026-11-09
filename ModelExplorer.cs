@@ -51,8 +51,10 @@ public partial class MainWindow
         }
         _explorerRoot.Header = _activeDiagram?.Title ?? "ER_Diagram_1";
         _explorerEntities.Header = ViewModeBox.SelectedIndex == 1 ? "Entities" : "Tables";
+        var logical = ViewModeBox.SelectedIndex == 1;
+        _explorerViews.Visibility = _explorerMViews.Visibility = logical ? Visibility.Collapsed : Visibility.Visible;
         var query = SearchBox?.Text.Trim() ?? "";
-        var keys = _columns.Keys.Where(key => FindCard(key) is { } card && DiagramCanvasSurface.Children.Contains(card)).ToHashSet();
+        var keys = _columns.Keys.Where(key => !(logical && _viewCardKeys.Contains(key)) && FindCard(key) is { } card && DiagramCanvasSurface.Children.Contains(card)).ToHashSet();
         foreach (var key in _explorerItems.Keys.Where(key => !keys.Contains(key)).ToArray())
         {
             if (_explorerItems[key].Parent is ItemsControl parent) parent.Items.Remove(_explorerItems[key]);

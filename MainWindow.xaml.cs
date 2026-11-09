@@ -99,6 +99,28 @@ public partial class MainWindow : Window
     {
         if (DiagramCanvasSurface is null || ViewModeBox is null) return;
         var visibility = ViewModeBox.SelectedIndex == 1 ? Visibility.Collapsed : Visibility.Visible;
+        var visibilityChanged = false;
+        foreach (var key in _viewCardKeys)
+        {
+            if (FindCard(key) is not { } card || card.Visibility == visibility) continue;
+            card.Visibility = visibility;
+            visibilityChanged = true;
+        }
+        if (visibilityChanged)
+        {
+            UpdateRelationshipLines();
+            UpdateDrawingConnectors();
+            if (_selectedCards.Any(c => c.Visibility == Visibility.Collapsed) ||
+                _selectedRelationship?.Visibility == Visibility.Collapsed ||
+                _marqueeStrokes.Keys.Any(item => item.Visibility == Visibility.Collapsed))
+            {
+                ClearAttributeSelection();
+                ClearCardSelection();
+                ClearRelationshipSelection();
+                EntityPropertiesPanel.Visibility = Visibility.Collapsed;
+            }
+            RefreshEndpointHandles();
+        }
         foreach (var text in Descendants<TextBlock>(DiagramCanvasSurface))
             if (Equals(text.Tag, "ColumnDatatype") && text.Visibility != visibility) text.Visibility = visibility;
         ApplyDiagramDisplayLevels();
@@ -234,7 +256,7 @@ public partial class MainWindow : Window
         RefreshModelExplorer();
         SelectedEntityTitle.Text = display.ToUpperInvariant();
         EntityNameBox.Text = display;
-        PhysicalNameBox.Text = _objectPhysicalNames.GetValueOrDefault(key, key switch { "OrderItem" => "order_item", "Order" => "sales_order", _ => key.ToLowerInvariant() });
+        PhysicalNameBox.Text = ObjectPhysicalName(key);
         ColumnsGrid.IsReadOnly = _viewCardKeys.Contains(key);
         AddColumnButton.IsEnabled = !_viewCardKeys.Contains(key);
         ColumnsGrid.ItemsSource = _columns.GetValueOrDefault(key, []);
@@ -1006,7 +1028,7 @@ public partial class MainWindow : Window
             .FirstOrDefault(path => Equals(path.Tag, key) && path != visible);
         if (visible is null || hit is null) return;
         var cardinalityLabel = EnsureRelationshipLabel(key, "1:N");
-        if (_deletedRelationships.Contains(key) ||
+        if (_deletedRelationships.Contains(key) || source.Visibility == Visibility.Collapsed || target.Visibility == Visibility.Collapsed ||
             !DiagramCanvasSurface.Children.Contains(source) ||
             !DiagramCanvasSurface.Children.Contains(target))
         {
@@ -1527,7 +1549,7 @@ public partial class MainWindow : Window
         if (FindCard(key)?.Child is Grid content)
         {
             var header = content.Children.OfType<Border>().FirstOrDefault(b => Grid.GetRow(b) == 0);
-            if (header is not null && Descendants<TextBlock>(header).FirstOrDefault() is { } title) title.Text = name;
+            if (header is not null && Descendants<TextBlock>(header).FirstOrDefault() is { } title) title.Text = CanvasName(name, ObjectPhysicalName(key));
         }
         RefreshModelExplorer();
     }

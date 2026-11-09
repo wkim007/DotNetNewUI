@@ -656,6 +656,38 @@ internal static class Program
         Check(!selectedExtras.Contains(newLink.Hit), "Marquee selected an invisible relationship hit target.");
         Call("SelectMarqueeObjects", new Rect(9000, 9000, 5, 5));
         Check(selectedExtras.Count == 0 && pastedGroup.Count == 0, "Empty marquee retained old selection.");
+        Call("SelectEntity", sourceKey);
+        var physicalBox = Field<System.Windows.Controls.TextBox>("PhysicalNameBox");
+        physicalBox.Text = "CUST";
+        Call("ObjectPhysicalName_LostFocus", physicalBox, new RoutedEventArgs());
+        var namedColumn = copiedFields[sourceKey][0] with { PhysicalName = "CUST_ID" };
+        copiedFields[sourceKey][0] = namedColumn;
+        foreach (var mode in new[] { 0, 1, 0 })
+        {
+            viewBox.SelectedIndex = mode;
+            Call("ApplyProjectViewMode");
+            var header = ((System.Windows.Controls.Grid)sourceCard.Child).Children.OfType<System.Windows.Controls.Border>().First();
+            var title = ((System.Windows.Controls.Grid)header.Child).Children.OfType<System.Windows.Controls.TextBlock>().First();
+            Check(title.Text == (mode == 0 ? "CUST" : (string)Call("EntityDisplayName", sourceKey)!) &&
+                AttributeNameText(sourceKey, namedColumn.Name).Text == (mode == 0 ? "CUST_ID" : namedColumn.Name),
+                "Diagram labels did not follow the active naming mode.");
+        }
+        Call("AddNewView", false);
+        var plainView = Field<System.Windows.Controls.Border>("_selectedCard");
+        Call("AddNewView", true);
+        var materializedView = Field<System.Windows.Controls.Border>("_selectedCard");
+        var viewLinkKey = (string)Call("CreateDynamicRelationship", sourceKey, (string)plainView.Tag, "View relationship", null!)!;
+        var viewLink = Field<Dictionary<string, DynamicRelationship>>("_dynamicRelationships")[viewLinkKey];
+        foreach (var mode in new[] { 1, 0 })
+        {
+            viewBox.SelectedIndex = mode;
+            var expected = mode == 1 ? Visibility.Collapsed : Visibility.Visible;
+            Check(plainView.Visibility == expected && materializedView.Visibility == expected &&
+                viewLink.Visible.Visibility == expected && viewLink.Hit.Visibility == expected &&
+                Field<Dictionary<string, System.Windows.Controls.TextBlock>>("_relationshipLabels")[viewLinkKey].Visibility == expected,
+                "Views and their connections must appear only in Physical View.");
+            Check(sourceCard.Visibility == Visibility.Visible, "Switching modes hid a table.");
+        }
         window.Close(); app.Shutdown();
     }
 }
