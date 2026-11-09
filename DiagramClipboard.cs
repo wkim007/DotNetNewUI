@@ -21,7 +21,7 @@ public partial class MainWindow
     {
         FrameworkElement? SelectedObject()
         {
-            var item = (FrameworkElement?)_selectedCard ?? _selectedDrawing;
+            var item = (FrameworkElement?)_selectedCard ?? _selectedDrawing ?? _marqueeStrokes.Keys.OfType<Grid>().FirstOrDefault();
             return item != null && DiagramCanvasSurface.Children.Contains(item) ? item : null;
         }
 
@@ -91,8 +91,8 @@ public partial class MainWindow
 
     private bool CopyDiagramObject(FrameworkElement item)
     {
-        FrameworkElement[] items = item is Border selected && _selectedCards.Contains(selected)
-            ? DiagramCanvasSurface.Children.OfType<Border>().Where(_selectedCards.Contains).ToArray()
+        FrameworkElement[] items = SelectedMovableObjects().Contains(item)
+            ? SelectedMovableObjects().Where(s => DiagramCanvasSurface.Children.Contains(s)).ToArray()
             : [item];
         var snapshots = new List<ClipboardItem>();
         foreach (var selectedItem in items)
@@ -208,6 +208,7 @@ public partial class MainWindow
     {
         if (_clipboardItems.Count == 0) return;
         var pastedCards = new List<Border>();
+        var pastedDrawings = new List<Grid>();
         var keys = new Dictionary<string, string>();
         var columns = new Dictionary<string, Dictionary<Guid, Guid>>();
         foreach (var snapshot in _clipboardItems)
@@ -217,6 +218,7 @@ public partial class MainWindow
             var offset = snapshot.Position - _clipboardOrigin;
             Canvas.SetLeft(copy, Math.Max(0, position.X) + offset.X);
             Canvas.SetTop(copy, Math.Max(0, position.Y) + offset.Y);
+            if (copy is Grid shape) pastedDrawings.Add(shape);
             if (copy is Border card && snapshot.SourceKey is { } original)
             {
                 pastedCards.Add(card);
@@ -256,11 +258,13 @@ public partial class MainWindow
                 SelectCard(pastedCards[0]);
             }
         }
-        if (pastedCards.Count > 1)
+        if (pastedCards.Count + pastedDrawings.Count > 1)
         {
             ClearAttributeSelection();
             EntityPropertiesPanel.Visibility = Visibility.Collapsed;
+            ClearCardSelection();
             foreach (var card in pastedCards) HighlightCard(card);
+            foreach (var drawing in pastedDrawings) HighlightMarqueeItem(drawing);
         }
         _nextPastePosition = new(position.X + 28, position.Y + 28);
         SaveActiveDiagram();

@@ -193,8 +193,9 @@ public partial class MainWindow
         foreach (var key in new[] { "CustomerOrder", "OrderProduct", "OrderOrderItem", "ProductOrderItem" }.Concat(_dynamicRelationships.Keys))
         {
             if (FindRelationshipLine(key) is not { } line) continue;
-            Color(line, System.Windows.Shapes.Shape.StrokeProperty, line == _selectedRelationship ? "#F1DF77" : theme.LineColor);
-            var width = line == _selectedRelationship ? Math.Max(4, theme.LineWidth + 1.5) : theme.LineWidth;
+            var selected = line == _selectedRelationship || _marqueeStrokes.ContainsKey(line);
+            Color(line, System.Windows.Shapes.Shape.StrokeProperty, selected ? "#F1DF77" : theme.LineColor);
+            var width = selected ? Math.Max(4, theme.LineWidth + 1.5) : theme.LineWidth;
             if (line.StrokeThickness != width) line.StrokeThickness = width;
         }
     }

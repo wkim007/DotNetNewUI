@@ -16,16 +16,25 @@ public partial class MainWindow
             if (node is TextBoxBase or PasswordBox or ComboBox or DataGrid) return;
         var keys = _selectedCards.Where(c => DiagramCanvasSurface.Children.Contains(c)).Select(c => c.Tag as string)
             .Where(k => k is not null && FindCard(k) is not null).Cast<string>().Distinct().ToArray();
-        if (keys.Length == 0) return;
+        var extras = _marqueeStrokes.Keys.Where(item => DiagramCanvasSurface.Children.Contains(item)).ToArray();
+        if (keys.Length == 0 && extras.Length == 0) return;
         // Deletion can clear selection; snapshot every target before removing anything.
         _entityHoldTimer.Stop(); _entityHoldCard = null; _draggedCard = null;
         EndMarquee(); Mouse.Capture(null); _groupDragOrigins.Clear();
+        ClearMarqueeHighlights();
+        foreach (var item in extras)
+        {
+            if (item is System.Windows.Shapes.Path { Tag: string link }) DeleteRelationship(link);
+            else DiagramCanvasSurface.Children.Remove(item);
+            if (_connectorSource == item) _connectorSource = null;
+        }
+        UpdateDrawingConnectors();
         foreach (var key in keys) DeleteObject(key);
         ClearAttributeSelection(); ClearCardSelection();
         AttributePropertiesPanel.Visibility = Visibility.Collapsed;
         EntityPropertiesPanel.Visibility = Visibility.Collapsed;
         SaveActiveDiagram();
-        StatusText.Text = $"Deleted {keys.Length} selected object(s).";
+        StatusText.Text = $"Deleted {keys.Length + extras.Length} selected object(s).";
         e.Handled = true;
     }
 }

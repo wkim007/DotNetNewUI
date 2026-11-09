@@ -682,14 +682,13 @@ public partial class MainWindow : Window
         SelectEntity(key);
         if (!_selectedCards.Contains(card)) SelectCard(card);
         ClearRelationshipSelection();
-        _groupDragOrigins.Clear();
-        foreach (var item in _selectedCards) _groupDragOrigins[item] = new Point(Canvas.GetLeft(item), Canvas.GetTop(item));
+        CaptureGroupDragOrigins();
         _draggedCard = card;
         _entityDragStart = e.GetPosition(DiagramCanvasSurface);
         _entityStartLeft = Canvas.GetLeft(card);
         _entityStartTop = Canvas.GetTop(card);
         card.CaptureMouse();
-        if (_entityCardKeys.Contains(key) && _selectedCards.Count <= 1)
+        if (_entityCardKeys.Contains(key) && _selectedCards.Count <= 1 && _marqueeStrokes.Count == 0)
         {
             _entityHoldCard = card;
             _entityHoldStart = _entityDragStart;
@@ -708,14 +707,7 @@ public partial class MainWindow : Window
             _entityHoldTimer.Stop();
             _entityHoldCard = null;
         }
-        if (_groupDragOrigins.Count > 1)
-        {
-            var delta = point - _entityDragStart;
-            delta.X = Math.Max(delta.X, 8 - _groupDragOrigins.Values.Min(p => p.X));
-            delta.Y = Math.Max(delta.Y, 8 - _groupDragOrigins.Values.Min(p => p.Y));
-            foreach (var item in _groupDragOrigins) { Canvas.SetLeft(item.Key, item.Value.X + delta.X); Canvas.SetTop(item.Key, item.Value.Y + delta.Y); }
-            UpdateRelationshipLines(); return;
-        }
+        if (MoveSelectedGroup(point - _entityDragStart)) return;
         Canvas.SetLeft(_draggedCard, Math.Max(8, _entityStartLeft + point.X - _entityDragStart.X));
         Canvas.SetTop(_draggedCard, Math.Max(8, _entityStartTop + point.Y - _entityDragStart.Y));
         UpdateRelationshipLines();
@@ -747,6 +739,7 @@ public partial class MainWindow : Window
 
     private void ClearCardSelection()
     {
+        ClearMarqueeHighlights();
         ClearDrawingSelection();
         foreach (var selected in _selectedCards) { selected.ClearValue(Border.BorderBrushProperty); selected.ClearValue(Border.BorderThicknessProperty); Panel.SetZIndex(selected, 8); }
         _selectedCards.Clear();

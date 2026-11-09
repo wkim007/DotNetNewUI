@@ -641,6 +641,21 @@ internal static class Program
             var inside = System.Windows.Media.VisualTreeHelper.HitTest(surface, new Point(1910, 1110))?.VisualHit;
             Check(inside != null && (inside == farCard || farCard.IsAncestorOf(inside)), "Far card cannot receive selection.");
         }
+        var star = (System.Windows.Controls.Grid)Call("AddDrawingShape", "Star")!;
+        System.Windows.Controls.Canvas.SetLeft(star, 400);
+        System.Windows.Controls.Canvas.SetTop(star, 300);
+        Call("ClearCardSelection");
+        Call("UpdateRelationshipLines");
+        surface.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        surface.Arrange(new Rect(surface.DesiredSize));
+        Call("SelectMarqueeObjects", new Rect(-100, -100, 10000, 10000));
+        Call("ApplyTheme");
+        var selectedExtras = Field<System.Collections.IDictionary>("_marqueeStrokes");
+        Check(selectedExtras.Contains(star) && selectedExtras.Contains(newLink.Visible) && pastedGroup.Count >= 2,
+            "Marquee did not include drawings, relationships and cards together.");
+        Check(!selectedExtras.Contains(newLink.Hit), "Marquee selected an invisible relationship hit target.");
+        Call("SelectMarqueeObjects", new Rect(9000, 9000, 5, 5));
+        Check(selectedExtras.Count == 0 && pastedGroup.Count == 0, "Empty marquee retained old selection.");
         window.Close(); app.Shutdown();
     }
 }

@@ -143,11 +143,12 @@ public partial class MainWindow
         Canvas.SetLeft(shape, Math.Max(8, (DiagramScrollViewer.HorizontalOffset + DiagramScrollViewer.ViewportWidth / 2) / scale - width / 2));
         Canvas.SetTop(shape, Math.Max(8, (DiagramScrollViewer.VerticalOffset + DiagramScrollViewer.ViewportHeight / 2) / scale - height / 2));
         Point start = default; double left = 0, top = 0;
-        shape.MouseLeftButtonDown += (_, args) => { if (args.OriginalSource is DependencyObject source && (source == editor || editor.IsAncestorOf(source) || source == close || close.IsAncestorOf(source) || source == resize || resize.IsAncestorOf(source))) return; SelectDrawing(shape); StatusText.Text = $"Selected {name}"; start = args.GetPosition(DiagramCanvasSurface); left = Canvas.GetLeft(shape); top = Canvas.GetTop(shape); shape.CaptureMouse(); args.Handled = true; };
+        shape.MouseLeftButtonDown += (_, args) => { if (args.OriginalSource is DependencyObject source && (source == editor || editor.IsAncestorOf(source) || source == close || close.IsAncestorOf(source) || source == resize || resize.IsAncestorOf(source))) return; if (!_marqueeStrokes.ContainsKey(shape)) SelectDrawing(shape); CaptureGroupDragOrigins(); StatusText.Text = $"Selected {name}"; start = args.GetPosition(DiagramCanvasSurface); left = Canvas.GetLeft(shape); top = Canvas.GetTop(shape); shape.CaptureMouse(); args.Handled = true; };
         shape.MouseMove += (_, args) =>
         {
             if (!shape.IsMouseCaptured || args.LeftButton != MouseButtonState.Pressed) return;
             var delta = args.GetPosition(DiagramCanvasSurface) - start;
+            if (MoveSelectedGroup(delta)) return;
             Canvas.SetLeft(shape, Math.Max(8, left + delta.X)); Canvas.SetTop(shape, Math.Max(8, top + delta.Y));
         };
         shape.MouseLeftButtonUp += (_, args) => { shape.ReleaseMouseCapture(); args.Handled = true; };
