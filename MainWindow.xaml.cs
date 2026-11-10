@@ -62,6 +62,11 @@ public partial class MainWindow : Window
         foreach (var hit in DiagramCanvasSurface.Children.OfType<Path>().Where(p => p.IsHitTestVisible && p.Tag is string))
             ConfigureRelationshipToolTip(hit, (string)hit.Tag, new RelationshipText());
         RelationshipNameBox.TextChanged += (_, _) => { if (RelationshipNameBox.Tag is RelationshipText data) data.Name = RelationshipNameBox.Text; };
+        RelationshipPhysicalNameBox.LostFocus += (_, _) =>
+        {
+            if (RelationshipPhysicalNameBox.Tag is RelationshipText data && RelationshipPhysicalNameBox.Text != RelationshipPhysicalName(data, RelationshipParentBox.Text, RelationshipChildBox.Text))
+                data.PhysicalName = RelationshipPhysicalNameBox.Text;
+        };
         RelationshipDescriptionBox.TextChanged += (_, _) => { if (RelationshipDescriptionBox.Tag is RelationshipText data) data.Comment = RelationshipDescriptionBox.Text; };
         RelationshipMoveHandle.PreviewMouseRightButtonDown += (_, e) => OpenRelationshipLineMenu(_selectedRelationshipKey, RelationshipMoveHandle, e);
         var statusDescriptor = System.ComponentModel.DependencyPropertyDescriptor.FromProperty(TextBlock.TextProperty, typeof(TextBlock));
@@ -898,11 +903,11 @@ public partial class MainWindow : Window
         EmptyRelationshipMapping.Visibility = rows.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
         source = EntityDisplayName(source);
         target = EntityDisplayName(target);
-        RelationshipNameBox.Tag = RelationshipDescriptionBox.Tag = null;
+        RelationshipPhysicalNameBox.Tag = RelationshipNameBox.Tag = RelationshipDescriptionBox.Tag = null;
         RelationshipNameBox.Text = string.IsNullOrWhiteSpace(data?.Name) ? $"{source} → {target}" : data.Name;
-        RelationshipPhysicalNameBox.Text = $"{source.ToLowerInvariant()}-{target.ToLowerInvariant()}";
+        RelationshipPhysicalNameBox.Text = RelationshipPhysicalName(data, source, target);
         RelationshipDescriptionBox.Text = data?.Comment ?? "";
-        RelationshipNameBox.Tag = RelationshipDescriptionBox.Tag = data;
+        RelationshipPhysicalNameBox.Tag = RelationshipNameBox.Tag = RelationshipDescriptionBox.Tag = data;
         RelationshipParentBox.Text = source;
         RelationshipChildBox.Text = target;
         RelationshipTypeBox.Text = type;
@@ -1562,7 +1567,7 @@ public partial class MainWindow : Window
 }
 
 public sealed record ColumnInfo(string Name, string Type, bool Required, bool IsPrimaryKey = false, bool IsForeignKey = false)
-{ public Guid Id { get; init; } = Guid.NewGuid(); public Guid? ParentId { get; init; } public string Description { get; init; } = ""; public string PhysicalName { get; init; } = ""; }
+{ public Guid Id { get; init; } = Guid.NewGuid(); public Guid? ParentId { get; init; } public string Description { get; init; } = ""; public string PhysicalName { get; init; } = ""; public string? ImportedPhysicalName { get; init; } }
 
 public sealed record DynamicRelationship(string SourceKey, string TargetKey, Path Visible, Path Hit, bool IsIdentifying, bool IsViewRelationship = false, bool IsSubCategory = false)
 {

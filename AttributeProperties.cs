@@ -47,7 +47,7 @@ public partial class MainWindow
             if (string.IsNullOrWhiteSpace(value) || _columns[key].Any(c => c.Id != id && c.Name.Equals(value, StringComparison.OrdinalIgnoreCase))) return;
             Save(c => c with { Name = value }, true);
         });
-        Field("Physical Name", selected.PhysicalName, value => Save(c => c with { PhysicalName = value }));
+        Field("Physical Name", ColumnPhysicalName(selected), value => Save(c => c with { PhysicalName = value }));
         Field("Description / Comment", selected.Description, value => Save(c => c with { Description = value }), true);
         Label("Datatype");
         var parts = SplitAttributeType(selected.Type);

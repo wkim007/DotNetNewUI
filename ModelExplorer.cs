@@ -48,6 +48,14 @@ public partial class MainWindow
             _explorerRoot.Items.Add(_explorerViews);
             _explorerRoot.Items.Add(_explorerMViews);
             _explorerRoot.Items.Add(_explorerRelationships);
+            var standards = new TreeViewItem { Header = "Naming Standards", ContextMenu = new ContextMenu() };
+            var add = new MenuItem { Header = "New" };
+            var edit = new MenuItem { Header = "Properties" };
+            add.Click += (_, _) => OpenNsmEditor(create: true);
+            edit.Click += (_, _) => OpenNsmEditor();
+            standards.ContextMenu.Items.Add(add);
+            standards.ContextMenu.Items.Add(edit);
+            _explorerRoot.Items.Add(standards);
         }
         _explorerRoot.Header = _activeDiagram?.Title ?? "ER_Diagram_1";
         _explorerEntities.Header = ViewModeBox.SelectedIndex == 1 ? "Entities" : "Tables";

@@ -12,7 +12,7 @@ public partial class MainWindow
     private sealed record ClipboardItem(string? SourceKey, Point Position, Func<Dictionary<Guid, Guid>, FrameworkElement> Create);
     private List<ClipboardItem> _clipboardItems = [];
     private sealed record ClipboardRelationship(string Source, string Target, string Type, string Cardinality,
-        string Name, string Comment, Vector Offset, Point? SourceAnchor, Point? TargetAnchor, ColumnMapping[]? Mappings, Guid[]? Inherited, bool Identified);
+        string Name, string PhysicalName, string Comment, Vector Offset, Point? SourceAnchor, Point? TargetAnchor, ColumnMapping[]? Mappings, Guid[]? Inherited, bool Identified);
     private ClipboardRelationship[] _clipboardRelationships = [];
     private Point _clipboardOrigin;
     private Point _nextPastePosition;
@@ -143,6 +143,7 @@ public partial class MainWindow
             var name = EntityDisplayName(key);
             var description = _objectDefinitions.GetValueOrDefault(key, "");
             var physical = ObjectPhysicalName(key);
+            var inheritsName = string.IsNullOrWhiteSpace(_objectPhysicalNames.GetValueOrDefault(key));
             var columns = fields.ToArray();
             var view = _viewCardKeys.Contains(key);
             var materialized = _materializedViewKeys.Contains(key);
@@ -168,7 +169,7 @@ public partial class MainWindow
                         suffix = $" Copy {i}";
                     _entityDisplayNames[target] = name + suffix;
                     _objectDefinitions[target] = description;
-                    _objectPhysicalNames[target] = physical + suffix.Replace(' ', '_');
+                    if (!inheritsName) _objectPhysicalNames[target] = physical + suffix.Replace(' ', '_');
                     var header = ((Grid)copy.Child).Children.OfType<Border>().First(b => Grid.GetRow(b) == 0);
                     Descendants<TextBlock>(header).First().Text = name + suffix;
                     RebuildNestedRows(target);
@@ -198,7 +199,7 @@ public partial class MainWindow
             var line = FindRelationshipLine(key);
             var endpoints = line != null && _endpointPositions.TryGetValue(line, out var positions) ? positions : null;
             yield return new(info.Source, info.Target, type, _relationshipLabels.GetValueOrDefault(key)?.Text ?? "1:N",
-                text.Name, text.Comment, _relationshipOffsets.GetValueOrDefault(key), endpoints?.Source, endpoints?.Target,
+                text.Name, text.PhysicalName, text.Comment, _relationshipOffsets.GetValueOrDefault(key), endpoints?.Source, endpoints?.Target,
                 (relation?.ColumnMappings ?? _sampleColumnMappings.GetValueOrDefault(key))?.ToArray(),
                 relation?.InheritedAttributeIds?.ToArray(), relation?.IsSupertypeSubtypeIdentified == true);
         }
@@ -241,6 +242,7 @@ public partial class MainWindow
             };
             var text = (RelationshipText)relation.Hit.Resources[typeof(RelationshipText)];
             text.Name = link.Name;
+            text.PhysicalName = link.PhysicalName;
             text.Comment = link.Comment;
             _relationshipLabels[key].Text = link.Cardinality;
             _relationshipOffsets[key] = link.Offset;

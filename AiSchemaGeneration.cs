@@ -50,6 +50,17 @@ public partial class MainWindow
         { AiStatus.Text = "The diagram changed during generation. Please retry; no changes applied."; TraceAi(AiStatus.Text); return; }
         if (append && schema.Relationships.Any(r => !schema.Tables.Any(t => t.Name.Equals(r.Target, StringComparison.OrdinalIgnoreCase))))
         { AiStatus.Text = "The response would modify an existing table. No changes applied; please retry."; return; }
+        if (ActiveStandard is { } standard)
+        {
+            var names = schema.Tables.Select(t => (Type: "Table", Logical: t.Name))
+                .Concat(schema.Tables.Concat(additions).SelectMany(t => t.Columns.Select(c => (Type: "Column", Logical: c.Name))))
+                .Concat(renames.Select(r => (Type: "Column", Logical: r.NewName)));
+            foreach (var (type, name) in names.Distinct())
+            {
+                var (physical, finding) = standard.ConvertName(name, type);
+                if (finding.Length > 0) TraceAi($"NSM {type} {name} → {physical}: {finding}");
+            }
+        }
         TraceAi(append ? "Adding objects to the current diagram." : "Creating a new diagram.");
         TraceAi($"Schema valid: {schema.Tables.Length} tables, {schema.Relationships.Length} relationships. Creating diagram.");
         if (!append) AddDiagram_Click(this, new RoutedEventArgs());

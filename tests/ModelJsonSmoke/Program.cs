@@ -688,6 +688,54 @@ internal static class Program
                 "Views and their connections must appear only in Physical View.");
             Check(sourceCard.Visibility == Visibility.Visible, "Switching modes hid a table.");
         }
+        var profiles = Field<List<NsmProfile>>("_standards");
+        var nsm = profiles.Single(p => p.IsActive);
+        var toggle = Field<System.Windows.Controls.CheckBox>("UseNsmToggle");
+        var inheritedColumn = new ColumnInfo("Employee Date of Birth", "DATE", false);
+        Check((string)Call("ColumnPhysicalName", inheritedColumn)! == "", "NSM should start disabled.");
+        toggle.IsChecked = true;
+        foreach (var (input, expected) in new[] { ("Customer Identifier","CUST_ID"),("Customer First Name","CUST_FIRST_NM"),
+            ("Employee Date of Birth","EMP_DOB"),("Order Amount","ORD_AMT"),("Product Description","PROD_DESC"),("CustomerAccountNumber","CUST_ACCT_NBR") })
+            Check((string)Call("ColumnPhysicalName", inheritedColumn with { Name = input })! == expected, "NSM conversion failed: " + input);
+        Check((string)Call("ColumnPhysicalName", inheritedColumn with { PhysicalName = "CUSTOM_OVERRIDE" })! == "CUSTOM_OVERRIDE",
+            "NSM replaced a manual override.");
+        var csvType = typeof(MainWindow).Assembly.GetType("ErwinStudioSample.NsmCsv")!;
+        var readCsv = csvType.GetMethod("Read", BindingFlags.NonPublic | BindingFlags.Static)!;
+        var writeCsv = csvType.GetMethod("Write", BindingFlags.NonPublic | BindingFlags.Static)!;
+        var importedNsm = (NsmProfile)readCsv.Invoke(null, ["CUSTOMER,CUST,,X,,,,\r\nMOVIE RENTAL RECORD,MO RENT REC,,X,X,X,,\r\n",nsm])!;
+        Check(importedNsm.Glossary.Count == 2 && importedNsm.Glossary[1].Modifier2, "Headerless glossary CSV import failed.");
+        var merged = (NsmProfile)readCsv.Invoke(null, ["customer,CLIENT\nRegion,REG,,X,,,,,\n", importedNsm])!;
+        typeof(NsmProfile).GetMethod("MergeGlossary", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(merged, [importedNsm]);
+        Check(merged.Glossary.Select(term => term.Abbreviation).SequenceEqual(new[] { "CLIENT", "MO RENT REC", "REG" })
+            && importedNsm.Glossary[0].Abbreviation == "CUST", "Glossary merge lost or duplicated entries.");
+        importedNsm.Name = "Shared standard";
+        importedNsm.Glossary[0].Definition = "A customer, also called a \"client\".";
+        importedNsm.Physical[0].Part1 = "Prime";
+        var csvCopy = (NsmProfile)readCsv.Invoke(null, [writeCsv.Invoke(null,[importedNsm]),nsm])!;
+        Check(csvCopy.Name == importedNsm.Name && csvCopy.Physical[0].Part1 == "Prime" &&
+            csvCopy.Glossary[0].Definition == importedNsm.Glossary[0].Definition, "CSV settings or quoted definition lost.");
+        importedNsm.IsActive = false; profiles.Add(importedNsm);
+        var importedColumn = inheritedColumn with { Name = "Customer", ImportedPhysicalName = "customer_db" };
+        Check((string)Call("ColumnPhysicalName", importedColumn)! == "CUST", "Default standard missed an imported name.");
+        nsm.IsActive = false;
+        importedNsm.IsActive = true;
+        importedNsm.Glossary[0].Abbreviation = "client";
+        Call("RefreshNsm");
+        Check((string)Call("ColumnPhysicalName", importedColumn)! == "client", "Second standard did not replace the first mapping.");
+        Check((string)Call("ColumnPhysicalName", inheritedColumn with { Name = "first_name" })! == "first_name",
+            "The second standard changed a column absent from its glossary.");
+        Check((string)Call("ColumnPhysicalName", inheritedColumn with { Name = "customer_id" })! == "client_id",
+            "The second standard changed the case of an unmatched word in a partially mapped column.");
+        Check((string)Call("ColumnPhysicalName", importedColumn with { Name = "Unlisted" })! == "customer_db", "Unmatched imported name lost.");
+        nsm.IsActive = true;
+        importedNsm.IsActive = false;
+        Call("RefreshNsm");
+        var savedNsm = CurrentModel();
+        Call("ImportModelJson", Parse(savedNsm.ToJsonString()));
+        Check(toggle.IsChecked == true && Field<List<NsmProfile>>("_standards").Count == 2 &&
+            (string)Call("ColumnPhysicalName", inheritedColumn)! == "EMP_DOB", "NSM model persistence failed.");
+        toggle.IsChecked = false;
+        Check((string)Call("ColumnPhysicalName", inheritedColumn)! == "", "Turning off NSM kept applying the glossary.");
         window.Close(); app.Shutdown();
     }
 }

@@ -56,8 +56,15 @@ public partial class MainWindow
         UpdateRelationshipLines();
     }
 
-    private string ObjectPhysicalName(string key) => _objectPhysicalNames.GetValueOrDefault(key,
-        key switch { "OrderItem" => "order_item", "Order" => "sales_order", _ => EntityDisplayName(key).ToLowerInvariant() });
+    private string ObjectPhysicalName(string key)
+    {
+        if (_objectPhysicalNames.TryGetValue(key, out var manual) && !string.IsNullOrWhiteSpace(manual)) return manual;
+        var logical = EntityDisplayName(key);
+        if (_importedPhysicalNames.TryGetValue(key, out var imported))
+            return NsmName(logical, "Table", imported, unmatched: imported);
+        var fallback = key switch { "OrderItem" => "order_item", "Order" => "sales_order", _ => logical.ToLowerInvariant() };
+        return NsmName(logical, "Table", fallback, unmatched: fallback);
+    }
 
     private string CanvasName(string logical, string physical) =>
         ViewModeBox.SelectedIndex == 0 && !string.IsNullOrWhiteSpace(physical) ? physical : logical;
@@ -90,7 +97,11 @@ public partial class MainWindow
             }
             var header = grid.Children.OfType<Border>().FirstOrDefault(b => Grid.GetRow(b) == 0);
             var title = header?.Child as TextBlock ?? (header?.Child as Grid)?.Children.OfType<TextBlock>().FirstOrDefault();
-            var displayName = CanvasName(EntityDisplayName(key), ObjectPhysicalName(key));
+            var physicalName = ObjectPhysicalName(key);
+            var explicitName = _objectPhysicalNames.GetValueOrDefault(key);
+            if (string.IsNullOrWhiteSpace(explicitName)) explicitName = _importedPhysicalNames.GetValueOrDefault(key);
+            var displayName = ViewModeBox.SelectedIndex == 1 && !string.IsNullOrWhiteSpace(explicitName)
+                ? NsmName(explicitName, "Entity", EntityDisplayName(key), true) : CanvasName(EntityDisplayName(key), physicalName);
             if (title != null && title.Text != displayName) title.Text = displayName;
             if (state.LastLevel != level)
             {
@@ -112,7 +123,9 @@ public partial class MainWindow
                     var column = columns.FirstOrDefault(c => c.Name == selection.AttributeName);
                     if (column != null && row.Children.OfType<TextBlock>().FirstOrDefault(t => Grid.GetColumn(t) == 1) is { } label)
                     {
-                        var name = CanvasName(column.Name, column.PhysicalName);
+                        var sourceName = string.IsNullOrWhiteSpace(column.PhysicalName) ? column.ImportedPhysicalName : column.PhysicalName;
+                        var name = ViewModeBox.SelectedIndex == 1 && !string.IsNullOrWhiteSpace(sourceName)
+                            ? NsmName(sourceName, "Attribute", column.Name, true) : CanvasName(column.Name, ColumnPhysicalName(column));
                         if (label.Text != name) label.Text = name;
                         if (!Equals(label.ToolTip, name)) label.ToolTip = name;
                     }

@@ -19,6 +19,7 @@ public partial class MainWindow
     private readonly Dictionary<Guid, string> _modelAttributeIds = [];
     private readonly Dictionary<string, string> _modelRelationshipIds = [];
     private readonly Dictionary<string, string> _objectPhysicalNames = [];
+    private Dictionary<string, string> _importedPhysicalNames = [];
     private string ObjectJsonId(string key)
     {
         if (_modelObjectIds.TryGetValue(key, out var id)) return id;
@@ -42,6 +43,7 @@ public partial class MainWindow
         root["workspace"] = null; root["workspace"] = workspace;
         var meta = root["meta"] as JsonObject ?? new JsonObject();
         root["meta"] = null; root["meta"] = meta;
+        SaveNsm(meta);
         meta["db"] ??= ProjectDatabaseBox.Text;
         meta["dbMajorVersion"] ??= ProjectVersionBox.Text.Split('.')[0];
         meta["dbMinorVersion"] ??= "0";
@@ -73,6 +75,8 @@ public partial class MainWindow
                 var obj = original.GetValueOrDefault(id)?.DeepClone() as JsonObject ?? new JsonObject();
                 obj["id"] = id; obj["name"] = EntityDisplayName(key);
                 obj["physicalName"] = ObjectPhysicalName(key);
+                if (_importedPhysicalNames.TryGetValue(key, out var imported)) obj["importedPhysicalName"] = imported;
+                obj["inheritsPhysicalName"] = string.IsNullOrWhiteSpace(_objectPhysicalNames.GetValueOrDefault(key));
                 obj["definition"] = obj["comment"] = null;
                 obj["definition"] = _objectDefinitions.GetValueOrDefault(key, "");
                 obj["comment"] = _objectDefinitions.GetValueOrDefault(key, "");
@@ -83,7 +87,9 @@ public partial class MainWindow
                 {
                     var aid = AttributeJsonId(c.Id);
                     var attribute = previousAttributes.GetValueOrDefault(aid)?.DeepClone() as JsonObject ?? new JsonObject();
-                    attribute["id"] = aid; attribute["name"] = c.Name; attribute["physicalName"] = c.PhysicalName;
+                    attribute["id"] = aid; attribute["name"] = c.Name; attribute["physicalName"] = ColumnPhysicalName(c);
+                    attribute["inheritsPhysicalName"] = string.IsNullOrWhiteSpace(c.PhysicalName);
+                    if (c.ImportedPhysicalName is string originalName) attribute["importedPhysicalName"] = originalName;
                     attribute["datatype"] = c.Type; attribute["comment"] = c.Description; attribute["definition"] = c.Description;
                     attribute["isPrimary"] = c.IsPrimaryKey; attribute["isFK"] = c.IsForeignKey; attribute["isNullable"] = !c.Required;
                     attribute["parentId"] = c.ParentId is { } parent ? AttributeJsonId(parent) : null;
@@ -143,6 +149,8 @@ public partial class MainWindow
                 if (hit?.Resources[typeof(RelationshipText)] is RelationshipText data)
                 {
                     obj["name"] = string.IsNullOrWhiteSpace(data.Name) ? EntityDisplayName(source) + " → " + EntityDisplayName(target) : data.Name;
+                    obj["physicalName"] = RelationshipPhysicalName(data, EntityDisplayName(source), EntityDisplayName(target));
+                    obj["inheritsPhysicalName"] = string.IsNullOrWhiteSpace(data.PhysicalName);
                     obj["description"] = data.Comment;
                     if (string.IsNullOrWhiteSpace(data.Comment))
                         foreach (var alias in new[] { "definition", "comment" })
@@ -212,7 +220,9 @@ public partial class MainWindow
     {
         if (EntityNameBox.Tag is string key && _columns.ContainsKey(key))
         {
+            if (PhysicalNameBox.Text == ObjectPhysicalName(key)) return;
             _objectPhysicalNames[key] = PhysicalNameBox.Text;
+            PhysicalNameBox.Text = ObjectPhysicalName(key);
             ApplyProjectViewMode();
         }
     }

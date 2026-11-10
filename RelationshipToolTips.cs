@@ -12,15 +12,24 @@ public partial class MainWindow
     private sealed class RelationshipText
     {
         public string Name { get; set; } = "";
+        public string PhysicalName { get; set; } = "";
         public string Comment { get; set; } = "";
 
         public static RelationshipText Read(JsonObject relationship) => new()
         {
+            PhysicalName = ModelJsonDocument.Flag(relationship, "inheritsPhysicalName") ? "" : ModelJsonDocument.Text(relationship, "physicalName"),
             Name = ModelJsonDocument.Text(relationship, "name"),
             Comment = new[] { "description", "definition", "comment" }
                 .Select(field => ModelJsonDocument.Text(relationship, field))
                 .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? ""
         };
+    }
+
+    private string RelationshipPhysicalName(RelationshipText? data, string source, string target)
+    {
+        if (!string.IsNullOrWhiteSpace(data?.PhysicalName)) return data.PhysicalName;
+        var logical = string.IsNullOrWhiteSpace(data?.Name) ? source + " " + target : data.Name;
+        return NsmName(logical, "Relationship", source.ToLowerInvariant() + "-" + target.ToLowerInvariant());
     }
 
     private void ConfigureRelationshipToolTip(Path hit, string key, RelationshipText data)

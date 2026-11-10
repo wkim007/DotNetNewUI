@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Collections.ObjectModel;
 using System.Text.Json.Nodes;
 using System.Windows;
@@ -13,6 +14,8 @@ public partial class MainWindow
 {
     private void ImportModelJson(JsonObject root)
     {
+        var profiles = root["meta"]?["namingStandards"]?.Deserialize<List<NsmProfile>>() ?? [NsmProfile.Default()];
+        ValidateStandards(profiles);
         var workspace = root["workspace"]!;
         var areas = Items(workspace["subjectAreas"]).Select(a => new SubjectAreaState {
             Id = Text(a, "id"), Name = Text(a, "name"), Locked = Text(a, "id") == "0" || Flag(a, "locked") }).ToList();
@@ -21,6 +24,9 @@ public partial class MainWindow
         var relationIds = new Dictionary<string, string>();
         var names = new Dictionary<string, string>();
         var physicalNames = new Dictionary<string, string>();
+        var importedPhysicalNames = new Dictionary<string, string>();
+        static string? ImportedName(JsonObject o) => o["importedPhysicalName"]?.ToString() ??
+            (o["inheritsPhysicalName"] == null && !string.IsNullOrWhiteSpace(Text(o, "physicalName")) ? Text(o, "physicalName") : null);
         var definitions = new Dictionary<string, string>();
         var objects = new Dictionary<string, (string Key, string Kind, ObservableCollection<ColumnInfo> Columns)>();
         foreach (var kind in Kinds)
@@ -29,7 +35,8 @@ public partial class MainWindow
             var id = Text(obj, "id");
             var key = "Imported_" + id;
             objectIds[key] = id; names[key] = Text(obj, "name");
-            physicalNames[key] = Text(obj, "physicalName");
+            if (ImportedName(obj) is string imported) importedPhysicalNames[key] = imported;
+            if (obj["inheritsPhysicalName"] != null && !Flag(obj, "inheritsPhysicalName")) physicalNames[key] = Text(obj, "physicalName");
             definitions[key] = Text(obj, "definition", Text(obj, "comment"));
             var ids = Items(obj["attributes"]).ToDictionary(a => Text(a, "id"), a => Guid.TryParse(Text(a, "id"), out var guid) ? guid : Guid.NewGuid());
             var columns = new ObservableCollection<ColumnInfo>();
@@ -40,7 +47,8 @@ public partial class MainWindow
                 columns.Add(new ColumnInfo(Text(a, "name"), Text(a, "datatype", "VARCHAR"), !Flag(a, "isNullable", true), Flag(a, "isPrimary"), Flag(a, "isFK"))
                 {
                     Id = aid, ParentId = ids.TryGetValue(Text(a, "parentId"), out var parent) ? parent : null,
-                    PhysicalName = Text(a, "physicalName"), Description = Text(a, "definition", Text(a, "comment"))
+                    ImportedPhysicalName = ImportedName(a),
+                    PhysicalName = a["inheritsPhysicalName"] == null || Flag(a, "inheritsPhysicalName") ? "" : Text(a, "physicalName"), Description = Text(a, "definition", Text(a, "comment"))
                 });
             }
             objects[id] = (key, kind, columns);
@@ -124,6 +132,7 @@ public partial class MainWindow
         var oldAreaId = _activeSubjectAreaId; var oldSource = _modelJsonSource;
         var oldNames = new Dictionary<string, string>(_entityDisplayNames); var oldDefinitions = new Dictionary<string, string>(_objectDefinitions);
         var oldPhysical = new Dictionary<string, string>(_objectPhysicalNames);
+        var oldImportedPhysicalNames = _importedPhysicalNames;
         var oldObjectIds = new Dictionary<string, string>(_modelObjectIds); var oldAttributeIds = new Dictionary<Guid, string>(_modelAttributeIds); var oldRelationIds = new Dictionary<string, string>(_modelRelationshipIds);
         var target = diagrams.FirstOrDefault(d => d.Id == Text(root["meta"], "activeDiagramId") && d.SubjectAreaId == Text(root["meta"], "activeSubjectAreaId"))
             ?? diagrams.FirstOrDefault(d => d.SubjectAreaId == Text(root["meta"], "activeSubjectAreaId")) ?? diagrams.First();
@@ -136,6 +145,7 @@ public partial class MainWindow
             _migratedHighlightBold = Flag(root["meta"], "migratedColumnBold", true);
             _migratedHighlightColor = Text(root["meta"], "migratedColumnColor", "#C00000");
             RestoreMap(_entityDisplayNames, names); RestoreMap(_objectDefinitions, definitions); RestoreMap(_objectPhysicalNames, physicalNames);
+            _importedPhysicalNames = importedPhysicalNames;
             RestoreMap(_modelObjectIds, objectIds); RestoreMap(_modelAttributeIds, attributeIds); RestoreMap(_modelRelationshipIds, relationIds);
             _diagrams.Clear(); _diagrams.AddRange(diagrams);
             _activeSubjectAreaId = target.SubjectAreaId;
@@ -152,11 +162,15 @@ public partial class MainWindow
             {
                 _alternateViewModel = root["alternateViewModel"]?.DeepClone() as JsonObject;
                 _rolledViewIndex = ViewModeBox.SelectedIndex;
+                _standards = profiles;
+                UseNsmToggle.IsChecked = Flag(root["meta"], "useNSM");
+                RefreshNsm();
             }
         }
         catch
         {
             _modelJsonSource = oldSource;
+            _importedPhysicalNames = oldImportedPhysicalNames;
             RestoreMap(_entityDisplayNames, oldNames); RestoreMap(_objectDefinitions, oldDefinitions); RestoreMap(_objectPhysicalNames, oldPhysical);
             RestoreMap(_modelObjectIds, oldObjectIds); RestoreMap(_modelAttributeIds, oldAttributeIds); RestoreMap(_modelRelationshipIds, oldRelationIds);
             _diagrams.Clear(); _diagrams.AddRange(oldDiagrams); _activeSubjectAreaId = oldAreaId;

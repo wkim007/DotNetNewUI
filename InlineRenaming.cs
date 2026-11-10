@@ -73,11 +73,11 @@ public partial class MainWindow
         var label = grid.Children.OfType<FrameworkElement>().FirstOrDefault(child => Grid.GetColumn(child) == 1);
         if (label is null) return;
         var physical = ViewModeBox.SelectedIndex == 0;
-        ShowInlineNameEditor(grid, label, CanvasName(original.Name, original.PhysicalName), name =>
+        ShowInlineNameEditor(grid, label, CanvasName(original.Name, ColumnPhysicalName(original)), name =>
         {
             var currentIndex = columns.IndexOf(original);
             if (currentIndex < 0) return false;
-            if (columns.Where((_, i) => i != currentIndex).Any(c => CanvasName(c.Name, c.PhysicalName).Equals(name, StringComparison.OrdinalIgnoreCase)))
+            if (columns.Where((_, i) => i != currentIndex).Any(c => CanvasName(c.Name, ColumnPhysicalName(c)).Equals(name, StringComparison.OrdinalIgnoreCase)))
             { StatusText.Text = "A column with that name already exists"; return false; }
             columns[currentIndex] = physical ? original with { PhysicalName = name } : original with { Name = name };
             row.Tag = new AttributeSelection(selection.EntityKey, columns[currentIndex].Name);
