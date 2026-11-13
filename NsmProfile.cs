@@ -93,10 +93,8 @@ public sealed class NsmProfile
     private static string Normalize(string input) => string.Join(" ", Regex.Matches(
         Regex.Replace(input, @"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])", " "), @"[\p{L}\p{Nd}]+").Select(m => m.Value));
 
-    internal (string Name, string Finding) ConvertName(string input, string type, bool reverse = false, string? unmatched = null)
+    private List<(string Text, NsmTerm? Term)> GlossaryParts(string input, bool reverse)
     {
-        var rule = (reverse ? Logical : Physical).FirstOrDefault(r => r.Type == type);
-        if (rule?.UseGlossary != true || string.IsNullOrWhiteSpace(input)) return (input, "");
         var normalized = Normalize(input);
         var terms = new Dictionary<string,NsmTerm>(StringComparer.OrdinalIgnoreCase);
         foreach (var term in Glossary)
@@ -126,6 +124,14 @@ public sealed class NsmProfile
                 parts.Add((normalized[start..i], null));
             }
         }
+        return parts;
+    }
+
+    internal (string Name, string Finding) ConvertName(string input, string type, bool reverse = false, string? unmatched = null)
+    {
+        var rule = (reverse ? Logical : Physical).FirstOrDefault(r => r.Type == type);
+        if (rule?.UseGlossary != true || string.IsNullOrWhiteSpace(input)) return (input, "");
+        var parts = GlossaryParts(input, reverse);
         var order = rule.Parts();
         int Rank(NsmTerm? term)
         {
@@ -148,6 +154,20 @@ public sealed class NsmProfile
         if (parts.All(p => p.Term == null)) return (unmatched ?? input, string.Join("; ", findings));
         var name = string.Join(reverse ? " " : "_", parts.OrderBy(p => Rank(p.Term)).Select(p => p.Text));
         return (name, string.Join("; ", findings));
+    }
+
+    internal string CheckStandard(string name, string type, bool physical, bool checkPosition)
+    {
+        var parts = GlossaryParts(name, physical);
+        var missing = parts.Where(p => p.Term == null).Select(p => p.Text).Distinct(StringComparer.OrdinalIgnoreCase);
+        if (parts.Count == 0 || missing.Any())
+            return "Outside the active glossary: " + (parts.Count == 0 ? name : string.Join(", ", missing));
+        var roles = (physical ? Physical : Logical).FirstOrDefault(r => r.Type == type)?.Parts() ?? [];
+        if (checkPosition && roles.Length > 0)
+            for (int i = 0; i < parts.Count; i++)
+                if (i >= roles.Length || !parts[i].Term!.Matches(roles[i]))
+                    return i >= roles.Length ? $"Unexpected component at position {i + 1}." : $"Position {i + 1} requires {roles[i]}.";
+        return "";
     }
 }
 

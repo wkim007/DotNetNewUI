@@ -689,6 +689,16 @@ internal static class Program
             Check(sourceCard.Visibility == Visibility.Visible, "Switching modes hid a table.");
         }
         var profiles = Field<List<NsmProfile>>("_standards");
+        var complianceProfile = new NsmProfile();
+        complianceProfile.Glossary.Add(new NsmTerm { Words = "aaa", Abbreviation = "a123", Alternate = "a125", Prime = true, Modifier1 = true, Modifier2 = true });
+        var entityRule = complianceProfile.Logical.Single(r => r.Type == "Entity");
+        entityRule.Part1 = "Prime";
+        var verifyName = typeof(NsmProfile).GetMethod("CheckStandard", BindingFlags.NonPublic | BindingFlags.Instance)!;
+        bool Pass(string name, bool positions = true, bool physical = false) =>
+            (string)verifyName.Invoke(complianceProfile, [name, physical ? "Table" : "Entity", physical, positions])! == "";
+        Check(Pass("aaa") && !Pass("aaa aaa") && Pass("aaa aaa", false) && !Pass("bbb", false), "Single-part naming compliance failed.");
+        entityRule.Part2 = "Modifier 1"; entityRule.Part3 = "Modifier 2";
+        Check(Pass("aaa aaa aaa") && !Pass("a123") && Pass("a125", physical: true), "Multi-role or abbreviation compliance failed.");
         var nsm = profiles.Single(p => p.IsActive);
         var toggle = Field<System.Windows.Controls.CheckBox>("UseNsmToggle");
         var inheritedColumn = new ColumnInfo("Employee Date of Birth", "DATE", false);

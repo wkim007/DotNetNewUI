@@ -209,6 +209,9 @@
                             <CheckBox x:Name="ObjectTooltipsToggle" Content="Tun On Tooltip" IsChecked="True" Checked="ObjectTooltipsToggle_Changed" Unchecked="ObjectTooltipsToggle_Changed" Foreground="#DCE7F5" Margin="0,14,0,2" VerticalContentAlignment="Center"/>
                             <CheckBox x:Name="UseNsmToggle" Content="Use NSM" Checked="NsmChanged" Unchecked="NsmChanged" Foreground="#DCE7F5" Margin="0,6,0,2"/>
                             <Button Content="NSM" Click="Nsm_Click" ToolTip="Naming Standards" Style="{StaticResource ProjectSettingsButton}" Margin="0,6,0,2"/>
+                            <Button Click="NameCompliance_Click" IsEnabled="{Binding IsChecked, ElementName=UseNsmToggle}" Style="{StaticResource ProjectSettingsButton}" Margin="0,4,0,2">
+                                <TextBlock Text="Name Standard Compliance" TextWrapping="Wrap" TextAlignment="Center"/>
+                            </Button>
                         </StackPanel>
                     </Border>
                     <TextBlock Text="MODEL EXPLORER" Style="{StaticResource SectionTitle}" Foreground="#A9C9E8" Margin="14,8" VerticalAlignment="Center"/>
