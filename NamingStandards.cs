@@ -95,16 +95,31 @@ public partial class MainWindow
             CanUserDeleteRows = editRows, SelectionMode = DataGridSelectionMode.Single, HeadersVisibility = DataGridHeadersVisibility.Column };
         static Binding Bind(string prop) => new(prop) { UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged };
         static DataGridTextColumn TextCol(string title, string prop) => new() { Header = title, Binding = Bind(prop), Width = DataGridLength.SizeToHeader, MinWidth = 92 };
-        static DataGridCheckBoxColumn CheckCol(string title, string prop) => new() { Header = title, Binding = Bind(prop) };
+        static DataGridTemplateColumn CheckCol(string title, string prop, RoutedEventHandler? clicked = null)
+        {
+            var box = new FrameworkElementFactory(typeof(CheckBox));
+            box.SetValue(FrameworkElement.HorizontalAlignmentProperty, HorizontalAlignment.Center);
+            box.SetValue(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Center);
+            box.SetBinding(CheckBox.IsCheckedProperty, new Binding(prop)
+            {
+                Mode = clicked == null ? BindingMode.TwoWay : BindingMode.OneWay,
+                UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged
+            });
+            box.AddHandler(CheckBox.ClickEvent, new RoutedEventHandler((sender, args) =>
+            {
+                var checkbox = (CheckBox)sender;
+                if (DataGridRow.GetRowContainingElement(checkbox) is { } row)
+                    row.IsSelected = true;
+                clicked?.Invoke(sender, args);
+            }));
+            return new DataGridTemplateColumn { Header = title, CellTemplate = new DataTemplate { VisualTree = box } };
+        }
         var list = Grid();
         list.Height = 150; list.Margin = new Thickness(0,0,0,8);
         list.Columns.Add(TextCol("Name", "Name")); list.Columns[0].Width = new DataGridLength(1, DataGridLengthUnitType.Star);
         list.Columns.Add(CheckCol("Match whole words only", "WholeWords"));
         list.Columns.Add(CheckCol("Match whole name only", "WholeName"));
-        var activeCell = new FrameworkElementFactory(typeof(CheckBox));
-        activeCell.SetValue(FrameworkElement.HorizontalAlignmentProperty, HorizontalAlignment.Center);
-        activeCell.SetBinding(CheckBox.IsCheckedProperty, new Binding("IsActive") { Mode = BindingMode.OneWay });
-        activeCell.AddHandler(CheckBox.ClickEvent, new RoutedEventHandler((s, _) =>
+        list.Columns.Add(CheckCol("Is Active", "IsActive", (s, _) =>
         {
             var box = (CheckBox)s;
             var chosen = (NsmProfile)box.DataContext;
@@ -113,7 +128,6 @@ public partial class MainWindow
             foreach (var p in profiles) p.IsActive = active && p == chosen;
             list.SelectedItem = chosen; list.Items.Refresh();
         }));
-        list.Columns.Add(new DataGridTemplateColumn { Header = "Is Active", CellTemplate = new DataTemplate { VisualTree = activeCell } });
         list.Columns.Add(CheckCol("Physical to logical", "PhysicalToLogical"));
         list.ItemsSource = profiles; DockPanel.SetDock(list,Dock.Top); root.Children.Add(list);
         var tabs = new TabControl();
