@@ -317,28 +317,48 @@ public partial class MainWindow : Window
             if (editor.IsReadOnly) AttributeRow_MouseLeftButtonDown(row, args);
             else args.Handled = true;
         };
-        editor.KeyDown += (_, args) =>
+        var committed = false;
+        MouseButtonEventHandler? outsideClick = null;
+        void CommitColumn()
         {
-            if (args.Key != Key.Enter || editor.IsReadOnly) return;
+            if (committed) return;
+            committed = true;
+            PreviewMouseDown -= outsideClick;
             var name = string.IsNullOrWhiteSpace(editor.Text) ? "New attribute" : editor.Text.Trim();
-            var columnIndex = _columns[entityKey].IndexOf(pendingColumn);
+            var columnIndex = _columns[entityKey].ToList().FindIndex(c => c.Id == pendingColumn.Id);
             if (columnIndex < 0) return;
-            _columns[entityKey][columnIndex] = pendingColumn with { Name = name };
-            row.Tag = new AttributeSelection(entityKey, name);
+            _columns[entityKey][columnIndex] = _columns[entityKey][columnIndex] with { Name = name };
+            row.Tag = new AttributeSelection(entityKey, name, pendingColumn.Id);
             row.MouseLeftButtonDown += AttributeRow_MouseLeftButtonDown;
             ConfigureAttributeDrag(row);
             editor.IsReadOnly = true;
             editor.Text = name;
-            Keyboard.ClearFocus();
-            RebuildNestedRows(entityKey);
+            var label = CreateAttributeLayout(_columns[entityKey][columnIndex], name);
+            row.Child = label;
+            ColumnsGrid.Items.Refresh();
+            ApplyProjectViewMode();
             StatusText.Text = $"Added column: {entityKey}.{name} varchar(50)";
+        }
+        outsideClick = (_, args) =>
+        {
+            if (args.OriginalSource is DependencyObject source && (source == editor || editor.IsAncestorOf(source))) return;
+            CommitColumn();
+        };
+        PreviewMouseDown += outsideClick;
+        editor.LostKeyboardFocus += (_, _) => CommitColumn();
+        row.Unloaded += (_, _) => PreviewMouseDown -= outsideClick;
+        editor.KeyDown += (_, args) =>
+        {
+            if (args.Key != Key.Enter) return;
+            CommitColumn();
+            Keyboard.ClearFocus();
             args.Handled = true;
         };
         SelectEntity(entityKey);
         SelectCard(card);
         editor.Focus();
         editor.SelectAll();
-        StatusText.Text = "Type the column name and press Enter";
+        StatusText.Text = "Type the column name, then press Enter or click elsewhere";
     }
     private TextBlock EnsureRelationshipLabel(string relationshipKey, string cardinality)
     {
