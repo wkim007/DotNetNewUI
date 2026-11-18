@@ -120,7 +120,7 @@ public partial class MainWindow
                 var visible = level == 1;
                 if (child is Border { Tag: AttributeSelection selection, Child: Grid row })
                 {
-                    var column = columns.FirstOrDefault(c => c.Name == selection.AttributeName);
+                    var column = columns.FirstOrDefault(c => selection.AttributeId is { } id ? c.Id == id : c.Name == selection.AttributeName);
                     if (column != null && row.Children.OfType<TextBlock>().FirstOrDefault(t => Grid.GetColumn(t) == 1) is { } label)
                     {
                         var sourceName = string.IsNullOrWhiteSpace(column.PhysicalName) ? column.ImportedPhysicalName : column.PhysicalName;
@@ -147,6 +147,18 @@ public partial class MainWindow
                 state.Detail.Visibility = Visibility.Visible;
             }
             else if (state.Detail is not null) state.Detail.Visibility = Visibility.Collapsed;
+            if (level == 1 && columns.Any(column => column.ParentId != null))
+            {
+                // Measure the complete rows, including indentation, badges and datatype labels.
+                fields.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                var requiredWidth = fields.DesiredSize.Width + card.Padding.Left + card.Padding.Right +
+                    card.BorderThickness.Left + card.BorderThickness.Right + 12;
+                state.Width = Math.Max(state.Width, requiredWidth);
+                if (card.Width < state.Width) { card.Width = state.Width; resized = true; }
+                fields.Measure(new Size(card.Width, double.PositiveInfinity));
+                state.Height = Math.Max(state.Height, 38 + fields.DesiredSize.Height +
+                    card.Padding.Top + card.Padding.Bottom + card.BorderThickness.Top + card.BorderThickness.Bottom + 12);
+            }
             var height = level switch { 0 => 40, 3 => 160, 7 => 115, 13 => 120, 5 or 12 => 60 + visibleRows * 29, _ => state.Height };
             if (card.Height != height) { card.Height = height; resized = true; }
         }

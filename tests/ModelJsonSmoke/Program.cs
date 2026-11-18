@@ -121,6 +121,42 @@ internal static class Program
         Check(migrated["workspace"]!["entities"]![0]!["id"]!.ToString().All(char.IsAsciiDigit), "Legacy text ID not migrated.");
         var source = Parse(System.IO.File.ReadAllText(args[0]));
         Call("ImportModelJson", source);
+        if (args.Contains("--nested"))
+        {
+            var nestedSource = (JsonArray)source["workspace"]!["entities"]![0]!["attributes"]!;
+            Check(nestedSource.Count > 30 && nestedSource.OfType<JsonObject>().Any(a => a["parentId"] != null), "Nested attributes were not imported.");
+            var nestedExport = (JsonObject)Call("ExportModelJson")!;
+            var savedAttributes = (JsonArray)nestedExport["workspace"]!["entities"]![0]!["attributes"]!;
+            foreach (var attribute in nestedSource.OfType<JsonObject>())
+            {
+                var saved = savedAttributes.OfType<JsonObject>().Single(a => a["id"]!.ToString() == attribute["id"]!.ToString());
+                Check(saved["parentId"]?.ToString() == attribute["parentId"]?.ToString() &&
+                    saved["datatype"]?.ToString() == attribute["datatype"]?.ToString(), "Nested parent or datatype changed.");
+            }
+            Call("ImportModelJson", Parse(nestedExport.ToJsonString()));
+            Check(databaseBox.Text == "JSON", "JSON database was not restored.");
+            Call("ApplyProjectViewMode");
+            var nestedKey = "Imported_" + source["workspace"]!["entities"]![0]!["id"]!.ToString();
+            var nestedCard = (System.Windows.Controls.Border)Call("FindCard", nestedKey)!;
+            nestedCard.Measure(new Size(nestedCard.Width, nestedCard.Height));
+            nestedCard.Arrange(new Rect(0, 0, nestedCard.Width, nestedCard.Height));
+            var nestedGrid = (System.Windows.Controls.Grid)nestedCard.Child;
+            var nestedFields = nestedGrid.Children.OfType<System.Windows.Controls.StackPanel>().First();
+            foreach (var row in nestedFields.Children.OfType<System.Windows.Controls.Border>().Where(r => r.Tag is AttributeSelection))
+            {
+                var layout = (System.Windows.Controls.Grid)row.Child;
+                var label = layout.Children.OfType<System.Windows.Controls.TextBlock>().Single(t => System.Windows.Controls.Grid.GetColumn(t) == 1);
+                var measured = new System.Windows.Controls.TextBlock { Text = label.Text, FontFamily = label.FontFamily, FontSize = label.FontSize, FontWeight = label.FontWeight };
+                measured.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                Check(label.ActualWidth + 1 >= measured.DesiredSize.Width, "Nested attribute label is clipped.");
+                var datatype = layout.Children.OfType<System.Windows.Controls.TextBlock>().Single(t => Equals(t.Tag, "ColumnDatatype"));
+                Check(datatype.TranslatePoint(new Point(datatype.ActualWidth, 0), nestedCard).X <= nestedCard.Width, "Nested datatype extends outside card.");
+                Check(row.TranslatePoint(new Point(0, row.ActualHeight), nestedCard).Y <= nestedCard.Height, "Nested row extends below card.");
+            }
+            Console.WriteLine($"PASS: {savedAttributes.Count} nested attributes imported and round-tripped with parent IDs and datatypes.");
+            window.Close(); app.Shutdown();
+            return;
+        }
         var levelSource = (JsonObject)source.DeepClone();
         var firstDiagram = levelSource["workspace"]!["subjectAreas"]![0]!["diagrams"]![0]!;
         firstDiagram["displayLevelPhysical"] = 5; firstDiagram["displayLevelLogical"] = 3;

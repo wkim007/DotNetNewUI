@@ -35,6 +35,7 @@ internal static class ModelJsonDocument
                 if (string.IsNullOrWhiteSpace(Text(obj, "name"))) throw new InvalidOperationException($"Object {id} has no name.");
                 obj["attributes"] ??= new JsonArray();
                 RequireArray(obj["attributes"], "attributes");
+                FlattenChildren(obj);
                 var attributes = new HashSet<string>();
                 foreach (var attribute in Items(obj["attributes"]))
                     if (!attributes.Add(RequiredId(attribute, "attribute"))) throw new InvalidOperationException($"Duplicate attribute ID in {id}.");
@@ -103,6 +104,24 @@ internal static class ModelJsonDocument
         return root;
     }
     internal static bool NumericId(string id) => id.Length > 0 && id.All(c => c >= '0' && c <= '9');
+
+    private static void FlattenChildren(JsonObject obj)
+    {
+        var flat = new JsonArray();
+        void Visit(JsonObject attribute, string? parent)
+        {
+            var copy = (JsonObject)attribute.DeepClone();
+            copy.Remove("children");
+            if (parent != null) copy["parentId"] = parent;
+            flat.Add(copy);
+            if (attribute["children"] is not { } children) return;
+            RequireArray(children, "children");
+            var id = RequiredId(attribute, "attribute");
+            foreach (var child in Items(children)) Visit(child, id);
+        }
+        foreach (var attribute in Items(obj["attributes"])) Visit(attribute, null);
+        obj["attributes"] = flat;
+    }
 
     internal static HashSet<string> ReservedIds(JsonNode? node)
     {

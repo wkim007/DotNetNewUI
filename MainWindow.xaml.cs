@@ -660,7 +660,7 @@ public partial class MainWindow : Window
         row.BorderBrush = new SolidColorBrush(Color.FromRgb(72, 173, 180));
         if (FindCard(selection.EntityKey) is { } card) SelectCard(card);
         SelectEntity(selection.EntityKey);
-        ColumnsGrid.SelectedItem = _columns[selection.EntityKey].FirstOrDefault(c => c.Name == selection.AttributeName);
+        ColumnsGrid.SelectedItem = _columns[selection.EntityKey].FirstOrDefault(c => selection.AttributeId is { } id ? c.Id == id : c.Name == selection.AttributeName);
         if (ColumnsGrid.SelectedItem is { } selectedColumn) ColumnsGrid.ScrollIntoView(selectedColumn);
         if (ColumnsGrid.SelectedItem is ColumnInfo attribute) ShowAttributeProperties(selection.EntityKey, attribute);
         StatusText.Text = $"Selected attribute: {selection.EntityKey}.{selection.AttributeName}";
@@ -1578,7 +1578,7 @@ public sealed record DynamicRelationship(string SourceKey, string TargetKey, Pat
 
 public sealed record ColumnMapping(Guid Parent, Guid Child);
 
-public sealed record AttributeSelection(string EntityKey, string AttributeName);
+public sealed record AttributeSelection(string EntityKey, string AttributeName, Guid? AttributeId = null);
 
 public sealed record AttributeDragData(string EntityKey, string AttributeName, Border Row);
 

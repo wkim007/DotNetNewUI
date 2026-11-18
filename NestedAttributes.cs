@@ -7,7 +7,7 @@ namespace ErwinStudioSample;
 public partial class MainWindow
 {
     private readonly HashSet<Guid> _collapsedAttributes = [];
-    private bool IsContainer(ColumnInfo column) => ProjectDatabaseBox.Text.Contains("mongo", StringComparison.OrdinalIgnoreCase) && (column.Type.Equals("object", StringComparison.OrdinalIgnoreCase) || column.Type.Equals("array", StringComparison.OrdinalIgnoreCase));
+    private bool IsContainer(ColumnInfo column) => column.Type.Equals("object", StringComparison.OrdinalIgnoreCase) || column.Type.Equals("array", StringComparison.OrdinalIgnoreCase);
     private bool HasChildren(ColumnInfo column) => ColumnsGrid.ItemsSource is IEnumerable<ColumnInfo> columns && columns.Any(c => c.ParentId == column.Id);
 
     private void NestedSelection_Changed(object sender, SelectionChangedEventArgs e)
@@ -65,7 +65,7 @@ public partial class MainWindow
             foreach (var column in columns.Where(c => c.ParentId == parent).OrderByDescending(c => c.IsPrimaryKey))
             {
                 if (depth == 0 && !column.IsPrimaryKey && !dividerAdded) { fields.Children.Add(CreatePkDivider(key)); dividerAdded = true; }
-                var row = new Border { Tag = new AttributeSelection(key, column.Name), Background = Brushes.Transparent, BorderBrush = Brushes.Transparent, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(8), Padding = new Thickness(7, 1, 7, 1), Margin = new Thickness(depth * 18, 1, 0, 1) };
+                var row = new Border { Tag = new AttributeSelection(key, column.Name, column.Id), Background = Brushes.Transparent, BorderBrush = Brushes.Transparent, BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(8), Padding = new Thickness(7, 1, 7, 1), Margin = new Thickness(depth * 18, 1, 0, 1) };
                 var layout = CreateAttributeLayout(column, column.Name);
                 // Reserve the expander space on every row so each depth adds a full indent.
                 layout.Margin = new Thickness(17, 2, 0, 2);
