@@ -67,6 +67,15 @@ internal static class ModelJsonDocument
         workspace["subjectAreas"] ??= new JsonArray();
         RequireArray(workspace["subjectAreas"], "subjectAreas");
         var areas = (JsonArray)workspace["subjectAreas"]!;
+        if (!Items(areas).Any(a => Text(a, "id") == "0") &&
+            Items(areas).FirstOrDefault(a => Text(a, "name") == "<model>") is { } defaultArea)
+        {
+            var previousId = Text(defaultArea, "id");
+            defaultArea["id"] = "0";
+            defaultArea["locked"] = true;
+            if (Text(root["meta"], "activeSubjectAreaId") == previousId)
+                root["meta"]!["activeSubjectAreaId"] = "0";
+        }
         if (!Items(areas).Any(a => Text(a, "id") == "0"))
             areas.Insert(0, new JsonObject { ["id"] = "0", ["name"] = "<model>", ["locked"] = true, ["diagrams"] = new JsonArray() });
         var areaIds = new HashSet<string>();

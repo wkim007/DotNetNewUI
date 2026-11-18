@@ -121,6 +121,21 @@ internal static class Program
         Check(migrated["workspace"]!["entities"]![0]!["id"]!.ToString().All(char.IsAsciiDigit), "Legacy text ID not migrated.");
         var source = Parse(System.IO.File.ReadAllText(args[0]));
         Call("ImportModelJson", source);
+        if (args.Contains("--mongodb"))
+        {
+            Check(databaseBox.Text == "MongoDB", "MongoDB selection lost.");
+            var mongo = (JsonObject)Call("ExportModelJson")!;
+            Check(mongo["meta"]!["activeSubjectAreaId"]!.ToString() == "0", "Default subject area was not normalized.");
+            Check(((JsonArray)mongo["workspace"]!["subjectAreas"]!).Count == 1, "Duplicate default subject area created.");
+            var users = ((JsonArray)mongo["workspace"]!["entities"]!).OfType<JsonObject>().Single(o => o["name"]!.ToString() == "users");
+            var attributes = ((JsonArray)users["attributes"]!).OfType<JsonObject>().ToArray();
+            Check(attributes.Length == 12 && attributes.Single(a => a["id"]!.ToString() == "17")["parentId"]!.ToString() == "16", "MongoDB nested tokens lost.");
+            Check(((JsonArray)mongo["workspace"]!["relationships"]!).Count == 1, "MongoDB relationship lost.");
+            Call("ImportModelJson", Parse(mongo.ToJsonString()));
+            Console.WriteLine("PASS: MongoDB default subject area, two collections, nested tokens and relationship import/export.");
+            window.Close(); app.Shutdown();
+            return;
+        }
         if (args.Contains("--nested"))
         {
             var nestedSource = (JsonArray)source["workspace"]!["entities"]![0]!["attributes"]!;
