@@ -80,7 +80,7 @@ public partial class MainWindow : Window
         };
         statusDescriptor.AddValueChanged(StatusText, updateWarningColor);
         Closed += (_, _) => statusDescriptor.RemoveValueChanged(StatusText, updateWarningColor);
-        ProjectDatabaseBox.AddHandler(System.Windows.Controls.Primitives.TextBoxBase.TextChangedEvent, new TextChangedEventHandler((_, _) => ApplyProjectViewMode()));
+        InitializeDatabases();
         InitializeAiFeatures();
         InitializeMultiSelection();
         PreviewKeyDown += DiagramRelationship_KeyDown;

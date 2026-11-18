@@ -193,11 +193,11 @@
                             <TextBlock Text="View Mode"/>
                             <ComboBox x:Name="ViewModeBox" SelectedIndex="0" SelectionChanged="ProjectViewMode_Changed"><ComboBoxItem Content="Physical View"/><ComboBoxItem Content="Logical View"/></ComboBox>
                             <TextBlock Text="Database"/>
-                            <ComboBox x:Name="ProjectDatabaseBox" IsEditable="True" Text="SQL Server"><ComboBoxItem Content="SQL Server"/><ComboBoxItem Content="PostgreSQL"/><ComboBoxItem Content="AlloyDB"/><ComboBoxItem Content="Oracle"/><ComboBoxItem Content="MySQL"/><ComboBoxItem Content="SQLite"/><ComboBoxItem Content="MongoDB"/><ComboBoxItem Content="Neo4j"/></ComboBox>
+                            <ComboBox x:Name="ProjectDatabaseBox" IsEditable="True" MaxDropDownHeight="400"/>
                             <TextBlock Text="Diagram Display Level"/>
                             <ComboBox x:Name="DiagramDisplayLevelBox" DisplayMemberPath="Name" SelectionChanged="DiagramDisplayLevel_Changed"/>
                             <TextBlock Text="Database Version"/>
-                            <TextBox x:Name="ProjectVersionBox" Text="2022"/>
+                            <ComboBox x:Name="ProjectVersionBox" IsEditable="True"/>
                             <TextBlock Text="Subject Area"/>
                             <ComboBox x:Name="ProjectSubjectBox" DisplayMemberPath="Name" SelectionChanged="SubjectArea_Changed"/>
                             <Button Style="{StaticResource ProjectSettingsButton}" Content="＋  Add Subject Area" Click="AddSubjectArea_Click" Margin="0,8,0,0"/>

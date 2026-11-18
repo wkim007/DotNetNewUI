@@ -44,12 +44,7 @@ public partial class MainWindow
         var meta = root["meta"] as JsonObject ?? new JsonObject();
         root["meta"] = null; root["meta"] = meta;
         SaveNsm(meta);
-        meta["db"] ??= ProjectDatabaseBox.Text;
-        meta["dbMajorVersion"] ??= ProjectVersionBox.Text.Split('.')[0];
-        meta["dbMinorVersion"] ??= "0";
-        meta["modelType"] ??= "3";
-        meta["databaseName"] = ProjectDatabaseBox.Text;
-        meta["databaseVersion"] = ProjectVersionBox.Text;
+        ExportDatabase(meta);
         meta["viewMode"] = ViewModeBox.SelectedIndex == 1 ? "logical" : "physical";
         meta["migratedColumnHighlights"] = _migratedHighlights;
         meta["migratedColumnColor"] = _migratedHighlightColor;

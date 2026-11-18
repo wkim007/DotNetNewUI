@@ -153,8 +153,7 @@ public partial class MainWindow
             ProjectSubjectBox.SelectedItem = areas.First(a => a.Id == target.SubjectAreaId);
             SwitchDiagram(target);
             _diagramNumber = Math.Max(diagrams.Count, (int)Number(root["meta"], "nextDiagramSeq", diagrams.Count + 1) - 1);
-            if (!string.IsNullOrWhiteSpace(Text(root["meta"], "databaseName"))) ProjectDatabaseBox.Text = Text(root["meta"], "databaseName");
-            if (!string.IsNullOrWhiteSpace(Text(root["meta"], "databaseVersion"))) ProjectVersionBox.Text = Text(root["meta"], "databaseVersion");
+            RestoreDatabase(root["meta"]);
             ViewModeBox.SelectedIndex = Text(root["meta"], "viewMode") == "logical" ? 1 : 0;
             SaveActiveDiagram();
             StatusText.Text = $"Imported {objects.Count} objects, {diagrams.Count} diagrams and {areas.Count} subject areas.";
