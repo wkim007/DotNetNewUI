@@ -87,7 +87,13 @@ public partial class MainWindow : Window
         InitializeDrawingPalette();
         InitializeDiagramClipboard();
         UpdateDiagramTools();
-        DiagramCanvasSurface.LayoutUpdated += (_, _) => { ResizeDiagramSurfaceToViewport(); ApplyProjectViewMode(); ApplyTheme(); UpdateDrawingConnectors(); RefreshEndpointHandles(); };
+        DiagramCanvasSurface.LayoutUpdated += (_, _) =>
+        {
+            ResizeDiagramSurfaceToViewport();
+            if (_draggedCard is null) { ApplyProjectViewMode(); ApplyTheme(); }
+            UpdateDrawingConnectors();
+            RefreshEndpointHandles();
+        };
         _entityHoldTimer.Tick += EntityHoldTimer_Tick;
         SelectEntity("Order");
         SelectCard(OrderCard);

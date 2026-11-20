@@ -17,6 +17,8 @@ public partial class MainWindow
         public double Height, Width;
         public CornerRadius Corner;
         public TextBlock? Detail;
+        public string? MeasuredContent;
+        public double RequiredWidth, RequiredHeight;
     }
     private bool IsNeo4j => ProjectDatabaseBox.Text.Trim().Equals("Neo4j", StringComparison.OrdinalIgnoreCase);
     private int DiagramDisplayLevel => ViewModeBox.SelectedIndex == 1 ? _activeDiagram?.DisplayLevelLogical ?? 1 : _activeDiagram?.DisplayLevelPhysical ?? 1;
@@ -149,15 +151,20 @@ public partial class MainWindow
             else if (state.Detail is not null) state.Detail.Visibility = Visibility.Collapsed;
             if (level == 1 && columns.Any(column => column.ParentId != null))
             {
-                // Measure the complete rows, including indentation, badges and datatype labels.
-                fields.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-                var requiredWidth = fields.DesiredSize.Width + card.Padding.Left + card.Padding.Right +
-                    card.BorderThickness.Left + card.BorderThickness.Right + 12;
-                state.Width = Math.Max(state.Width, requiredWidth);
+                var signature = string.Join("\n", fields.Children.OfType<Border>().Select(row =>
+                    row.Margin + "|" + string.Join("|", Descendants<TextBlock>(row).Select(text =>
+                        $"{text.Text}:{text.FontFamily.Source}:{text.FontSize}:{text.FontWeight}:{text.Visibility}"))));
+                if (state.MeasuredContent != signature)
+                {
+                    // Changing the measure constraint on every layout pass continually invalidates WPF layout.
+                    fields.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                    state.RequiredWidth = fields.DesiredSize.Width + card.Padding.Left + card.Padding.Right + 16;
+                    state.RequiredHeight = 38 + fields.DesiredSize.Height + card.Padding.Top + card.Padding.Bottom + 16;
+                    state.MeasuredContent = signature;
+                }
+                state.Width = Math.Max(state.Width, state.RequiredWidth);
                 if (card.Width < state.Width) { card.Width = state.Width; resized = true; }
-                fields.Measure(new Size(card.Width, double.PositiveInfinity));
-                state.Height = Math.Max(state.Height, 38 + fields.DesiredSize.Height +
-                    card.Padding.Top + card.Padding.Bottom + card.BorderThickness.Top + card.BorderThickness.Bottom + 12);
+                state.Height = Math.Max(state.Height, state.RequiredHeight);
             }
             var height = level switch { 0 => 40, 3 => 160, 7 => 115, 13 => 120, 5 or 12 => 60 + visibleRows * 29, _ => state.Height };
             if (card.Height != height) { card.Height = height; resized = true; }
